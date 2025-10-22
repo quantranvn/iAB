@@ -1,0 +1,41 @@
+{
+  "name": "Scooter Smart Lights",
+  "short_name": "Smart Lights",
+  "description": "Control your scooter's smart light animation system via Bluetooth",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#030213",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["utilities", "lifestyle"],
+  "shortcuts": [
+    {
+      "name": "Animation",
+      "short_name": "Animation",
+      "description": "Control light animations",
+      "url": "/?mode=animation",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Bluetooth",
+      "short_name": "Connect",
+      "description": "Bluetooth connection",
+      "url": "/?mode=bluetooth",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    }
+  ]
+}
