@@ -3,7 +3,7 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTr
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "./components/ui/dialog";
 import { LightControl } from "./components/LightControl";
 import { AnimationControl } from "./components/AnimationControl";
-import { BluetoothConnection } from "./components/BluetoothConnection";
+import { BluetoothConnection, BluetoothConnectionResult } from "./components/BluetoothConnection";
 import { PresetsManager } from "./components/PresetsManager";
 import { InstallPrompt } from "./components/InstallPrompt";
 import { Toaster } from "./components/ui/sonner";
@@ -28,11 +28,12 @@ interface LightSettings {
 }
 
 export default function App() {
-  const [isBluetoothConnected, setIsBluetoothConnected] = useState(true);
+  const [isBluetoothConnected, setIsBluetoothConnected] = useState(false);
   const [bluetoothDialogOpen, setBluetoothDialogOpen] = useState(false);
   const [presetsDialogOpen, setPresetsDialogOpen] = useState(false);
   const [commandLogOpen, setCommandLogOpen] = useState(false);
   const [bluetoothDevice, setBluetoothDevice] = useState<BluetoothDevice | null>(null);
+  const [bluetoothCharacteristic, setBluetoothCharacteristic] = useState<BluetoothRemoteGATTCharacteristic | null>(null);
   const [commandHistory, setCommandHistory] = useState<CommandLogEntry[]>([]);
 
   const [turnIndicator, setTurnIndicator] = useState<LightSettings>({
@@ -89,7 +90,7 @@ export default function App() {
     // Only send via Bluetooth if connected
     if (isBluetoothConnected) {
       try {
-        await BluetoothCommandGenerator.sendCommand(bluetoothDevice, command);
+        await BluetoothCommandGenerator.sendCommand(bluetoothCharacteristic, command);
       } catch (error) {
         console.error('Failed to send color command:', error);
       }
@@ -114,7 +115,7 @@ export default function App() {
     // Only send via Bluetooth if connected
     if (isBluetoothConnected) {
       try {
-        await BluetoothCommandGenerator.sendCommand(bluetoothDevice, command);
+        await BluetoothCommandGenerator.sendCommand(bluetoothCharacteristic, command);
       } catch (error) {
         console.error('Failed to send animation command:', error);
       }
@@ -129,17 +130,51 @@ export default function App() {
     setter((prev) => ({ ...prev, [key]: value[0] }));
   };
 
-  const handleBluetoothConnect = (deviceId: string) => {
-    // Simulate connection
-    setTimeout(() => {
-      setIsBluetoothConnected(true);
-      setBluetoothDialogOpen(false);
-    }, 1000);
+  const handleBluetoothConnect = ({ device, characteristic }: BluetoothConnectionResult) => {
+    setBluetoothDevice(device);
+    setBluetoothCharacteristic(characteristic);
+    setIsBluetoothConnected(true);
+    setBluetoothDialogOpen(false);
+    toast.success(`Connected to ${device.name ?? "Bluetooth device"}`);
   };
 
   const handleBluetoothDisconnect = () => {
-    setIsBluetoothConnected(false);
+    try {
+      const device = bluetoothCharacteristic?.service?.device ?? bluetoothDevice;
+
+      if (device?.gatt?.connected) {
+        device.gatt.disconnect();
+      }
+    } catch (error) {
+      console.error('Error while disconnecting Bluetooth device:', error);
+    } finally {
+      setIsBluetoothConnected(false);
+      setBluetoothCharacteristic(null);
+      setBluetoothDevice(null);
+      toast.message('Bluetooth connection closed');
+    }
   };
+
+  useEffect(() => {
+    const device = bluetoothCharacteristic?.service?.device ?? bluetoothDevice;
+
+    if (!device) {
+      return;
+    }
+
+    const handleDisconnect = () => {
+      setIsBluetoothConnected(false);
+      setBluetoothCharacteristic(null);
+      setBluetoothDevice(null);
+      toast.warning(`${device.name ?? "Bluetooth device"} disconnected`);
+    };
+
+    device.addEventListener('gattserverdisconnected', handleDisconnect);
+
+    return () => {
+      device.removeEventListener('gattserverdisconnected', handleDisconnect);
+    };
+  }, [bluetoothCharacteristic, bluetoothDevice]);
 
   const handleLoadPreset = (preset: any) => {
     setTurnIndicator(preset.turnIndicator);
@@ -255,6 +290,7 @@ export default function App() {
                 </DialogHeader>
                 <BluetoothConnection
                   isConnected={isBluetoothConnected}
+                  connectedDevice={bluetoothCharacteristic?.service?.device ?? bluetoothDevice}
                   onConnect={handleBluetoothConnect}
                   onDisconnect={handleBluetoothDisconnect}
                 />

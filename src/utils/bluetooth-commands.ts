@@ -69,27 +69,43 @@ export class BluetoothCommandGenerator {
   }
 
   /**
-   * Send command via Web Bluetooth API
-   * This is a placeholder - actual implementation would require:
-   * 1. Bluetooth characteristic UUID from the scooter's BLE service
-   * 2. Proper connection handling
+   * Send command via Web Bluetooth API.
+   * Falls back to logging-only mode when no active characteristic is available.
    */
   static async sendCommand(
-    device: BluetoothDevice | null,
+    characteristic: BluetoothRemoteGATTCharacteristic | null,
     command: Uint8Array
   ): Promise<void> {
-    if (!device || !device.gatt?.connected) {
-      // In mock mode, just log the command without error
-      console.log('[Mock] AT Command (not sent - no device):', this.commandToHexString(command));
+    if (!characteristic) {
+      console.log('[Mock] AT Command (not sent - no characteristic):', this.commandToHexString(command));
+      return;
+    }
+
+    const service = characteristic.service;
+    const device = service?.device;
+    const gattServer = device?.gatt ?? null;
+
+    if (!service || !device || !gattServer) {
+      console.warn('[BLE] Missing GATT context for characteristic, falling back to mock log.');
+      console.log('[Mock] AT Command (no GATT context):', this.commandToHexString(command));
       return;
     }
 
     try {
-      // Placeholder for actual BLE characteristic
-      // const service = await device.gatt.getPrimaryService('YOUR_SERVICE_UUID');
-      // const characteristic = await service.getCharacteristic('YOUR_CHARACTERISTIC_UUID');
-      // await characteristic.writeValue(command);
-      
+      if (!gattServer.connected) {
+        await gattServer.connect();
+      }
+
+      if (typeof characteristic.writeValueWithoutResponse === 'function') {
+        await characteristic.writeValueWithoutResponse(command);
+      } else if (typeof characteristic.writeValueWithResponse === 'function') {
+        await characteristic.writeValueWithResponse(command);
+      } else if (typeof characteristic.writeValue === 'function') {
+        await characteristic.writeValue(command);
+      } else {
+        throw new Error('Bluetooth characteristic does not support writing');
+      }
+
       console.log('[BLE] Sending AT Command:', this.commandToHexString(command));
       console.log('[BLE] Command bytes:', Array.from(command));
     } catch (error) {
