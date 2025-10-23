@@ -50,30 +50,30 @@ export default function App() {
 
   const [turnIndicator, setTurnIndicator] = useState<LightSettings>({
     red: 255,
-    green: 255,
+    green: 165,
     blue: 0,
-    intensity: 80,
+    intensity: 100,
   });
 
   const [lowBeam, setLowBeam] = useState<LightSettings>({
-    red: 0,
-    green: 255,
-    blue: 0,
+    red: 255,
+    green: 0,
+    blue: 200,
     intensity: 80,
   });
 
   const [highBeam, setHighBeam] = useState<LightSettings>({
-    red: 0,
-    green: 0,
+    red: 255,
+    green: 255,
     blue: 255,
-    intensity: 80,
+    intensity: 100,
   });
 
   const [brakeLight, setBrakeLight] = useState<LightSettings>({
     red: 255,
     green: 0,
     blue: 0,
-    intensity: 80,
+    intensity: 100,
   });
 
   const [animation, setAnimation] = useState<LightSettings>({
