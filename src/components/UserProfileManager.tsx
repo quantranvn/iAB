@@ -40,7 +40,6 @@ interface UserProfile {
   userId: string;
   username: string;
   vehicles: VehicleProfile[];
-  connectedToAppStore: boolean;
 }
 
 interface UserProfileManagerProps {
@@ -53,12 +52,13 @@ interface UserProfileManagerProps {
     animationScenario: number;
   };
   onLoadPreset: (preset: Preset) => void;
+  appStoreConnected: boolean;
+  onToggleAppStoreConnection: () => void;
 }
 
 const initialProfile: UserProfile = {
   userId: "rider-001",
   username: "Night Rider",
-  connectedToAppStore: false,
   vehicles: [
     {
       id: "SCT-042",
@@ -98,6 +98,8 @@ const initialProfile: UserProfile = {
 export function UserProfileManager({
   currentSettings,
   onLoadPreset,
+  appStoreConnected,
+  onToggleAppStoreConnection,
 }: UserProfileManagerProps) {
   const [userProfile, setUserProfile] = useState<UserProfile>(initialProfile);
   const [selectedVehicleId, setSelectedVehicleId] = useState<string>(
@@ -115,18 +117,6 @@ export function UserProfileManager({
       const value = event.target.value;
       setUserProfile((prev) => ({ ...prev, [field]: value }));
     };
-
-  const handleToggleAppStoreConnection = () => {
-    setUserProfile((prev) => {
-      const connected = !prev.connectedToAppStore;
-      toast.success(
-        connected
-          ? "Connected to Scooter AppStore"
-          : "Disconnected from Scooter AppStore"
-      );
-      return { ...prev, connectedToAppStore: connected };
-    });
-  };
 
   const handleAddVehicle = () => {
     const vehicleId = newVehicleId.trim();
@@ -398,13 +388,11 @@ export function UserProfileManager({
           packs.
         </p>
         <Button
-          variant={userProfile.connectedToAppStore ? "default" : "outline"}
-          onClick={handleToggleAppStoreConnection}
+          variant={appStoreConnected ? "default" : "outline"}
+          onClick={onToggleAppStoreConnection}
         >
           <Store className="w-4 h-4 mr-2" />
-          {userProfile.connectedToAppStore
-            ? "Connected to AppStore"
-            : "Connect to AppStore"}
+          {appStoreConnected ? "Connected to AppStore" : "Connect to AppStore"}
         </Button>
       </section>
     </div>

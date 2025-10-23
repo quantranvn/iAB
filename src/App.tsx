@@ -7,11 +7,12 @@ import { BluetoothConnection } from "./components/BluetoothConnection";
 import { UserProfileManager } from "./components/UserProfileManager";
 import { InstallPrompt } from "./components/InstallPrompt";
 import { Toaster } from "./components/ui/sonner";
-import { 
+import {
   Sparkles,
   Bookmark,
   Bluetooth,
-  BluetoothOff
+  BluetoothOff,
+  Store,
 } from "lucide-react";
 import { Button } from "./components/ui/button";
 import { TurnSignalIcon, LowBeamIcon, HighBeamIcon, BrakeLightIcon } from "./components/icons/AutomotiveIcons";
@@ -43,6 +44,7 @@ export default function App() {
   const [commandLogOpen, setCommandLogOpen] = useState(false);
   const [connectionTransport, setConnectionTransport] = useState<BluetoothConnectionTransport | null>(null);
   const [commandHistory, setCommandHistory] = useState<CommandLogEntry[]>([]);
+  const [appStoreConnected, setAppStoreConnected] = useState(false);
 
   const [turnIndicator, setTurnIndicator] = useState<LightSettings>({
     red: 255,
@@ -223,6 +225,16 @@ export default function App() {
     setPresetsDialogOpen(false);
   };
 
+  const toggleAppStoreConnection = () => {
+    setAppStoreConnected((previous) => {
+      const next = !previous;
+      toast.success(
+        next ? "Connected to Scooter AppStore" : "Disconnected from Scooter AppStore"
+      );
+      return next;
+    });
+  };
+
   const lightButtons = [
     {
       id: "animation",
@@ -282,7 +294,17 @@ export default function App() {
           <p className="text-muted-foreground">Control your light animations</p>
           
           {/* Action Buttons */}
-          <div className="flex gap-2 justify-center">
+          <div className="flex flex-wrap gap-2 justify-center">
+            <Button
+              variant={appStoreConnected ? "default" : "outline"}
+              size="sm"
+              onClick={toggleAppStoreConnection}
+              className="flex items-center gap-2"
+            >
+              <Store className="w-4 h-4" />
+              {appStoreConnected ? "AppStore Linked" : "AppStore"}
+            </Button>
+
             <Dialog open={presetsDialogOpen} onOpenChange={setPresetsDialogOpen}>
               <DialogTrigger asChild>
                 <Button variant="outline" size="sm">
@@ -308,6 +330,8 @@ export default function App() {
                     animationScenario,
                   }}
                   onLoadPreset={handleLoadPreset}
+                  appStoreConnected={appStoreConnected}
+                  onToggleAppStoreConnection={toggleAppStoreConnection}
                 />
               </DialogContent>
             </Dialog>
@@ -465,24 +489,6 @@ export default function App() {
           })}
         </div>
 
-        {/* Status Footer */}
-        <div className="text-center pt-4">
-          <button
-            onClick={() => setBluetoothDialogOpen(true)}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-full border-2 transition-all hover:scale-105"
-            style={{
-              backgroundColor: isBluetoothConnected ? 'rgb(34 197 94 / 0.1)' : 'rgb(239 68 68 / 0.1)',
-              borderColor: isBluetoothConnected ? 'rgb(34 197 94 / 0.2)' : 'rgb(239 68 68 / 0.2)',
-            }}
-          >
-            <div 
-              className={`w-2 h-2 rounded-full ${isBluetoothConnected ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}
-            />
-            <span className={isBluetoothConnected ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}>
-              {isBluetoothConnected ? 'Connected' : 'Disconnected'}
-            </span>
-          </button>
-        </div>
       </div>
     </div>
   );
