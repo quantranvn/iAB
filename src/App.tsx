@@ -375,7 +375,7 @@ export default function App() {
                   </button>
                 </SheetTrigger>
 
-                <SheetContent side="bottom" className="h-[85vh] overflow-y-auto">
+                <SheetContent side="bottom" className="h-[85vh] overflow-y-auto px-2 pb-6">
                   <SheetHeader className="pb-6">
                     <SheetTitle className="flex items-center gap-3">
                       <div className={`p-3 rounded-lg bg-gradient-to-r ${button.gradient}`}>
