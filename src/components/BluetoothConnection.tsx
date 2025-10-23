@@ -2,8 +2,14 @@ import { useEffect, useMemo, useState } from "react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
-import { Separator } from "./ui/separator";
-import { Bluetooth, BluetoothConnected, Loader2 } from "lucide-react";
+import {
+  AlertCircle,
+  Bluetooth,
+  BluetoothConnected,
+  Loader2,
+  Plug,
+  Settings,
+} from "lucide-react";
 import { RadioGroup, RadioGroupItem } from "./ui/radio-group";
 import { BluetoothConnectionTransport } from "../utils/bluetooth-types";
 
@@ -141,55 +147,52 @@ export function BluetoothConnection({ transport, onConnect, onDisconnect }: Blue
 
   if (isConnected) {
     return (
-      <div className="space-y-8 pb-4">
-        <section className="space-y-6 rounded-2xl border bg-card p-6">
-          <div className="space-y-2">
-            <h2 className="text-xl font-semibold tracking-tight">Connected Device</h2>
-            <p className="text-sm text-muted-foreground">
-              Linked to {connectedName ?? "your scooter"}. You can now send lighting commands.
+      <div className="space-y-8 pb-8">
+        <section className="space-y-4">
+          <div className="flex items-center gap-3 text-primary">
+            <BluetoothConnected className="h-5 w-5" />
+            <h3 className="text-lg font-semibold">Connected Device</h3>
+          </div>
+          <div className="rounded-lg border border-primary/40 bg-primary/10 p-4">
+            <p className="text-sm font-medium text-primary">
+              Linked to {connectedName ?? "your scooter"}.
+            </p>
+            <p className="mt-1 text-xs text-primary/80">
+              You can now send commands and manage lighting presets.
             </p>
           </div>
-
-          <div className="flex items-center justify-between rounded-xl border border-primary/30 bg-primary/10 px-4 py-3">
-            <div className="flex items-center gap-3 text-primary">
-              <BluetoothConnected className="h-5 w-5" />
-              <span className="font-medium">Status: Connected</span>
-            </div>
-            <span className="flex items-center gap-2 text-sm text-primary">
-              <span className="h-2.5 w-2.5 rounded-full bg-green-500 animate-pulse" />
-              Ready
-            </span>
-          </div>
-
           {statusMessage && (
-            <div className="rounded-xl border border-primary/20 bg-primary/10 px-4 py-3 text-sm text-primary">
-              {statusMessage}
+            <div className="flex items-start gap-2 rounded-lg border border-primary/30 bg-primary/5 p-3 text-sm text-primary">
+              <Plug className="h-4 w-4" />
+              <span>{statusMessage}</span>
             </div>
           )}
-
           {errorMessage && (
-            <div className="rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-              {errorMessage}
+            <div className="flex items-start gap-2 rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
+              <AlertCircle className="h-4 w-4" />
+              <span>{errorMessage}</span>
             </div>
           )}
-
           <Button
             onClick={() => {
-              setStatusMessage('Disconnected');
+              setStatusMessage("Disconnected");
               Promise.resolve(onDisconnect()).catch((error) => {
-                console.error('Failed to disconnect from device:', error);
+                console.error("Failed to disconnect from device:", error);
                 setErrorMessage(
                   error instanceof Error
                     ? error.message
-                    : 'Unable to close the current connection. Please try again.'
+                    : "Unable to close the current connection. Please try again."
                 );
               });
             }}
             variant="destructive"
             size="lg"
-            className="w-full"
+            className="w-full justify-center"
           >
-            Disconnect
+            <span className="flex items-center gap-2 font-semibold">
+              <BluetoothConnected className="h-4 w-4" />
+              Disconnect
+            </span>
           </Button>
         </section>
       </div>
@@ -197,28 +200,27 @@ export function BluetoothConnection({ transport, onConnect, onDisconnect }: Blue
   }
 
   return (
-    <div className="space-y-8 pb-4">
-      <section className="space-y-6 rounded-2xl border bg-card p-6">
-        <div className="space-y-2">
-          <h2 className="text-xl font-semibold tracking-tight">Connection Method</h2>
-          <p className="text-sm text-muted-foreground">
-            Choose how you want to link to your scooter's lighting controller.
-          </p>
+    <div className="space-y-8 pb-8">
+      <section className="space-y-4">
+        <div className="flex items-center gap-3 text-muted-foreground">
+          <Bluetooth className="h-5 w-5" />
+          <h3 className="text-lg font-semibold text-foreground">Connection Method</h3>
         </div>
-
-        <Separator />
+        <p className="text-sm text-muted-foreground">
+          Choose how you want to link to your scooter's lighting controller.
+        </p>
 
         <RadioGroup
           value={connectionType}
           onValueChange={(value) => setConnectionType(value as ConnectionType)}
-          className="grid grid-cols-1 gap-3 sm:grid-cols-2"
+          className="grid gap-3 sm:grid-cols-2"
         >
           <Label
             htmlFor="connection-ble"
-            className={`flex h-full cursor-pointer flex-col justify-between gap-3 rounded-xl border px-4 py-5 transition-all ${
+            className={`flex h-full cursor-pointer flex-col gap-3 rounded-lg border p-4 transition-colors ${
               connectionType === "ble"
-                ? "border-primary bg-primary/5 shadow-sm"
-                : "border-border hover:border-primary/60"
+                ? "border-primary bg-primary/5"
+                : "border-border hover:border-primary/50"
             }`}
           >
             <div className="flex items-start gap-3">
@@ -226,17 +228,17 @@ export function BluetoothConnection({ transport, onConnect, onDisconnect }: Blue
               <div>
                 <p className="font-medium">BLE Module</p>
                 <p className="text-xs text-muted-foreground">
-                  Pair through the Web Bluetooth API with HM-10 or similar BLE modules.
+                  Pair through the Web Bluetooth API with HM-10 or similar modules.
                 </p>
               </div>
             </div>
           </Label>
           <Label
             htmlFor="connection-serial"
-            className={`flex h-full cursor-pointer flex-col justify-between gap-3 rounded-xl border px-4 py-5 transition-all ${
+            className={`flex h-full cursor-pointer flex-col gap-3 rounded-lg border p-4 transition-colors ${
               connectionType === "serial"
-                ? "border-primary bg-primary/5 shadow-sm"
-                : "border-border hover:border-primary/60"
+                ? "border-primary bg-primary/5"
+                : "border-border hover:border-primary/50"
             }`}
           >
             <div className="flex items-start gap-3">
@@ -244,7 +246,7 @@ export function BluetoothConnection({ transport, onConnect, onDisconnect }: Blue
               <div>
                 <p className="font-medium">HC-05 Serial</p>
                 <p className="text-xs text-muted-foreground">
-                  Use the Web Serial API after pairing the HC-05 module with your operating system.
+                  Use the Web Serial API after pairing the HC-05 with your OS.
                 </p>
               </div>
             </div>
@@ -252,20 +254,19 @@ export function BluetoothConnection({ transport, onConnect, onDisconnect }: Blue
         </RadioGroup>
       </section>
 
-      <section className="space-y-6 rounded-2xl border bg-card p-6">
-        <div className="space-y-2">
-          <h2 className="text-xl font-semibold tracking-tight">Configuration</h2>
-          <p className="text-sm text-muted-foreground">
-            {connectionType === "ble"
-              ? "Update service details if your BLE controller uses custom UUIDs."
-              : "Set the baud rate that matches your scooter's HC-05 module."}
-          </p>
+      <section className="space-y-4">
+        <div className="flex items-center gap-3 text-muted-foreground">
+          <Settings className="h-5 w-5" />
+          <h3 className="text-lg font-semibold text-foreground">Configuration</h3>
         </div>
-
-        <Separator />
+        <p className="text-sm text-muted-foreground">
+          {connectionType === "ble"
+            ? "Update service details if your BLE controller uses custom UUIDs."
+            : "Set the baud rate that matches your scooter's HC-05 module."}
+        </p>
 
         {connectionType === "ble" ? (
-          <div className="space-y-4">
+          <div className="grid gap-3">
             <div className="space-y-1">
               <Label htmlFor="ble-service">Service UUID</Label>
               <Input
@@ -296,7 +297,9 @@ export function BluetoothConnection({ transport, onConnect, onDisconnect }: Blue
               max={230400}
               step={100}
               value={baudRate}
-              onChange={(event) => setBaudRate(Number(event.target.value) || DEFAULT_BAUD_RATE)}
+              onChange={(event) =>
+                setBaudRate(Number(event.target.value) || DEFAULT_BAUD_RATE)
+              }
             />
             <p className="text-xs text-muted-foreground">
               Default is 9600 bps. Make sure it matches your module configuration.
@@ -305,48 +308,42 @@ export function BluetoothConnection({ transport, onConnect, onDisconnect }: Blue
         )}
       </section>
 
-      <section className="space-y-4 rounded-2xl border bg-card p-6">
-        <div className="space-y-3">
-          {errorMessage && (
-            <div className="rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-              {errorMessage}
-            </div>
-          )}
-
-          {!errorMessage && statusMessage && (
-            <div className="rounded-xl border border-primary/20 bg-primary/10 px-4 py-3 text-sm text-primary">
-              {statusMessage}
-            </div>
-          )}
+      <section className="space-y-4">
+        <div className="flex items-center gap-3 text-muted-foreground">
+          <Plug className="h-5 w-5" />
+          <h3 className="text-lg font-semibold text-foreground">Link Status</h3>
         </div>
+
+        {errorMessage ? (
+          <div className="flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+            <AlertCircle className="h-4 w-4" />
+            <span>{errorMessage}</span>
+          </div>
+        ) : statusMessage ? (
+          <div className="flex items-start gap-2 rounded-lg border border-primary/30 bg-primary/5 p-3 text-sm text-primary">
+            <Bluetooth className="h-4 w-4" />
+            <span>{statusMessage}</span>
+          </div>
+        ) : (
+          <div className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">
+            Waiting to connect to a scooter.
+          </div>
+        )}
 
         <Button
           onClick={requestDevice}
           disabled={isConnecting}
           size="lg"
-          className="relative w-full justify-between overflow-hidden"
+          className="w-full justify-center"
         >
-          <span className="flex items-center gap-2">
+          <span className="flex items-center gap-2 font-semibold">
             {isConnecting ? (
               <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
               <Bluetooth className="h-4 w-4" />
             )}
-            <span>{isConnecting ? "Connecting..." : "Connect to Device"}</span>
+            {isConnecting ? "Connecting..." : "Connect to Device"}
           </span>
-
-          <span className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-            <span
-              className={`h-2.5 w-2.5 rounded-full ${
-                isConnecting ? "bg-amber-500 animate-pulse" : "bg-destructive"
-              }`}
-            />
-            {isConnecting ? "In progress" : "Disconnected"}
-          </span>
-
-          {isConnecting && (
-            <div className="absolute inset-0 animate-pulse bg-primary/15" />
-          )}
         </Button>
       </section>
     </div>
