@@ -313,19 +313,7 @@ export function BluetoothConnection({ transport, onConnect, onDisconnect }: Blue
       </section>
 
       <section className="space-y-6 rounded-2xl border bg-card p-6">
-        <div className="space-y-3">
-          {errorMessage && (
-            <div className="rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-              {errorMessage}
-            </div>
-          )}
 
-          {!errorMessage && statusMessage && (
-            <div className="rounded-xl border border-primary/20 bg-primary/10 px-4 py-3 text-sm text-primary">
-              {statusMessage}
-            </div>
-          )}
-        </div>
 
         {errorMessage ? (
           <div className="flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
