@@ -114,9 +114,15 @@ export function AnimationControl({
             );
           })}
         </div>
-      </div>
+      </section>
 
-      <Separator />
+      <section className="space-y-6 rounded-2xl border bg-card p-6">
+        <div className="space-y-2">
+          <h2 className="text-xl font-semibold tracking-tight">Base Color</h2>
+          <p className="text-sm text-muted-foreground">
+            Fine-tune the RGB mix and brightness for your animation.
+          </p>
+        </div>
 
       <div className="space-y-5">
         <div className="space-y-3">
