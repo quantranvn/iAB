@@ -94,9 +94,9 @@ export function AnimationControl({
         };
 
   return (
-    <div className="space-y-10 pb-12">
+    <div className="space-y-6 pb-6">
       <section className="space-y-6 rounded-2xl border bg-card p-6">
-        <div className="space-y-2">
+        <div className="space-y-4">
           <h2 className="text-xl font-semibold tracking-tight">Select Animation Scenario</h2>
           <p className="text-sm text-muted-foreground">
             Choose an animation effect to send to your scooter lights.
