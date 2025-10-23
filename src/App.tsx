@@ -28,6 +28,15 @@ interface LightSettings {
   intensity: number;
 }
 
+const BASIC_LIGHT_TYPES = {
+  lowBeam: 1,
+  highBeam: 2,
+  turnLight: 3,
+  brakeLight: 4,
+} as const;
+
+const ANIMATION_SCENARIO_NAMES = ["", "Rainbow Flow", "Lightning Pulse", "Ocean Wave", "Starlight"];
+
 export default function App() {
   const [bluetoothDialogOpen, setBluetoothDialogOpen] = useState(false);
   const [presetsDialogOpen, setPresetsDialogOpen] = useState(false);
@@ -75,19 +84,24 @@ export default function App() {
   // Send AT command when settings change
   const isBluetoothConnected = connectionTransport !== null;
 
-  const sendColorCommand = async (settings: LightSettings, description: string = "Color update") => {
-    const command = BluetoothCommandGenerator.generateColorCommand(settings);
+  const sendBasicLightCommand = async (
+    type: number,
+    settings: LightSettings,
+    description: string
+  ) => {
+    const command = BluetoothCommandGenerator.generateColorCommand(type, settings);
     const hexString = BluetoothCommandGenerator.commandToHexString(command);
-    
+    const intensityLevel = Math.round(settings.intensity / 5);
+
     // Add to command history
     setCommandHistory(prev => [{
       timestamp: new Date(),
       type: "color",
       hexString,
       bytes: Array.from(command),
-      description: `${description}: RGB(${settings.red}, ${settings.green}, ${settings.blue}), Intensity: ${settings.intensity}%`
+      description: `${description} (Cmd 0x00, Type 0x${type.toString(16).padStart(2, "0")}): RGB(${settings.red}, ${settings.green}, ${settings.blue}), Intensity: ${settings.intensity}% (Level ${intensityLevel})`
     }, ...prev].slice(0, 50)); // Keep last 50 commands
-    
+
     // Only send via Bluetooth if connected
     if (isBluetoothConnected) {
       try {
@@ -101,18 +115,17 @@ export default function App() {
   const sendAnimationCommand = async (scenario: number, settings: LightSettings) => {
     const command = BluetoothCommandGenerator.generateAnimationCommand(scenario, settings);
     const hexString = BluetoothCommandGenerator.commandToHexString(command);
-    
-    const scenarioNames = ["", "Rainbow Flow", "Lightning Pulse", "Ocean Wave", "Starlight"];
-    
+    const intensityLevel = Math.round(settings.intensity / 5);
+
     // Add to command history
     setCommandHistory(prev => [{
       timestamp: new Date(),
       type: "animation",
       hexString,
       bytes: Array.from(command),
-      description: `${scenarioNames[scenario]}: RGB(${settings.red}, ${settings.green}, ${settings.blue}), Intensity: ${settings.intensity}%`
+      description: `${ANIMATION_SCENARIO_NAMES[scenario]} (Cmd 0x01, Type 0x${scenario.toString(16).padStart(2, "0")}): RGB(${settings.red}, ${settings.green}, ${settings.blue}), Intensity: ${settings.intensity}% (Level ${intensityLevel})`
     }, ...prev].slice(0, 50)); // Keep last 50 commands
-    
+
     // Only send via Bluetooth if connected
     if (isBluetoothConnected) {
       try {
@@ -221,20 +234,13 @@ export default function App() {
       setter: setAnimation,
     },
     {
-      id: "turnIndicator",
-      title: "Turn Indicator",
-      icon: TurnSignalIcon,
-      gradient: "from-orange-500 to-yellow-500",
-      settings: turnIndicator,
-      setter: setTurnIndicator,
-    },
-    {
       id: "lowBeam",
       title: "Low Beam",
       icon: LowBeamIcon,
       gradient: "from-yellow-300 to-yellow-500",
       settings: lowBeam,
       setter: setLowBeam,
+      commandType: BASIC_LIGHT_TYPES.lowBeam,
     },
     {
       id: "highBeam",
@@ -243,6 +249,16 @@ export default function App() {
       gradient: "from-white to-blue-100",
       settings: highBeam,
       setter: setHighBeam,
+      commandType: BASIC_LIGHT_TYPES.highBeam,
+    },
+    {
+      id: "turnIndicator",
+      title: "Turn Indicator",
+      icon: TurnSignalIcon,
+      gradient: "from-orange-500 to-yellow-500",
+      settings: turnIndicator,
+      setter: setTurnIndicator,
+      commandType: BASIC_LIGHT_TYPES.turnLight,
     },
     {
       id: "brakeLight",
@@ -251,6 +267,7 @@ export default function App() {
       gradient: "from-red-500 to-red-700",
       settings: brakeLight,
       setter: setBrakeLight,
+      commandType: BASIC_LIGHT_TYPES.brakeLight,
     },
   ];
 
@@ -433,7 +450,13 @@ export default function App() {
                       onIntensityChange={(value) =>
                         updateLightSetting(button.setter!, "intensity", value)
                       }
-                      onSend={() => sendColorCommand(button.settings!, button.title)}
+                      onSend={() =>
+                        sendBasicLightCommand(
+                          button.commandType!,
+                          button.settings!,
+                          button.title
+                        )
+                      }
                     />
                   ) : null}
                 </SheetContent>
