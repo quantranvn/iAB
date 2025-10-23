@@ -1,3 +1,4 @@
+import type { Dispatch, SetStateAction } from "react";
 import { useState, useEffect } from "react";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "./components/ui/sheet";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "./components/ui/dialog";
@@ -42,6 +43,7 @@ export default function App() {
   const [bluetoothDialogOpen, setBluetoothDialogOpen] = useState(false);
   const [presetsDialogOpen, setPresetsDialogOpen] = useState(false);
   const [connectionTransport, setConnectionTransport] = useState<BluetoothConnectionTransport | null>(null);
+  const [bluetoothTab, setBluetoothTab] = useState<"connection" | "log">("connection");
   const [commandHistory, setCommandHistory] = useState<CommandLogEntry[]>([]);
   const [appStoreConnected, setAppStoreConnected] = useState(false);
 
@@ -138,7 +140,7 @@ export default function App() {
   };
 
   const updateLightSetting = (
-    setter: React.Dispatch<React.SetStateAction<LightSettings>>,
+    setter: Dispatch<SetStateAction<LightSettings>>,
     key: keyof LightSettings,
     value: number[]
   ) => {
