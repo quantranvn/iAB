@@ -94,10 +94,10 @@ export function AnimationControl({
         };
 
   return (
-    <div className="space-y-8 pb-10">
-      <section className="space-y-4 rounded-2xl border bg-card p-6">
-        <div className="space-y-1">
-          <h2 className="text-xl font-semibold tracking-tight">Select Animation Scenario</h2>
+    <div className="space-y-10 pb-12">
+      <section className="space-y-6 rounded-2xl border bg-card p-6">
+        <div className="space-y-2">
+          <h2 className="text-xl font-semibold tracking-tight">Animation Scenarios</h2>
           <p className="text-sm text-muted-foreground">
             Choose an animation effect to send to your scooter lights.
           </p>
@@ -113,8 +113,7 @@ export function AnimationControl({
                 key={scenario.id}
                 type="button"
                 onClick={() => onScenarioChange(scenario.id)}
-                aria-pressed={isSelected}
-                className={`group relative flex h-full flex-col items-center gap-4 rounded-2xl border-2 p-6 text-center transition-all ${
+                className={`rounded-2xl border px-5 py-6 transition-all ${
                   isSelected
                     ? "border-primary bg-primary/5 shadow-md"
                     : "border-border hover:border-primary/60 hover:shadow-sm"
