@@ -7,7 +7,13 @@ import { BluetoothConnection } from "./components/BluetoothConnection";
 import { UserProfileManager } from "./components/UserProfileManager";
 import { InstallPrompt } from "./components/InstallPrompt";
 import { Toaster } from "./components/ui/sonner";
-import { Sparkles, Bookmark, Bluetooth, BluetoothOff, Store } from "lucide-react";
+import {
+  Sparkles,
+  Bookmark,
+  Bluetooth,
+  BluetoothOff,
+  Store,
+} from "lucide-react";
 import { Button } from "./components/ui/button";
 import { TurnSignalIcon, LowBeamIcon, HighBeamIcon, BrakeLightIcon } from "./components/icons/AutomotiveIcons";
 import { BluetoothCommandGenerator } from "./utils/bluetooth-commands";
@@ -38,7 +44,6 @@ export default function App() {
   const [connectionTransport, setConnectionTransport] = useState<BluetoothConnectionTransport | null>(null);
   const [commandHistory, setCommandHistory] = useState<CommandLogEntry[]>([]);
   const [appStoreConnected, setAppStoreConnected] = useState(false);
-  const [bluetoothTab, setBluetoothTab] = useState<"connection" | "log">("connection");
 
   const [turnIndicator, setTurnIndicator] = useState<LightSettings>({
     red: 255,
@@ -294,7 +299,17 @@ export default function App() {
           <p className="text-muted-foreground">Control your light animations</p>
 
           {/* Action Buttons */}
-          <div className="flex flex-wrap justify-center gap-2">
+          <div className="flex flex-wrap gap-2 justify-center">
+            <Button
+              variant={appStoreConnected ? "default" : "outline"}
+              size="sm"
+              onClick={toggleAppStoreConnection}
+              className="flex items-center gap-2"
+            >
+              <Store className="w-4 h-4" />
+              {appStoreConnected ? "AppStore Linked" : "AppStore"}
+            </Button>
+
             <Dialog open={presetsDialogOpen} onOpenChange={setPresetsDialogOpen}>
               <DialogTrigger asChild>
                 <Button variant="outline" size="sm">
@@ -474,18 +489,6 @@ export default function App() {
               </Sheet>
             );
           })}
-        </div>
-
-        <div className="flex justify-center pb-8 pt-2">
-          <Button
-            variant={appStoreConnected ? "default" : "outline"}
-            size="lg"
-            onClick={toggleAppStoreConnection}
-            className="flex items-center gap-2 px-6"
-          >
-            <Store className="h-5 w-5" />
-            {appStoreConnected ? "AppStore Linked" : "Connect to AppStore"}
-          </Button>
         </div>
 
       </div>

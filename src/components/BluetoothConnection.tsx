@@ -197,10 +197,10 @@ export function BluetoothConnection({ transport, onConnect, onDisconnect }: Blue
   }
 
   return (
-    <div className="space-y-6 pb-6">
-      <section className="space-y-4 rounded-xl border bg-card p-5">
-        <div className="space-y-1">
-          <h2 className="text-lg font-semibold tracking-tight">Connection Method</h2>
+    <div className="space-y-8 pb-4">
+      <section className="space-y-6 rounded-2xl border bg-card p-6">
+        <div className="space-y-2">
+          <h2 className="text-xl font-semibold tracking-tight">Connection Method</h2>
           <p className="text-sm text-muted-foreground">
             Choose how you want to link to your scooter's lighting controller.
           </p>
@@ -252,9 +252,9 @@ export function BluetoothConnection({ transport, onConnect, onDisconnect }: Blue
         </RadioGroup>
       </section>
 
-      <section className="space-y-4 rounded-xl border bg-card p-5">
-        <div className="space-y-1">
-          <h2 className="text-lg font-semibold tracking-tight">Configuration</h2>
+      <section className="space-y-6 rounded-2xl border bg-card p-6">
+        <div className="space-y-2">
+          <h2 className="text-xl font-semibold tracking-tight">Configuration</h2>
           <p className="text-sm text-muted-foreground">
             {connectionType === "ble"
               ? "Update service details if your BLE controller uses custom UUIDs."
@@ -305,7 +305,7 @@ export function BluetoothConnection({ transport, onConnect, onDisconnect }: Blue
         )}
       </section>
 
-      <section className="space-y-4 rounded-xl border bg-card p-5">
+      <section className="space-y-4 rounded-2xl border bg-card p-6">
         <div className="space-y-3">
           {errorMessage && (
             <div className="rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">

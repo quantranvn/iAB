@@ -65,36 +65,36 @@ export function LightControl({
   };
 
   return (
-    <div className="space-y-6 pb-6">
-      <div className="space-y-3">
-        <div className="space-y-1">
-          <h2 className="text-lg font-semibold tracking-tight">{lightType} Preview</h2>
+    <div className="space-y-8 pb-10">
+      <section className="space-y-6 rounded-2xl border bg-card p-6">
+        <div className="space-y-2">
+          <h2 className="text-xl font-semibold tracking-tight">{lightType} Preview</h2>
           <p className="text-sm text-muted-foreground">
             See how your scooter light will glow in real time.
           </p>
         </div>
 
-        <div className="rounded-lg border border-dashed border-border/60 bg-muted/40 p-4 text-center">
+        <div className="rounded-2xl border border-dashed border-border/60 bg-muted/40 p-6 text-center">
           <div
-            className="mx-auto h-24 w-full rounded-lg border border-border/70 shadow-inner"
+            className="mx-auto h-24 w-full rounded-xl border border-border/70 shadow-inner"
             style={{ backgroundColor: previewColor }}
           />
-          <p className="mt-3 text-sm text-muted-foreground">Live preview</p>
+          <p className="mt-4 text-sm text-muted-foreground">Live preview</p>
         </div>
-      </div>
+      </section>
 
-      <Separator />
-
-      <div className="space-y-5">
+      <section className="space-y-6 rounded-2xl border bg-card p-6">
         <div className="space-y-2">
-          <h2 className="text-lg font-semibold tracking-tight">Color Controls</h2>
+          <h2 className="text-xl font-semibold tracking-tight">Color Controls</h2>
           <p className="text-sm text-muted-foreground">
             Adjust individual channel intensity and overall brightness.
           </p>
         </div>
 
-        <div className="space-y-5">
-          <div className="space-y-2">
+        <Separator />
+
+        <div className="space-y-6">
+          <div className="space-y-3">
             <div className="flex items-center justify-between">
               <Label className="text-red-500">Red</Label>
               <span className="text-sm text-muted-foreground">{red}</span>
@@ -104,11 +104,11 @@ export function LightControl({
               onValueChange={onRedChange}
               max={255}
               step={1}
-              className="px-1 sm:px-2 [&_[role=slider]]:border-red-600 [&_[role=slider]]:bg-red-500"
+              className="px-2 [&_[role=slider]]:border-red-600 [&_[role=slider]]:bg-red-500"
             />
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-3">
             <div className="flex items-center justify-between">
               <Label className="text-green-500">Green</Label>
               <span className="text-sm text-muted-foreground">{green}</span>
@@ -118,11 +118,11 @@ export function LightControl({
               onValueChange={onGreenChange}
               max={255}
               step={1}
-              className="px-1 sm:px-2 [&_[role=slider]]:border-green-600 [&_[role=slider]]:bg-green-500"
+              className="px-2 [&_[role=slider]]:border-green-600 [&_[role=slider]]:bg-green-500"
             />
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-3">
             <div className="flex items-center justify-between">
               <Label className="text-blue-500">Blue</Label>
               <span className="text-sm text-muted-foreground">{blue}</span>
@@ -132,11 +132,11 @@ export function LightControl({
               onValueChange={onBlueChange}
               max={255}
               step={1}
-              className="px-1 sm:px-2 [&_[role=slider]]:border-blue-600 [&_[role=slider]]:bg-blue-500"
+              className="px-2 [&_[role=slider]]:border-blue-600 [&_[role=slider]]:bg-blue-500"
             />
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-3">
             <div className="flex items-center justify-between">
               <Label>Intensity</Label>
               <span className="text-sm text-muted-foreground">
@@ -148,10 +148,12 @@ export function LightControl({
               onValueChange={onIntensityChange}
               max={100}
               step={5}
-              className="px-1 sm:px-2"
+              className="px-2"
             />
           </div>
         </div>
+
+        <Separator />
 
         <Button
           onClick={handleSend}
@@ -179,7 +181,7 @@ export function LightControl({
             <div className="absolute inset-0 animate-pulse bg-primary/20" />
           )}
         </Button>
-      </div>
+      </section>
     </div>
   );
 }
