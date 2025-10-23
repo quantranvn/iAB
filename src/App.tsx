@@ -304,7 +304,7 @@ export default function App() {
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/20 px-4 py-6 sm:px-6">
       <Toaster />
       <InstallPrompt />
-      <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
+      <div className="max-w-md mx-auto space-y-6">
         {/* Header */}
         <div className="space-y-4 pt-4 text-center">
           <h1>Scooter Smart Lights</h1>
