@@ -1,3 +1,5 @@
+import { BluetoothConnectionTransport } from "./bluetooth-types";
+
 /**
  * AT Command Generator for Scooter Smart Lights
  * Based on the protocol specification:
@@ -69,47 +71,60 @@ export class BluetoothCommandGenerator {
   }
 
   /**
-   * Send command via Web Bluetooth API.
-   * Falls back to logging-only mode when no active characteristic is available.
+   * Send command via Web Bluetooth (BLE) or Web Serial (HC-05) depending on the active transport.
+   * Falls back to logging-only mode when no active connection is available.
    */
   static async sendCommand(
-    characteristic: BluetoothRemoteGATTCharacteristic | null,
+    transport: BluetoothConnectionTransport | null,
     command: Uint8Array
   ): Promise<void> {
-    if (!characteristic) {
-      console.log('[Mock] AT Command (not sent - no characteristic):', this.commandToHexString(command));
+    if (!transport) {
+      console.log('[Mock] AT Command (not sent - no connection):', this.commandToHexString(command));
       return;
     }
 
-    const service = characteristic.service;
-    const device = service?.device;
-    const gattServer = device?.gatt ?? null;
+    if (transport.type === "ble") {
+      const { characteristic, device } = transport;
+      const service = characteristic.service;
+      const gattServer = device.gatt ?? null;
 
-    if (!service || !device || !gattServer) {
-      console.warn('[BLE] Missing GATT context for characteristic, falling back to mock log.');
-      console.log('[Mock] AT Command (no GATT context):', this.commandToHexString(command));
+      if (!service || !gattServer) {
+        console.warn('[BLE] Missing GATT context for characteristic, falling back to mock log.');
+        console.log('[Mock] AT Command (no GATT context):', this.commandToHexString(command));
+        return;
+      }
+
+      try {
+        if (!gattServer.connected) {
+          await gattServer.connect();
+        }
+
+        if (typeof characteristic.writeValueWithoutResponse === 'function') {
+          await characteristic.writeValueWithoutResponse(command);
+        } else if (typeof characteristic.writeValueWithResponse === 'function') {
+          await characteristic.writeValueWithResponse(command);
+        } else if (typeof characteristic.writeValue === 'function') {
+          await characteristic.writeValue(command);
+        } else {
+          throw new Error('Bluetooth characteristic does not support writing');
+        }
+
+        console.log('[BLE] Sending AT Command:', this.commandToHexString(command));
+        console.log('[BLE] Command bytes:', Array.from(command));
+      } catch (error) {
+        console.error('Failed to send command via BLE:', error);
+        throw error;
+      }
+
       return;
     }
 
     try {
-      if (!gattServer.connected) {
-        await gattServer.connect();
-      }
-
-      if (typeof characteristic.writeValueWithoutResponse === 'function') {
-        await characteristic.writeValueWithoutResponse(command);
-      } else if (typeof characteristic.writeValueWithResponse === 'function') {
-        await characteristic.writeValueWithResponse(command);
-      } else if (typeof characteristic.writeValue === 'function') {
-        await characteristic.writeValue(command);
-      } else {
-        throw new Error('Bluetooth characteristic does not support writing');
-      }
-
-      console.log('[BLE] Sending AT Command:', this.commandToHexString(command));
-      console.log('[BLE] Command bytes:', Array.from(command));
+      await transport.writer.write(command);
+      console.log('[Serial] Sending AT Command:', this.commandToHexString(command));
+      console.log('[Serial] Command bytes:', Array.from(command));
     } catch (error) {
-      console.error('Failed to send command:', error);
+      console.error('Failed to send command via serial:', error);
       throw error;
     }
   }
