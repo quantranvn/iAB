@@ -418,7 +418,7 @@ export default function App() {
               className="gap-2"
             >
               <Store className="h-4 w-4" />
-              {appStoreConnected ? "AppStore Linked" : "Open Scooter AppStore"}
+              {appStoreConnected ? "AppStore Linked" : "Open AppStore"}
             </Button>
           </div>
         </div>
