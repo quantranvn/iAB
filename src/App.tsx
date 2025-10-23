@@ -300,16 +300,6 @@ export default function App() {
 
           {/* Action Buttons */}
           <div className="flex flex-wrap gap-2 justify-center">
-            <Button
-              variant={appStoreConnected ? "default" : "outline"}
-              size="sm"
-              onClick={toggleAppStoreConnection}
-              className="flex items-center gap-2"
-            >
-              <Store className="w-4 h-4" />
-              {appStoreConnected ? "AppStore Linked" : "AppStore"}
-            </Button>
-
             <Dialog open={presetsDialogOpen} onOpenChange={setPresetsDialogOpen}>
               <DialogTrigger asChild>
                 <Button variant="outline" size="sm">
@@ -343,20 +333,20 @@ export default function App() {
 
             <Dialog open={bluetoothDialogOpen} onOpenChange={setBluetoothDialogOpen}>
               <DialogTrigger asChild>
-                <Button variant="outline" size="sm">
+                <Button variant="outline" size="sm" className="gap-2">
                   {isBluetoothConnected ? (
-                    <Bluetooth className="w-4 h-4 mr-2" />
+                    <Bluetooth className="w-4 h-4" />
                   ) : (
-                    <BluetoothOff className="w-4 h-4 mr-2" />
+                    <BluetoothOff className="w-4 h-4" />
                   )}
-                  Bluetooth
+                  Bluetooth & Commands
                 </Button>
               </DialogTrigger>
               <DialogContent className="sm:max-w-xl">
                 <DialogHeader>
-                  <DialogTitle>Bluetooth Connection</DialogTitle>
+                  <DialogTitle>Bluetooth & Command Center</DialogTitle>
                   <DialogDescription>
-                    Connect to your scooter's smart light system
+                    Pair with your scooter and review recent lighting commands
                   </DialogDescription>
                 </DialogHeader>
                 <Tabs
@@ -391,7 +381,7 @@ export default function App() {
         <div className="space-y-4">
           {lightButtons.map((button) => {
             const Icon = button.icon;
-            
+
             return (
               <Sheet key={button.id}>
                 <SheetTrigger asChild>
@@ -489,6 +479,18 @@ export default function App() {
               </Sheet>
             );
           })}
+        </div>
+
+        <div className="pt-2">
+          <Button
+            variant={appStoreConnected ? "default" : "outline"}
+            size="lg"
+            onClick={toggleAppStoreConnection}
+            className="mx-auto flex w-full max-w-sm items-center justify-center gap-2 py-6"
+          >
+            <Store className="h-5 w-5" />
+            {appStoreConnected ? "AppStore Linked" : "Open Scooter AppStore"}
+          </Button>
         </div>
 
       </div>
