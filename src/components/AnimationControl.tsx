@@ -99,7 +99,7 @@ export function AnimationControl({
         <div className="space-y-2">
           <h2 className="text-xl font-semibold tracking-tight">Animation Scenarios</h2>
           <p className="text-sm text-muted-foreground">
-            Choose an effect to send to your scooter lights.
+            Choose an animation effect to send to your scooter lights.
           </p>
         </div>
 
@@ -111,23 +111,22 @@ export function AnimationControl({
             return (
               <button
                 key={scenario.id}
+                type="button"
                 onClick={() => onScenarioChange(scenario.id)}
                 className={`rounded-2xl border px-5 py-6 transition-all ${
                   isSelected
-                    ? "border-primary bg-primary/5 shadow-sm"
-                    : "border-border hover:border-primary/60"
+                    ? "border-primary bg-primary/5 shadow-md"
+                    : "border-border hover:border-primary/60 hover:shadow-sm"
                 }`}
               >
-                <div className="flex flex-col items-center gap-3 text-center">
-                  <div
-                    className={`rounded-full bg-gradient-to-r ${scenario.color} p-3 shadow-sm ${
-                      isSelected ? "ring-2 ring-primary/60" : ""
-                    }`}
-                  >
-                    <Icon className="h-6 w-6 text-white" />
-                  </div>
-                  <span className="font-medium">{scenario.name}</span>
+                <div
+                  className={`rounded-full bg-gradient-to-r ${scenario.color} p-3 shadow-sm transition-transform duration-200 ${
+                    isSelected ? "scale-105 ring-2 ring-primary/60" : "group-hover:scale-105"
+                  }`}
+                >
+                  <Icon className="h-6 w-6 text-white" />
                 </div>
+                <span className="text-base font-semibold">{scenario.name}</span>
               </button>
             );
           })}
