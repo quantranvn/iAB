@@ -374,7 +374,7 @@ export default function App() {
                       Bluetooth Controls
                     </Button>
                   </DialogTrigger>
-                  <DialogContent className="space-y-4 sm:max-w-xl">
+                  <DialogContent className="max-h-[85vh] overflow-y-auto">
                     <DialogHeader>
                       <DialogTitle>Bluetooth Controls</DialogTitle>
                       <DialogDescription>
@@ -393,7 +393,7 @@ export default function App() {
                           Command Log
                         </Button>
                       </DialogTrigger>
-                      <DialogContent className="space-y-4 sm:max-w-xl">
+                      <DialogContent className="max-h-[85vh] overflow-y-auto">
                         <DialogHeader>
                           <DialogTitle>Command Log</DialogTitle>
                           <DialogDescription>
