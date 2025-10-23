@@ -213,9 +213,6 @@ export function BluetoothConnection({ transport, onConnect, onDisconnect }: Blue
             Choose how you want to link to your scooter's lighting controller.
           </p>
         </div>
-        <p className="text-sm text-muted-foreground">
-          Choose how you want to link to your scooter's lighting controller.
-        </p>
 
         <RadioGroup
           value={connectionType}
@@ -235,7 +232,7 @@ export function BluetoothConnection({ transport, onConnect, onDisconnect }: Blue
               <div>
                 <p className="font-medium">BLE Module</p>
                 <p className="text-xs text-muted-foreground">
-                  Pair through the Web Bluetooth API with HM-10 or similar modules.
+                  Pair through the Web Bluetooth API with BLE module such as HM-10.
                 </p>
               </div>
             </div>
@@ -253,7 +250,7 @@ export function BluetoothConnection({ transport, onConnect, onDisconnect }: Blue
               <div>
                 <p className="font-medium">HC-05 Serial</p>
                 <p className="text-xs text-muted-foreground">
-                  Use the Web Serial API after pairing the HC-05 with your OS.
+                  Use the Web Serial API after pairing the Serial module such as HC-05.
                 </p>
               </div>
             </div>
