@@ -57,7 +57,7 @@ export default function App() {
 
   const [lowBeam, setLowBeam] = useState<LightSettings>({
     red: 255,
-    green: 0,
+    green: 255,
     blue: 200,
     intensity: 80,
   });
