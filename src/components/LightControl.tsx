@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Slider } from "./ui/slider";
 import { Label } from "./ui/label";
 import { Button } from "./ui/button";
+import { Separator } from "./ui/separator";
 import { Send, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner@2.0.3";
 
@@ -64,100 +65,123 @@ export function LightControl({
   };
   
   return (
-    <div className="space-y-6 pb-6">
-      <div className="flex flex-col items-center gap-4">
-        <div 
-          className="w-full h-24 rounded-lg border-2 border-border shadow-inner"
-          style={{ backgroundColor: previewColor }}
-        />
-        <p className="text-muted-foreground">Color Preview</p>
-      </div>
-      
-      <div className="space-y-6">
-        <div className="space-y-3">
-          <div className="flex justify-between items-center">
-            <Label className="text-red-500">Red</Label>
-            <span className="text-muted-foreground">{red}</span>
-          </div>
-          <Slider
-            value={[red]}
-            onValueChange={onRedChange}
-            max={255}
-            step={1}
-            className="[&_[role=slider]]:bg-red-500 [&_[role=slider]]:border-red-600"
-          />
+    <div className="space-y-8 pb-10">
+      <section className="space-y-6 rounded-2xl border bg-card p-6">
+        <div className="space-y-2">
+          <h2 className="text-xl font-semibold tracking-tight">{lightType} Preview</h2>
+          <p className="text-sm text-muted-foreground">
+            See how your scooter light will glow in real time.
+          </p>
         </div>
-        
-        <div className="space-y-3">
-          <div className="flex justify-between items-center">
-            <Label className="text-green-500">Green</Label>
-            <span className="text-muted-foreground">{green}</span>
-          </div>
-          <Slider
-            value={[green]}
-            onValueChange={onGreenChange}
-            max={255}
-            step={1}
-            className="[&_[role=slider]]:bg-green-500 [&_[role=slider]]:border-green-600"
-          />
-        </div>
-        
-        <div className="space-y-3">
-          <div className="flex justify-between items-center">
-            <Label className="text-blue-500">Blue</Label>
-            <span className="text-muted-foreground">{blue}</span>
-          </div>
-          <Slider
-            value={[blue]}
-            onValueChange={onBlueChange}
-            max={255}
-            step={1}
-            className="[&_[role=slider]]:bg-blue-500 [&_[role=slider]]:border-blue-600"
-          />
-        </div>
-        
-        <div className="space-y-3">
-          <div className="flex justify-between items-center">
-            <Label>Intensity</Label>
-            <span className="text-muted-foreground">
-              Level {intensityLevel} ({intensity}%)
-            </span>
-          </div>
-          <Slider
-            value={[intensity]}
-            onValueChange={onIntensityChange}
-            max={100}
-            step={5}
-          />
-        </div>
-      </div>
 
-      <Button 
-        onClick={handleSend}
-        className="w-full relative overflow-hidden"
-        size="lg"
-        disabled={isSending}
-      >
-        {isSending ? (
-          <>
-            <Send className="w-4 h-4 mr-2 animate-pulse" />
-            Sending...
-          </>
-        ) : justSent ? (
-          <>
-            <CheckCircle2 className="w-4 h-4 mr-2" />
-            Sent!
-          </>
-        ) : (
-          <>
-            <Send className="w-4 h-4 mr-2" />
-            Send to Scooter
-          </>
-        )}
-        {isSending && (
-          <div className="absolute inset-0 bg-primary/20 animate-pulse" />
-        )}
-      </Button>
+        <div className="rounded-2xl border border-dashed border-border/60 bg-muted/40 p-6 text-center">
+          <div
+            className="mx-auto h-24 w-full rounded-xl border border-border/70 shadow-inner"
+            style={{ backgroundColor: previewColor }}
+          />
+          <p className="mt-4 text-sm text-muted-foreground">Live preview</p>
+        </div>
+      </section>
+
+      <section className="space-y-6 rounded-2xl border bg-card p-6">
+        <div className="space-y-2">
+          <h2 className="text-xl font-semibold tracking-tight">Color Controls</h2>
+          <p className="text-sm text-muted-foreground">
+            Adjust individual channel intensity and overall brightness.
+          </p>
+        </div>
+
+        <Separator />
+
+        <div className="space-y-6">
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <Label className="text-red-500">Red</Label>
+              <span className="text-sm text-muted-foreground">{red}</span>
+            </div>
+            <Slider
+              value={[red]}
+              onValueChange={onRedChange}
+              max={255}
+              step={1}
+              className="px-2 [&_[role=slider]]:border-red-600 [&_[role=slider]]:bg-red-500"
+            />
+          </div>
+
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <Label className="text-green-500">Green</Label>
+              <span className="text-sm text-muted-foreground">{green}</span>
+            </div>
+            <Slider
+              value={[green]}
+              onValueChange={onGreenChange}
+              max={255}
+              step={1}
+              className="px-2 [&_[role=slider]]:border-green-600 [&_[role=slider]]:bg-green-500"
+            />
+          </div>
+
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <Label className="text-blue-500">Blue</Label>
+              <span className="text-sm text-muted-foreground">{blue}</span>
+            </div>
+            <Slider
+              value={[blue]}
+              onValueChange={onBlueChange}
+              max={255}
+              step={1}
+              className="px-2 [&_[role=slider]]:border-blue-600 [&_[role=slider]]:bg-blue-500"
+            />
+          </div>
+
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <Label>Intensity</Label>
+              <span className="text-sm text-muted-foreground">
+                Level {intensityLevel} ({intensity}%)
+              </span>
+            </div>
+            <Slider
+              value={[intensity]}
+              onValueChange={onIntensityChange}
+              max={100}
+              step={5}
+              className="px-2"
+            />
+          </div>
+        </div>
+
+        <Separator />
+
+        <Button
+          onClick={handleSend}
+          className="relative w-full overflow-hidden"
+          size="lg"
+          disabled={isSending}
+        >
+          {isSending ? (
+            <>
+              <Send className="mr-2 h-4 w-4 animate-pulse" />
+              Sending...
+            </>
+          ) : justSent ? (
+            <>
+              <CheckCircle2 className="mr-2 h-4 w-4" />
+              Sent!
+            </>
+          ) : (
+            <>
+              <Send className="mr-2 h-4 w-4" />
+              Send to Scooter
+            </>
+          )}
+          {isSending && (
+            <div className="absolute inset-0 animate-pulse bg-primary/20" />
+          )}
+        </Button>
+      </section>
     </div>
   );
 }
