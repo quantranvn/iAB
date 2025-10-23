@@ -4,7 +4,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { LightControl } from "./components/LightControl";
 import { AnimationControl } from "./components/AnimationControl";
 import { BluetoothConnection } from "./components/BluetoothConnection";
-import { PresetsManager } from "./components/PresetsManager";
+import { UserProfileManager } from "./components/UserProfileManager";
 import { InstallPrompt } from "./components/InstallPrompt";
 import { Toaster } from "./components/ui/sonner";
 import { 
@@ -270,17 +270,18 @@ export default function App() {
               <DialogTrigger asChild>
                 <Button variant="outline" size="sm">
                   <Bookmark className="w-4 h-4 mr-2" />
-                  Presets
+                  Profile
                 </Button>
               </DialogTrigger>
               <DialogContent className="max-h-[85vh] overflow-y-auto">
                 <DialogHeader>
-                  <DialogTitle>Light Presets</DialogTitle>
+                  <DialogTitle>User Profile</DialogTitle>
                   <DialogDescription>
-                    Save and load your favorite light configurations
+                    Manage your rider identity, vehicles, presets, and AppStore
+                    connection
                   </DialogDescription>
                 </DialogHeader>
-                <PresetsManager
+                <UserProfileManager
                   currentSettings={{
                     turnIndicator,
                     lowBeam,
