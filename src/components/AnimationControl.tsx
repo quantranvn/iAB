@@ -75,129 +75,103 @@ export function AnimationControl({
     }, 400);
   };
 
-  const buttonState = isSending
-    ? {
-        icon: <Send className="h-4 w-4 animate-pulse" />,
-        label: "Sending...",
-        description: "Transmitting animation command",
-      }
-    : justSent
-      ? {
-          icon: <CheckCircle2 className="h-4 w-4" />,
-          label: "Sent!",
-          description: "Animation delivered to scooter",
-        }
-      : {
-          icon: <Send className="h-4 w-4" />,
-          label: "Send to Scooter",
-          description: "Push this animation instantly",
-        };
-
   return (
     <div className="space-y-6 pb-6">
-      <section className="space-y-6 rounded-2xl border bg-card p-6">
-        <div className="space-y-4">
-          <h2 className="text-xl font-semibold tracking-tight">Select Animation Scenario</h2>
-          <p className="text-sm text-muted-foreground">
-            Choose an animation effect to send to your scooter lights.
-          </p>
-        </div>
-
-        <div className="grid gap-4 sm:grid-cols-2">
+      {/* Animation Scenario Selection */}
+      <div className="space-y-4">
+        <p className="text-muted-foreground">Select Animation Scenario</p>
+        
+        <div className="grid grid-cols-2 gap-4">
           {scenarios.map((scenario) => {
             const Icon = scenario.icon;
             const isSelected = selectedScenario === scenario.id;
-
+            
             return (
               <button
                 key={scenario.id}
-                type="button"
                 onClick={() => onScenarioChange(scenario.id)}
-                className={`rounded-2xl border px-5 py-6 transition-all ${
-                  isSelected
-                    ? "border-primary bg-primary/5 shadow-md"
-                    : "border-border hover:border-primary/60 hover:shadow-sm"
-                }`}
+                className={`
+                  relative p-6 rounded-lg border-2 transition-all
+                  ${isSelected 
+                    ? 'border-primary bg-primary/5 scale-105' 
+                    : 'border-border hover:border-primary/50'
+                  }
+                `}
               >
-                <div
-                  className={`rounded-full bg-gradient-to-r ${scenario.color} p-3 shadow-sm transition-transform duration-200 ${
-                    isSelected ? "scale-105 ring-2 ring-primary/60" : "group-hover:scale-105"
-                  }`}
-                >
-                  <Icon className="h-6 w-6 text-white" />
+                <div className="flex flex-col items-center gap-3">
+                  <div className={`
+                    p-3 rounded-full bg-gradient-to-r ${scenario.color}
+                    ${isSelected ? 'shadow-lg' : ''}
+                  `}>
+                    <Icon className="w-6 h-6 text-white" />
+                  </div>
+                  <span className="text-center">{scenario.name}</span>
                 </div>
-                <span className="text-base font-semibold">{scenario.name}</span>
               </button>
             );
           })}
         </div>
-      </section>
+      </div>
 
-      <section className="space-y-6 rounded-2xl border bg-card p-6">
-        <div className="space-y-2">
-          <h2 className="text-xl font-semibold tracking-tight">Base Color</h2>
-          <p className="text-sm text-muted-foreground">
-            Fine-tune the RGB mix and brightness for your animation.
-          </p>
-        </div>
+      <Separator />
 
-        <div className="rounded-2xl border border-dashed border-border/60 bg-muted/40 p-6 text-center">
-          <div
-            className="mx-auto h-24 w-full rounded-xl border border-border/70 shadow-inner"
+      {/* Color Controls */}
+      <div className="space-y-6">
+        <div className="flex flex-col items-center gap-4">
+          <div 
+            className="w-full h-24 rounded-lg border-2 border-border shadow-inner"
             style={{ backgroundColor: previewColor }}
           />
-          <p className="mt-4 text-sm text-muted-foreground">Live preview</p>
+          <p className="text-muted-foreground">Base Color</p>
         </div>
-
-        <Separator />
-
+        
         <div className="space-y-6">
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
+          <div className="space-y-3">
+            <div className="flex justify-between items-center">
               <Label className="text-red-500">Red</Label>
-              <span className="text-sm text-muted-foreground">{red}</span>
+              <span className="text-muted-foreground">{red}</span>
             </div>
             <Slider
               value={[red]}
               onValueChange={onRedChange}
               max={255}
               step={1}
-              className="px-4 sm:px-6 [&_[role=slider]]:border-red-600 [&_[role=slider]]:bg-red-500"
+              className="[&_[role=slider]]:bg-red-500 [&_[role=slider]]:border-red-600"
             />
           </div>
-
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
+          
+          <div className="space-y-3">
+            <div className="flex justify-between items-center">
               <Label className="text-green-500">Green</Label>
-              <span className="text-sm text-muted-foreground">{green}</span>
+              <span className="text-muted-foreground">{green}</span>
             </div>
             <Slider
               value={[green]}
               onValueChange={onGreenChange}
               max={255}
               step={1}
-              className="px-4 sm:px-6 [&_[role=slider]]:border-green-600 [&_[role=slider]]:bg-green-500"
+              className="[&_[role=slider]]:bg-green-500 [&_[role=slider]]:border-green-600"
             />
           </div>
-
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
+          
+          <div className="space-y-3">
+            <div className="flex justify-between items-center">
               <Label className="text-blue-500">Blue</Label>
-              <span className="text-sm text-muted-foreground">{blue}</span>
+              <span className="text-muted-foreground">{blue}</span>
             </div>
             <Slider
               value={[blue]}
               onValueChange={onBlueChange}
               max={255}
               step={1}
-              className="px-4 sm:px-6 [&_[role=slider]]:border-blue-600 [&_[role=slider]]:bg-blue-500"
+              className="[&_[role=slider]]:bg-blue-500 [&_[role=slider]]:border-blue-600"
             />
           </div>
-
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
+          
+          <div className="space-y-3">
+            <div className="flex justify-between items-center">
               <Label>Intensity</Label>
-              <span className="text-sm text-muted-foreground">
+              <span className="text-muted-foreground">
                 Level {intensityLevel} ({intensity}%)
               </span>
             </div>
@@ -206,31 +180,37 @@ export function AnimationControl({
               onValueChange={onIntensityChange}
               max={100}
               step={5}
-              className="px-4 sm:px-6"
             />
           </div>
         </div>
+      </div>
 
-        <Separator />
-
-        <Button
-          onClick={handleSend}
-          className="relative w-full overflow-hidden py-6 flex flex-col items-center gap-1 text-center"
-          size="lg"
-          disabled={isSending}
-        >
-          <span className="flex items-center gap-2 text-base font-semibold">
-            {buttonState.icon}
-            {buttonState.label}
-          </span>
-          <span className="text-xs font-medium text-primary-foreground opacity-80">
-            {buttonState.description}
-          </span>
-          {isSending && (
-            <div className="absolute inset-0 animate-pulse bg-primary/20" />
-          )}
-        </Button>
-      </section>
+      <Button 
+        onClick={handleSend}
+        className="w-full relative overflow-hidden"
+        size="lg"
+        disabled={isSending}
+      >
+        {isSending ? (
+          <>
+            <Send className="w-4 h-4 mr-2 animate-pulse" />
+            Sending...
+          </>
+        ) : justSent ? (
+          <>
+            <CheckCircle2 className="w-4 h-4 mr-2" />
+            Sent!
+          </>
+        ) : (
+          <>
+            <Send className="w-4 h-4 mr-2" />
+            Send to Scooter
+          </>
+        )}
+        {isSending && (
+          <div className="absolute inset-0 bg-primary/20 animate-pulse" />
+        )}
+      </Button>
     </div>
   );
 }
