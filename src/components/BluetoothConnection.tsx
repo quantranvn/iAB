@@ -147,11 +147,13 @@ export function BluetoothConnection({ transport, onConnect, onDisconnect }: Blue
 
   if (isConnected) {
     return (
-      <div className="max-h-[70vh] space-y-8 overflow-y-auto pb-8 pr-2">
-        <section className="space-y-4">
-          <div className="flex items-center gap-3 text-primary">
-            <BluetoothConnected className="h-5 w-5" />
-            <h3 className="text-lg font-semibold">Connected Device</h3>
+      <div className="space-y-10 pb-8">
+        <section className="space-y-6 rounded-2xl border bg-card p-6">
+          <div className="space-y-2">
+            <h2 className="text-xl font-semibold tracking-tight">Connected Device</h2>
+            <p className="text-sm text-muted-foreground">
+              Linked to {connectedName ?? "your scooter"}. You can now send lighting commands.
+            </p>
           </div>
           <div className="rounded-lg border border-primary/40 bg-primary/10 p-4">
             <p className="text-sm font-medium text-primary">
@@ -187,11 +189,14 @@ export function BluetoothConnection({ transport, onConnect, onDisconnect }: Blue
             }}
             variant="destructive"
             size="lg"
-            className="w-full justify-center"
+            className="relative w-full overflow-hidden py-6 flex flex-col items-center gap-1 text-center"
           >
-            <span className="flex items-center gap-2 font-semibold">
+            <span className="flex items-center gap-2 text-base font-semibold">
               <BluetoothConnected className="h-4 w-4" />
               Disconnect
+            </span>
+            <span className="text-xs font-medium text-destructive-foreground opacity-80">
+              End the current scooter session
             </span>
           </Button>
         </section>
@@ -200,11 +205,13 @@ export function BluetoothConnection({ transport, onConnect, onDisconnect }: Blue
   }
 
   return (
-    <div className="max-h-[70vh] space-y-8 overflow-y-auto pb-8 pr-2">
-      <section className="space-y-4">
-        <div className="flex items-center gap-3 text-muted-foreground">
-          <Bluetooth className="h-5 w-5" />
-          <h3 className="text-lg font-semibold text-foreground">Connection Method</h3>
+    <div className="space-y-10 pb-8">
+      <section className="space-y-6 rounded-2xl border bg-card p-6">
+        <div className="space-y-2">
+          <h2 className="text-xl font-semibold tracking-tight">Connection Method</h2>
+          <p className="text-sm text-muted-foreground">
+            Choose how you want to link to your scooter's lighting controller.
+          </p>
         </div>
         <p className="text-sm text-muted-foreground">
           Choose how you want to link to your scooter's lighting controller.
@@ -308,10 +315,19 @@ export function BluetoothConnection({ transport, onConnect, onDisconnect }: Blue
         )}
       </section>
 
-      <section className="space-y-4">
-        <div className="flex items-center gap-3 text-muted-foreground">
-          <Plug className="h-5 w-5" />
-          <h3 className="text-lg font-semibold text-foreground">Link Status</h3>
+      <section className="space-y-6 rounded-2xl border bg-card p-6">
+        <div className="space-y-3">
+          {errorMessage && (
+            <div className="rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+              {errorMessage}
+            </div>
+          )}
+
+          {!errorMessage && statusMessage && (
+            <div className="rounded-xl border border-primary/20 bg-primary/10 px-4 py-3 text-sm text-primary">
+              {statusMessage}
+            </div>
+          )}
         </div>
 
         {errorMessage ? (
@@ -334,9 +350,9 @@ export function BluetoothConnection({ transport, onConnect, onDisconnect }: Blue
           onClick={requestDevice}
           disabled={isConnecting}
           size="lg"
-          className="w-full justify-center"
+          className="relative w-full overflow-hidden py-6 flex flex-col items-center gap-1 text-center"
         >
-          <span className="flex items-center gap-2 font-semibold">
+          <span className="flex items-center gap-2 text-base font-semibold">
             {isConnecting ? (
               <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
@@ -344,6 +360,19 @@ export function BluetoothConnection({ transport, onConnect, onDisconnect }: Blue
             )}
             {isConnecting ? "Connecting..." : "Connect to Device"}
           </span>
+
+          <span className="flex items-center gap-2 text-xs font-medium text-primary-foreground opacity-80">
+            <span
+              className={`h-2.5 w-2.5 rounded-full ${
+                isConnecting ? "bg-amber-300 animate-pulse" : "bg-destructive"
+              }`}
+            />
+            {isConnecting ? "Attempting link" : "No active connection"}
+          </span>
+
+          {isConnecting && (
+            <div className="absolute inset-0 animate-pulse bg-primary/15" />
+          )}
         </Button>
       </section>
     </div>
