@@ -22,6 +22,7 @@ import { BluetoothCommandGenerator } from "./utils/bluetooth-commands";
 import { CommandLog, CommandLogEntry } from "./components/CommandLog";
 import { toast } from "sonner@2.0.3";
 import { BluetoothConnectionTransport } from "./utils/bluetooth-types";
+import { AppStoreDialogContent } from "./components/AppStore";
 
 interface LightSettings {
   red: number;
@@ -46,7 +47,7 @@ export default function App() {
   const [presetsDialogOpen, setPresetsDialogOpen] = useState(false);
   const [connectionTransport, setConnectionTransport] = useState<BluetoothConnectionTransport | null>(null);
   const [commandHistory, setCommandHistory] = useState<CommandLogEntry[]>([]);
-  const [appStoreConnected, setAppStoreConnected] = useState(false);
+  const [appStoreOpen, setAppStoreOpen] = useState(false);
 
   const [turnIndicator, setTurnIndicator] = useState<LightSettings>({
     red: 255,
@@ -242,16 +243,6 @@ export default function App() {
     setPresetsDialogOpen(false);
   };
 
-  const toggleAppStoreConnection = () => {
-    setAppStoreConnected((previous) => {
-      const next = !previous;
-      toast.success(
-        next ? "Connected to Scooter AppStore" : "Disconnected from Scooter AppStore"
-      );
-      return next;
-    });
-  };
-
   const lightButtons = [
     {
       id: "animation",
@@ -411,15 +402,15 @@ export default function App() {
               </DialogContent>
             </Dialog>
 
-            <Button
-              variant={appStoreConnected ? "default" : "outline"}
-              size="sm"
-              onClick={toggleAppStoreConnection}
-              className="gap-2"
-            >
-              <Store className="h-4 w-4" />
-              {appStoreConnected ? "AppStore Linked" : "Open AppStore"}
-            </Button>
+            <Dialog open={appStoreOpen} onOpenChange={setAppStoreOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-2">
+                  <Store className="h-4 w-4" />
+                  Open AppStore
+                </Button>
+              </DialogTrigger>
+              <AppStoreDialogContent />
+            </Dialog>
           </div>
         </div>
 
