@@ -75,13 +75,31 @@ export function AnimationControl({
     }, 400);
   };
 
+  const buttonState = isSending
+    ? {
+        icon: <Send className="h-4 w-4 animate-pulse" />,
+        label: "Sending...",
+        description: "Transmitting animation command",
+      }
+    : justSent
+      ? {
+          icon: <CheckCircle2 className="h-4 w-4" />,
+          label: "Sent!",
+          description: "Animation delivered to scooter",
+        }
+      : {
+          icon: <Send className="h-4 w-4" />,
+          label: "Send to Scooter",
+          description: "Push this animation instantly",
+        };
+
   return (
     <div className="space-y-8 pb-10">
       <section className="space-y-6 rounded-2xl border bg-card p-6">
         <div className="space-y-2">
-          <h2 className="text-xl font-semibold tracking-tight">Animation Scenarios</h2>
+          <h2 className="text-xl font-semibold tracking-tight">Select Animation Scenario</h2>
           <p className="text-sm text-muted-foreground">
-            Choose an effect to send to your scooter lights.
+            Choose an animation effect to send to your scooter lights.
           </p>
         </div>
 
@@ -93,23 +111,23 @@ export function AnimationControl({
             return (
               <button
                 key={scenario.id}
+                type="button"
                 onClick={() => onScenarioChange(scenario.id)}
-                className={`rounded-2xl border px-4 py-5 transition-all ${
+                aria-pressed={isSelected}
+                className={`group flex h-full flex-col items-center gap-4 rounded-2xl border-2 p-5 text-center transition-all ${
                   isSelected
-                    ? "border-primary bg-primary/5 shadow-sm"
-                    : "border-border hover:border-primary/60"
+                    ? "border-primary bg-primary/5 shadow-md"
+                    : "border-border hover:border-primary/60 hover:shadow-sm"
                 }`}
               >
-                <div className="flex flex-col items-center gap-3 text-center">
-                  <div
-                    className={`rounded-full bg-gradient-to-r ${scenario.color} p-3 shadow-sm ${
-                      isSelected ? "ring-2 ring-primary/60" : ""
-                    }`}
-                  >
-                    <Icon className="h-6 w-6 text-white" />
-                  </div>
-                  <span className="font-medium">{scenario.name}</span>
+                <div
+                  className={`flex w-full items-center justify-center rounded-xl bg-gradient-to-r ${scenario.color} p-4 text-white shadow-sm transition-transform duration-200 ${
+                    isSelected ? "scale-[1.02]" : "group-hover:scale-[1.01]"
+                  }`}
+                >
+                  <Icon className="h-7 w-7" />
                 </div>
+                <span className="text-base font-semibold">{scenario.name}</span>
               </button>
             );
           })}
@@ -135,7 +153,7 @@ export function AnimationControl({
         <Separator />
 
         <div className="space-y-6">
-          <div className="space-y-3">
+          <div className="space-y-4">
             <div className="flex items-center justify-between">
               <Label className="text-red-500">Red</Label>
               <span className="text-sm text-muted-foreground">{red}</span>
@@ -145,11 +163,11 @@ export function AnimationControl({
               onValueChange={onRedChange}
               max={255}
               step={1}
-              className="px-2 [&_[role=slider]]:border-red-600 [&_[role=slider]]:bg-red-500"
+              className="px-4 sm:px-6 [&_[role=slider]]:border-red-600 [&_[role=slider]]:bg-red-500"
             />
           </div>
 
-          <div className="space-y-3">
+          <div className="space-y-4">
             <div className="flex items-center justify-between">
               <Label className="text-green-500">Green</Label>
               <span className="text-sm text-muted-foreground">{green}</span>
@@ -159,11 +177,11 @@ export function AnimationControl({
               onValueChange={onGreenChange}
               max={255}
               step={1}
-              className="px-2 [&_[role=slider]]:border-green-600 [&_[role=slider]]:bg-green-500"
+              className="px-4 sm:px-6 [&_[role=slider]]:border-green-600 [&_[role=slider]]:bg-green-500"
             />
           </div>
 
-          <div className="space-y-3">
+          <div className="space-y-4">
             <div className="flex items-center justify-between">
               <Label className="text-blue-500">Blue</Label>
               <span className="text-sm text-muted-foreground">{blue}</span>
@@ -173,11 +191,11 @@ export function AnimationControl({
               onValueChange={onBlueChange}
               max={255}
               step={1}
-              className="px-2 [&_[role=slider]]:border-blue-600 [&_[role=slider]]:bg-blue-500"
+              className="px-4 sm:px-6 [&_[role=slider]]:border-blue-600 [&_[role=slider]]:bg-blue-500"
             />
           </div>
 
-          <div className="space-y-3">
+          <div className="space-y-4">
             <div className="flex items-center justify-between">
               <Label>Intensity</Label>
               <span className="text-sm text-muted-foreground">
@@ -189,7 +207,7 @@ export function AnimationControl({
               onValueChange={onIntensityChange}
               max={100}
               step={5}
-              className="px-2"
+              className="px-4 sm:px-6"
             />
           </div>
         </div>
@@ -198,26 +216,17 @@ export function AnimationControl({
 
         <Button
           onClick={handleSend}
-          className="relative w-full overflow-hidden"
+          className="relative w-full overflow-hidden py-6 flex flex-col items-center gap-1 text-center"
           size="lg"
           disabled={isSending}
         >
-          {isSending ? (
-            <>
-              <Send className="mr-2 h-4 w-4 animate-pulse" />
-              Sending...
-            </>
-          ) : justSent ? (
-            <>
-              <CheckCircle2 className="mr-2 h-4 w-4" />
-              Sent!
-            </>
-          ) : (
-            <>
-              <Send className="mr-2 h-4 w-4" />
-              Send to Scooter
-            </>
-          )}
+          <span className="flex items-center gap-2 text-base font-semibold">
+            {buttonState.icon}
+            {buttonState.label}
+          </span>
+          <span className="text-xs font-medium text-primary-foreground opacity-80">
+            {buttonState.description}
+          </span>
           {isSending && (
             <div className="absolute inset-0 animate-pulse bg-primary/20" />
           )}
