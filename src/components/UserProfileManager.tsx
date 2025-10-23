@@ -1,15 +1,7 @@
 import { ChangeEvent, useMemo, useState } from "react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
-import {
-  Car,
-  Download,
-  Save,
-  Store,
-  Trash2,
-  User,
-  Plus,
-} from "lucide-react";
+import { Car, Download, Save, Trash2, User, Plus } from "lucide-react";
 import { toast } from "sonner@2.0.3";
 
 interface LightSettings {
@@ -52,8 +44,6 @@ interface UserProfileManagerProps {
     animationScenario: number;
   };
   onLoadPreset: (preset: Preset) => void;
-  appStoreConnected: boolean;
-  onToggleAppStoreConnection: () => void;
 }
 
 const initialProfile: UserProfile = {
@@ -98,8 +88,6 @@ const initialProfile: UserProfile = {
 export function UserProfileManager({
   currentSettings,
   onLoadPreset,
-  appStoreConnected,
-  onToggleAppStoreConnection,
 }: UserProfileManagerProps) {
   const [userProfile, setUserProfile] = useState<UserProfile>(initialProfile);
   const [selectedVehicleId, setSelectedVehicleId] = useState<string>(
@@ -378,23 +366,6 @@ export function UserProfileManager({
         )}
       </section>
 
-      <section className="space-y-4">
-        <div className="flex items-center gap-3">
-          <Store className="w-5 h-5" />
-          <h3>AppStore Connection</h3>
-        </div>
-        <p className="text-sm text-muted-foreground">
-          Link your profile to the Scooter AppStore to discover curated animation
-          packs.
-        </p>
-        <Button
-          variant={appStoreConnected ? "default" : "outline"}
-          onClick={onToggleAppStoreConnection}
-        >
-          <Store className="w-4 h-4 mr-2" />
-          {appStoreConnected ? "Connected to AppStore" : "Connect to AppStore"}
-        </Button>
-      </section>
     </div>
   );
 }

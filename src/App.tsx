@@ -14,13 +14,13 @@ import {
   Bluetooth,
   BluetoothOff,
   Store,
+  ScrollText,
 } from "lucide-react";
 import { Button } from "./components/ui/button";
 import { TurnSignalIcon, LowBeamIcon, HighBeamIcon, BrakeLightIcon } from "./components/icons/AutomotiveIcons";
 import { BluetoothCommandGenerator } from "./utils/bluetooth-commands";
 import { CommandLog, CommandLogEntry } from "./components/CommandLog";
 import { toast } from "sonner@2.0.3";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "./components/ui/tabs";
 import { BluetoothConnectionTransport } from "./utils/bluetooth-types";
 
 interface LightSettings {
@@ -40,10 +40,11 @@ const BASIC_LIGHT_TYPES = {
 const ANIMATION_SCENARIO_NAMES = ["", "Rainbow Flow", "Lightning Pulse", "Ocean Wave", "Starlight"];
 
 export default function App() {
+  const [connectionDialogOpen, setConnectionDialogOpen] = useState(false);
   const [bluetoothDialogOpen, setBluetoothDialogOpen] = useState(false);
+  const [commandDialogOpen, setCommandDialogOpen] = useState(false);
   const [presetsDialogOpen, setPresetsDialogOpen] = useState(false);
   const [connectionTransport, setConnectionTransport] = useState<BluetoothConnectionTransport | null>(null);
-  const [bluetoothTab, setBluetoothTab] = useState<"connection" | "log">("connection");
   const [commandHistory, setCommandHistory] = useState<CommandLogEntry[]>([]);
   const [appStoreConnected, setAppStoreConnected] = useState(false);
 
@@ -149,7 +150,9 @@ export default function App() {
 
   const handleBluetoothConnect = (transport: BluetoothConnectionTransport) => {
     setConnectionTransport(transport);
+    setCommandDialogOpen(false);
     setBluetoothDialogOpen(false);
+    setConnectionDialogOpen(false);
     const label = transport.type === "ble"
       ? transport.device.name ?? "Bluetooth device"
       : transport.label ?? "Serial device";
@@ -217,8 +220,15 @@ export default function App() {
   }, [connectionTransport]);
 
   useEffect(() => {
+    if (!connectionDialogOpen) {
+      setBluetoothDialogOpen(false);
+      setCommandDialogOpen(false);
+    }
+  }, [connectionDialogOpen]);
+
+  useEffect(() => {
     if (!bluetoothDialogOpen) {
-      setBluetoothTab("connection");
+      setCommandDialogOpen(false);
     }
   }, [bluetoothDialogOpen]);
 
@@ -313,8 +323,7 @@ export default function App() {
                 <DialogHeader>
                   <DialogTitle>User Profile</DialogTitle>
                   <DialogDescription>
-                    Manage your rider identity, vehicles, presets, and AppStore
-                    connection
+                    Manage your rider identity, vehicles, and lighting presets.
                   </DialogDescription>
                 </DialogHeader>
                 <UserProfileManager
@@ -327,13 +336,11 @@ export default function App() {
                     animationScenario,
                   }}
                   onLoadPreset={handleLoadPreset}
-                  appStoreConnected={appStoreConnected}
-                  onToggleAppStoreConnection={toggleAppStoreConnection}
                 />
               </DialogContent>
             </Dialog>
 
-            <Dialog open={bluetoothDialogOpen} onOpenChange={setBluetoothDialogOpen}>
+            <Dialog open={connectionDialogOpen} onOpenChange={setConnectionDialogOpen}>
               <DialogTrigger asChild>
                 <Button variant="outline" size="sm" className="gap-2">
                   {isBluetoothConnected ? (
@@ -341,41 +348,78 @@ export default function App() {
                   ) : (
                     <BluetoothOff className="w-4 h-4" />
                   )}
-                  Bluetooth & Commands
+                  Connection
                 </Button>
               </DialogTrigger>
-              <DialogContent className="sm:max-w-xl">
+              <DialogContent className="space-y-4 sm:max-w-lg">
                 <DialogHeader>
-                  <DialogTitle>Bluetooth & Command Center</DialogTitle>
+                  <DialogTitle>Connection Center</DialogTitle>
                   <DialogDescription>
-                    Pair with your scooter and review recent lighting commands
+                    Review your scooter links and access Bluetooth controls.
                   </DialogDescription>
                 </DialogHeader>
-                <Tabs
-                  value={bluetoothTab}
-                  onValueChange={(value) => setBluetoothTab(value as "connection" | "log")}
-                  className="space-y-4"
-                >
-                  <TabsList className="grid w-full grid-cols-2">
-                    <TabsTrigger value="connection">Connection</TabsTrigger>
-                    <TabsTrigger value="log">Command Log</TabsTrigger>
-                  </TabsList>
-                  <TabsContent value="connection" className="space-y-4">
+                <div className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">
+                  {isBluetoothConnected
+                    ? "A Bluetooth device is currently connected."
+                    : "No active Bluetooth connections."}
+                </div>
+                <Dialog open={bluetoothDialogOpen} onOpenChange={setBluetoothDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button className="w-full justify-center gap-2" variant="outline">
+                      {isBluetoothConnected ? (
+                        <Bluetooth className="w-4 h-4" />
+                      ) : (
+                        <BluetoothOff className="w-4 h-4" />
+                      )}
+                      Bluetooth Controls
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="space-y-4 sm:max-w-xl">
+                    <DialogHeader>
+                      <DialogTitle>Bluetooth Controls</DialogTitle>
+                      <DialogDescription>
+                        Pair with your scooter or manage the active Bluetooth link.
+                      </DialogDescription>
+                    </DialogHeader>
                     <BluetoothConnection
                       transport={connectionTransport}
                       onConnect={handleBluetoothConnect}
                       onDisconnect={handleBluetoothDisconnect}
                     />
-                  </TabsContent>
-                  <TabsContent value="log" className="space-y-4">
-                    <CommandLog
-                      entries={commandHistory}
-                      onClear={() => setCommandHistory([])}
-                    />
-                  </TabsContent>
-                </Tabs>
+                    <Dialog open={commandDialogOpen} onOpenChange={setCommandDialogOpen}>
+                      <DialogTrigger asChild>
+                        <Button className="w-full justify-center gap-2" variant="outline">
+                          <ScrollText className="h-4 w-4" />
+                          Command Log
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="space-y-4 sm:max-w-xl">
+                        <DialogHeader>
+                          <DialogTitle>Command Log</DialogTitle>
+                          <DialogDescription>
+                            Review the most recent lighting commands sent to your scooter.
+                          </DialogDescription>
+                        </DialogHeader>
+                        <CommandLog
+                          entries={commandHistory}
+                          onClear={() => setCommandHistory([])}
+                        />
+                      </DialogContent>
+                    </Dialog>
+                  </DialogContent>
+                </Dialog>
               </DialogContent>
             </Dialog>
+
+            <Button
+              variant={appStoreConnected ? "default" : "outline"}
+              size="sm"
+              onClick={toggleAppStoreConnection}
+              className="gap-2"
+            >
+              <Store className="h-4 w-4" />
+              {appStoreConnected ? "AppStore Linked" : "Open Scooter AppStore"}
+            </Button>
           </div>
         </div>
 
@@ -484,18 +528,6 @@ export default function App() {
               </Sheet>
             );
           })}
-        </div>
-
-        <div className="pt-2">
-          <Button
-            variant={appStoreConnected ? "default" : "outline"}
-            size="lg"
-            onClick={toggleAppStoreConnection}
-            className="mx-auto flex w-full max-w-sm items-center justify-center gap-2 py-6"
-          >
-            <Store className="h-5 w-5" />
-            {appStoreConnected ? "AppStore Linked" : "Open Scooter AppStore"}
-          </Button>
         </div>
 
       </div>
