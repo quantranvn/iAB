@@ -32,8 +32,9 @@ export function LightControl({
 }: LightControlProps) {
   const [isSending, setIsSending] = useState(false);
   const [justSent, setJustSent] = useState(false);
-  
+
   const previewColor = `rgba(${red}, ${green}, ${blue}, ${intensity / 100})`;
+  const intensityLevel = Math.round(intensity / 5);
   
   const handleSend = async () => {
     setIsSending(true);
@@ -118,13 +119,15 @@ export function LightControl({
         <div className="space-y-3">
           <div className="flex justify-between items-center">
             <Label>Intensity</Label>
-            <span className="text-muted-foreground">{intensity}%</span>
+            <span className="text-muted-foreground">
+              Level {intensityLevel} ({intensity}%)
+            </span>
           </div>
           <Slider
             value={[intensity]}
             onValueChange={onIntensityChange}
             max={100}
-            step={1}
+            step={5}
           />
         </div>
       </div>

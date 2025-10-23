@@ -3,62 +3,70 @@ import { BluetoothConnectionTransport } from "./bluetooth-types";
 /**
  * AT Command Generator for Scooter Smart Lights
  * Based on the protocol specification:
- * - Request Color: [0, 1, Red, Green, Blue, Intensity, 0x0D, 0x0A]
- * - Request Animation: [Scenario(1-4), 2, Red, Green, Blue, Intensity, 0x0D, 0x0A]
+ * - Request Basic Light: [0, Type(1-4), Red, Green, Blue, Intensity, 0x0D, 0x0A]
+ * - Request Animation:   [1, Type(1-4), Red, Green, Blue, Intensity, 0x0D, 0x0A]
  */
 
 interface LightSettings {
-  red: number;      // 0-255
-  green: number;    // 0-255
-  blue: number;     // 0-255
-  intensity: number; // 0-100 (will be converted to 0-20)
+  red: number;       // 0-255
+  green: number;     // 0-255
+  blue: number;      // 0-255
+  intensity: number; // 0-100 (will be converted to 0-20 in 5% steps)
 }
 
 export class BluetoothCommandGenerator {
   /**
    * Convert intensity from UI scale (0-100) to AT command scale (0-20)
+   * using 5% increments.
    */
   private static convertIntensity(intensity: number): number {
-    return Math.round((intensity / 100) * 20);
+    const normalized = Math.max(0, Math.min(100, intensity));
+    return Math.round(normalized / 5);
   }
 
-  /**
-   * Generate AT command for color request
-   * Format: [0, 1, Red, Green, Blue, Intensity, 0x0D, 0x0A]
-   */
-  static generateColorCommand(settings: LightSettings): Uint8Array {
+  private static clampColor(value: number): number {
+    return Math.max(0, Math.min(255, Math.round(value)));
+  }
+
+  private static createCommand(
+    commandId: number,
+    commandType: number,
+    settings: LightSettings
+  ): Uint8Array {
+    const red = this.clampColor(settings.red);
+    const green = this.clampColor(settings.green);
+    const blue = this.clampColor(settings.blue);
     const intensity = this.convertIntensity(settings.intensity);
+
     return new Uint8Array([
-      0,                    // Type Ani (0 for color)
-      1,                    // Type (Color/Ani)
-      settings.red,         // Red (0-255)
-      settings.green,       // Green (0-255)
-      settings.blue,        // Blue (0-255)
-      intensity,            // Intensity (0-20)
-      0x0D,                 // End Byte 1 (CR)
-      0x0A                  // End Byte 2 (LF)
+      commandId,           // Cmd (0 = basic light, 1 = animation)
+      commandType,         // Type (specific light/animation mapping)
+      red,                 // Red (0-255)
+      green,               // Green (0-255)
+      blue,                // Blue (0-255)
+      intensity,           // Intensity (0-20, 5% steps)
+      0x0D,                // End Byte 1 (CR)
+      0x0A                 // End Byte 2 (LF)
     ]);
   }
 
   /**
-   * Generate AT command for animation request
-   * Format: [Scenario(1-4), 2, Red, Green, Blue, Intensity, 0x0D, 0x0A]
+   * Generate AT command for basic light requests
+   * Format: [0, Type(1-4), Red, Green, Blue, Intensity, 0x0D, 0x0A]
+   */
+  static generateColorCommand(type: number, settings: LightSettings): Uint8Array {
+    return this.createCommand(0, type, settings);
+  }
+
+  /**
+   * Generate AT command for animation requests
+   * Format: [1, Type(1-4), Red, Green, Blue, Intensity, 0x0D, 0x0A]
    */
   static generateAnimationCommand(
     scenario: number,
     settings: LightSettings
   ): Uint8Array {
-    const intensity = this.convertIntensity(settings.intensity);
-    return new Uint8Array([
-      scenario,             // Type Ani (1-4 for animation scenario)
-      2,                    // Type (Color/Ani)
-      settings.red,         // Red (0-255)
-      settings.green,       // Green (0-255)
-      settings.blue,        // Blue (0-255)
-      intensity,            // Intensity (0-20)
-      0x0D,                 // End Byte 1 (CR)
-      0x0A                  // End Byte 2 (LF)
-    ]);
+    return this.createCommand(1, scenario, settings);
   }
 
   /**
@@ -133,14 +141,14 @@ export class BluetoothCommandGenerator {
 /**
  * Example usage:
  * 
- * // For color control (e.g., Turn Indicator)
- * const colorCmd = BluetoothCommandGenerator.generateColorCommand({
+ * // For basic light control (e.g., Low Beam)
+ * const colorCmd = BluetoothCommandGenerator.generateColorCommand(1, {
  *   red: 255,
  *   green: 165,
  *   blue: 0,
  *   intensity: 100
  * });
- * 
+ *
  * // For animation control
  * const animCmd = BluetoothCommandGenerator.generateAnimationCommand(1, {
  *   red: 128,

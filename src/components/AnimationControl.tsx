@@ -35,7 +35,7 @@ export function AnimationControl({
 }: AnimationControlProps) {
   const [isSending, setIsSending] = useState(false);
   const [justSent, setJustSent] = useState(false);
-  
+
   const scenarios = [
     { id: 1, name: "Rainbow Flow", icon: Sparkles, color: "from-red-500 to-purple-500" },
     { id: 2, name: "Lightning Pulse", icon: Zap, color: "from-yellow-400 to-orange-500" },
@@ -44,6 +44,7 @@ export function AnimationControl({
   ];
 
   const previewColor = `rgba(${red}, ${green}, ${blue}, ${intensity / 100})`;
+  const intensityLevel = Math.round(intensity / 5);
 
   const handleSend = async () => {
     setIsSending(true);
@@ -170,13 +171,15 @@ export function AnimationControl({
           <div className="space-y-3">
             <div className="flex justify-between items-center">
               <Label>Intensity</Label>
-              <span className="text-muted-foreground">{intensity}%</span>
+              <span className="text-muted-foreground">
+                Level {intensityLevel} ({intensity}%)
+              </span>
             </div>
             <Slider
               value={[intensity]}
               onValueChange={onIntensityChange}
               max={100}
-              step={1}
+              step={5}
             />
           </div>
         </div>
