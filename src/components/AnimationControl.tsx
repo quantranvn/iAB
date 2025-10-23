@@ -94,7 +94,7 @@ export function AnimationControl({
         };
 
   return (
-    <div className="space-y-8 pb-10">
+    <div className="space-y-10 pb-12">
       <section className="space-y-6 rounded-2xl border bg-card p-6">
         <div className="space-y-2">
           <h2 className="text-xl font-semibold tracking-tight">Select Animation Scenario</h2>
@@ -103,7 +103,7 @@ export function AnimationControl({
           </p>
         </div>
 
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid gap-4 sm:grid-cols-2">
           {scenarios.map((scenario) => {
             const Icon = scenario.icon;
             const isSelected = selectedScenario === scenario.id;
@@ -113,19 +113,18 @@ export function AnimationControl({
                 key={scenario.id}
                 type="button"
                 onClick={() => onScenarioChange(scenario.id)}
-                aria-pressed={isSelected}
-                className={`group flex h-full flex-col items-center gap-4 rounded-2xl border-2 p-5 text-center transition-all ${
+                className={`rounded-2xl border px-5 py-6 transition-all ${
                   isSelected
                     ? "border-primary bg-primary/5 shadow-md"
                     : "border-border hover:border-primary/60 hover:shadow-sm"
                 }`}
               >
                 <div
-                  className={`flex w-full items-center justify-center rounded-xl bg-gradient-to-r ${scenario.color} p-4 text-white shadow-sm transition-transform duration-200 ${
-                    isSelected ? "scale-[1.02]" : "group-hover:scale-[1.01]"
+                  className={`rounded-full bg-gradient-to-r ${scenario.color} p-3 shadow-sm transition-transform duration-200 ${
+                    isSelected ? "scale-105 ring-2 ring-primary/60" : "group-hover:scale-105"
                   }`}
                 >
-                  <Icon className="h-7 w-7" />
+                  <Icon className="h-6 w-6 text-white" />
                 </div>
                 <span className="text-base font-semibold">{scenario.name}</span>
               </button>
