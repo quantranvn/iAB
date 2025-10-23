@@ -1,3 +1,4 @@
+import type { Dispatch, SetStateAction } from "react";
 import { useState, useEffect } from "react";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "./components/ui/sheet";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "./components/ui/dialog";
@@ -42,6 +43,7 @@ export default function App() {
   const [bluetoothDialogOpen, setBluetoothDialogOpen] = useState(false);
   const [presetsDialogOpen, setPresetsDialogOpen] = useState(false);
   const [connectionTransport, setConnectionTransport] = useState<BluetoothConnectionTransport | null>(null);
+  const [bluetoothTab, setBluetoothTab] = useState<"connection" | "log">("connection");
   const [commandHistory, setCommandHistory] = useState<CommandLogEntry[]>([]);
   const [appStoreConnected, setAppStoreConnected] = useState(false);
 
@@ -138,7 +140,7 @@ export default function App() {
   };
 
   const updateLightSetting = (
-    setter: React.Dispatch<React.SetStateAction<LightSettings>>,
+    setter: Dispatch<SetStateAction<LightSettings>>,
     key: keyof LightSettings,
     value: number[]
   ) => {
@@ -300,16 +302,6 @@ export default function App() {
 
           {/* Action Buttons */}
           <div className="flex flex-wrap gap-2 justify-center">
-            <Button
-              variant={appStoreConnected ? "default" : "outline"}
-              size="sm"
-              onClick={toggleAppStoreConnection}
-              className="flex items-center gap-2"
-            >
-              <Store className="w-4 h-4" />
-              {appStoreConnected ? "AppStore Linked" : "AppStore"}
-            </Button>
-
             <Dialog open={presetsDialogOpen} onOpenChange={setPresetsDialogOpen}>
               <DialogTrigger asChild>
                 <Button variant="outline" size="sm">
@@ -343,20 +335,20 @@ export default function App() {
 
             <Dialog open={bluetoothDialogOpen} onOpenChange={setBluetoothDialogOpen}>
               <DialogTrigger asChild>
-                <Button variant="outline" size="sm">
+                <Button variant="outline" size="sm" className="gap-2">
                   {isBluetoothConnected ? (
-                    <Bluetooth className="w-4 h-4 mr-2" />
+                    <Bluetooth className="w-4 h-4" />
                   ) : (
-                    <BluetoothOff className="w-4 h-4 mr-2" />
+                    <BluetoothOff className="w-4 h-4" />
                   )}
-                  Bluetooth
+                  Bluetooth & Commands
                 </Button>
               </DialogTrigger>
               <DialogContent className="sm:max-w-xl">
                 <DialogHeader>
-                  <DialogTitle>Bluetooth Connection</DialogTitle>
+                  <DialogTitle>Bluetooth & Command Center</DialogTitle>
                   <DialogDescription>
-                    Connect to your scooter's smart light system
+                    Pair with your scooter and review recent lighting commands
                   </DialogDescription>
                 </DialogHeader>
                 <Tabs
@@ -391,7 +383,7 @@ export default function App() {
         <div className="space-y-4">
           {lightButtons.map((button) => {
             const Icon = button.icon;
-            
+
             return (
               <Sheet key={button.id}>
                 <SheetTrigger asChild>
@@ -419,7 +411,10 @@ export default function App() {
                   </button>
                 </SheetTrigger>
 
-                <SheetContent side="bottom" className="max-h-[80vh] overflow-y-auto">
+                <SheetContent
+                  side="bottom"
+                  className="max-h-[85vh] w-full overflow-y-auto px-2 pb-6 sm:max-w-3xl sm:px-4"
+                >
                   <SheetHeader className="pb-4">
                     <SheetTitle className="flex items-center gap-3">
                       <div className={`p-3 rounded-lg bg-gradient-to-r ${button.gradient}`}>
@@ -489,6 +484,18 @@ export default function App() {
               </Sheet>
             );
           })}
+        </div>
+
+        <div className="pt-2">
+          <Button
+            variant={appStoreConnected ? "default" : "outline"}
+            size="lg"
+            onClick={toggleAppStoreConnection}
+            className="mx-auto flex w-full max-w-sm items-center justify-center gap-2 py-6"
+          >
+            <Store className="h-5 w-5" />
+            {appStoreConnected ? "AppStore Linked" : "Open Scooter AppStore"}
+          </Button>
         </div>
 
       </div>
