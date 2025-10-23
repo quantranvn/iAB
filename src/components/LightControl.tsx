@@ -36,34 +36,34 @@ export function LightControl({
 
   const previewColor = `rgba(${red}, ${green}, ${blue}, ${intensity / 100})`;
   const intensityLevel = Math.round(intensity / 5);
-  
+
   const handleSend = async () => {
     setIsSending(true);
-    
+
     // Haptic feedback (vibration on mobile)
     if (navigator.vibrate) {
       navigator.vibrate(50);
     }
-    
+
     // Call the actual send function
     await onSend();
-    
+
     // Simulate sending delay for better UX
     setTimeout(() => {
       setIsSending(false);
       setJustSent(true);
-      
+
       // Show success toast
       toast.success(`${lightType} settings sent!`, {
         description: `RGB(${red}, ${green}, ${blue}) at ${intensity}% intensity`,
         duration: 2000,
       });
-      
+
       // Reset success state after animation
       setTimeout(() => setJustSent(false), 2000);
     }, 400);
   };
-  
+
   return (
     <div className="space-y-8 pb-10">
       <section className="space-y-6 rounded-2xl border bg-card p-6">

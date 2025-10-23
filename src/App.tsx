@@ -19,7 +19,7 @@ import { TurnSignalIcon, LowBeamIcon, HighBeamIcon, BrakeLightIcon } from "./com
 import { BluetoothCommandGenerator } from "./utils/bluetooth-commands";
 import { CommandLog, CommandLogEntry } from "./components/CommandLog";
 import { toast } from "sonner@2.0.3";
-import { Terminal } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "./components/ui/tabs";
 import { BluetoothConnectionTransport } from "./utils/bluetooth-types";
 
 interface LightSettings {
@@ -41,7 +41,6 @@ const ANIMATION_SCENARIO_NAMES = ["", "Rainbow Flow", "Lightning Pulse", "Ocean 
 export default function App() {
   const [bluetoothDialogOpen, setBluetoothDialogOpen] = useState(false);
   const [presetsDialogOpen, setPresetsDialogOpen] = useState(false);
-  const [commandLogOpen, setCommandLogOpen] = useState(false);
   const [connectionTransport, setConnectionTransport] = useState<BluetoothConnectionTransport | null>(null);
   const [commandHistory, setCommandHistory] = useState<CommandLogEntry[]>([]);
   const [appStoreConnected, setAppStoreConnected] = useState(false);
@@ -215,6 +214,12 @@ export default function App() {
     };
   }, [connectionTransport]);
 
+  useEffect(() => {
+    if (!bluetoothDialogOpen) {
+      setBluetoothTab("connection");
+    }
+  }, [bluetoothDialogOpen]);
+
   const handleLoadPreset = (preset: any) => {
     setTurnIndicator(preset.turnIndicator);
     setLowBeam(preset.lowBeam);
@@ -284,15 +289,15 @@ export default function App() {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background to-muted/20 p-6">
+    <div className="min-h-screen bg-gradient-to-b from-background to-muted/20 px-4 py-6 sm:px-6">
       <Toaster />
       <InstallPrompt />
-      <div className="max-w-md mx-auto space-y-6">
+      <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
         {/* Header */}
-        <div className="text-center space-y-4 pt-4 pb-2">
+        <div className="space-y-4 pt-4 text-center">
           <h1>Scooter Smart Lights</h1>
           <p className="text-muted-foreground">Control your light animations</p>
-          
+
           {/* Action Buttons */}
           <div className="flex flex-wrap gap-2 justify-center">
             <Button
@@ -347,39 +352,36 @@ export default function App() {
                   Bluetooth
                 </Button>
               </DialogTrigger>
-              <DialogContent>
+              <DialogContent className="sm:max-w-xl">
                 <DialogHeader>
                   <DialogTitle>Bluetooth Connection</DialogTitle>
                   <DialogDescription>
                     Connect to your scooter's smart light system
                   </DialogDescription>
                 </DialogHeader>
-                <BluetoothConnection
-                  transport={connectionTransport}
-                  onConnect={handleBluetoothConnect}
-                  onDisconnect={handleBluetoothDisconnect}
-                />
-              </DialogContent>
-            </Dialog>
-
-            <Dialog open={commandLogOpen} onOpenChange={setCommandLogOpen}>
-              <DialogTrigger asChild>
-                <Button variant="outline" size="sm">
-                  <Terminal className="w-4 h-4 mr-2" />
-                  Commands
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-h-[85vh] overflow-y-auto">
-                <DialogHeader>
-                  <DialogTitle>AT Command Log</DialogTitle>
-                  <DialogDescription>
-                    View commands sent to your scooter's smart light system
-                  </DialogDescription>
-                </DialogHeader>
-                <CommandLog
-                  entries={commandHistory}
-                  onClear={() => setCommandHistory([])}
-                />
+                <Tabs
+                  value={bluetoothTab}
+                  onValueChange={(value) => setBluetoothTab(value as "connection" | "log")}
+                  className="space-y-4"
+                >
+                  <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="connection">Connection</TabsTrigger>
+                    <TabsTrigger value="log">Command Log</TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="connection" className="space-y-4">
+                    <BluetoothConnection
+                      transport={connectionTransport}
+                      onConnect={handleBluetoothConnect}
+                      onDisconnect={handleBluetoothDisconnect}
+                    />
+                  </TabsContent>
+                  <TabsContent value="log" className="space-y-4">
+                    <CommandLog
+                      entries={commandHistory}
+                      onClear={() => setCommandHistory([])}
+                    />
+                  </TabsContent>
+                </Tabs>
               </DialogContent>
             </Dialog>
           </div>
@@ -417,8 +419,8 @@ export default function App() {
                   </button>
                 </SheetTrigger>
 
-                <SheetContent side="bottom" className="h-[85vh] overflow-y-auto">
-                  <SheetHeader className="pb-6">
+                <SheetContent side="bottom" className="max-h-[80vh] overflow-y-auto">
+                  <SheetHeader className="pb-4">
                     <SheetTitle className="flex items-center gap-3">
                       <div className={`p-3 rounded-lg bg-gradient-to-r ${button.gradient}`}>
                         <Icon className="w-6 h-6 text-white" />
