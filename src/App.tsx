@@ -319,7 +319,7 @@ export default function App() {
                   Profile
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-h-[85vh] overflow-y-auto">
+              <DialogContent className="max-h-[85vh] overflow-y-auto px-6 pb-6">
                 <DialogHeader>
                   <DialogTitle>User Profile</DialogTitle>
                   <DialogDescription>
