@@ -141,7 +141,7 @@ export function BluetoothConnection({ transport, onConnect, onDisconnect }: Blue
 
   if (isConnected) {
     return (
-      <div className="space-y-8 pb-4">
+      <div className="space-y-10 pb-8">
         <section className="space-y-6 rounded-2xl border bg-card p-6">
           <div className="space-y-2">
             <h2 className="text-xl font-semibold tracking-tight">Connected Device</h2>
@@ -187,9 +187,15 @@ export function BluetoothConnection({ transport, onConnect, onDisconnect }: Blue
             }}
             variant="destructive"
             size="lg"
-            className="w-full"
+            className="relative w-full overflow-hidden py-6 flex flex-col items-center gap-1 text-center"
           >
-            Disconnect
+            <span className="flex items-center gap-2 text-base font-semibold">
+              <BluetoothConnected className="h-4 w-4" />
+              Disconnect
+            </span>
+            <span className="text-xs font-medium text-destructive-foreground opacity-80">
+              End the current scooter session
+            </span>
           </Button>
         </section>
       </div>
@@ -197,7 +203,7 @@ export function BluetoothConnection({ transport, onConnect, onDisconnect }: Blue
   }
 
   return (
-    <div className="space-y-8 pb-4">
+    <div className="space-y-10 pb-8">
       <section className="space-y-6 rounded-2xl border bg-card p-6">
         <div className="space-y-2">
           <h2 className="text-xl font-semibold tracking-tight">Connection Method</h2>
@@ -305,7 +311,7 @@ export function BluetoothConnection({ transport, onConnect, onDisconnect }: Blue
         )}
       </section>
 
-      <section className="space-y-4 rounded-2xl border bg-card p-6">
+      <section className="space-y-6 rounded-2xl border bg-card p-6">
         <div className="space-y-3">
           {errorMessage && (
             <div className="rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
@@ -324,24 +330,24 @@ export function BluetoothConnection({ transport, onConnect, onDisconnect }: Blue
           onClick={requestDevice}
           disabled={isConnecting}
           size="lg"
-          className="relative w-full justify-between overflow-hidden"
+          className="relative w-full overflow-hidden py-6 flex flex-col items-center gap-1 text-center"
         >
-          <span className="flex items-center gap-2">
+          <span className="flex items-center gap-2 text-base font-semibold">
             {isConnecting ? (
               <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
               <Bluetooth className="h-4 w-4" />
             )}
-            <span>{isConnecting ? "Connecting..." : "Connect to Device"}</span>
+            {isConnecting ? "Connecting..." : "Connect to Device"}
           </span>
 
-          <span className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+          <span className="flex items-center gap-2 text-xs font-medium text-primary-foreground opacity-80">
             <span
               className={`h-2.5 w-2.5 rounded-full ${
-                isConnecting ? "bg-amber-500 animate-pulse" : "bg-destructive"
+                isConnecting ? "bg-amber-300 animate-pulse" : "bg-destructive"
               }`}
             />
-            {isConnecting ? "In progress" : "Disconnected"}
+            {isConnecting ? "Attempting link" : "No active connection"}
           </span>
 
           {isConnecting && (
