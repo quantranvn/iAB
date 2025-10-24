@@ -418,7 +418,7 @@ export default function App() {
 
 <div className="sticky bottom-0 z-[100] px-2 pb-[max(12px,env(safe-area-inset-bottom))]">
   <div className="mx-auto max-w-md pointer-events-none">
-    <div className="pointer-events-auto flex items-center gap-1 rounded-full border bg-background/80 shadow-md backdrop-blur p-1">
+    <div className="pointer-events-auto flex items-center gap-1 bg-background/80 shadow-md backdrop-blur p-1">
             <Button
               variant="outline"
               size="sm"
@@ -504,7 +504,7 @@ export default function App() {
               <DialogTrigger asChild>
                 <Button variant="outline" size="sm" className="flex-1 justify-center gap-2">
                   <Store className="h-4 w-4" />
-                  Open AppStore
+                  AppStore
                 </Button>
               </DialogTrigger>
               <AppStoreDialogContent />
