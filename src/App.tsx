@@ -416,9 +416,9 @@ export default function App() {
 
       </div>
 
-      <div className="fixed inset-x-0 bottom-6 z-40 px-4">
-        <div className="mx-auto max-w-sm sm:max-w-md">
-          <div className="flex items-center gap-2 rounded-full border bg-card/80 p-2 shadow-lg backdrop-blur-sm">
+<div className="fixed inset-x-0 bottom-[max(8px,env(safe-area-inset-bottom))] z-50 px-4">
+  <div className="mx-auto max-w-md pointer-events-none">
+    <div className="pointer-events-auto flex items-center gap-1 rounded-full border bg-background/80 shadow-md backdrop-blur p-1">
             <Button
               variant="outline"
               size="sm"
