@@ -416,7 +416,7 @@ export default function App() {
 
       </div>
 
-<div className="fixed inset-x-0 bottom-[max(8px,env(safe-area-inset-bottom))] z-50 px-4">
+<div className="sticky bottom-0 z-[100] px-4 pb-[max(12px,env(safe-area-inset-bottom))]">
   <div className="mx-auto max-w-md pointer-events-none">
     <div className="pointer-events-auto flex items-center gap-1 rounded-full border bg-background/80 shadow-md backdrop-blur p-1">
             <Button
