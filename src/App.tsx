@@ -15,7 +15,6 @@ import {
   BluetoothOff,
   Store,
   ScrollText,
-  User,
 } from "lucide-react";
 import { Button } from "./components/ui/button";
 import { TurnSignalIcon, LowBeamIcon, HighBeamIcon, BrakeLightIcon } from "./components/icons/AutomotiveIcons";
@@ -297,19 +296,9 @@ export default function App() {
     <div className="relative min-h-screen bg-gradient-to-b from-background to-muted/20 px-4 pt-6 pb-32 sm:px-6">
       <Toaster />
       <InstallPrompt />
-      <div className="max-w-md mx-auto space-y-6">
-        <div className="flex justify-end">
-          <div className="flex items-center">
-            <Button
-              variant="outline"
-              size="icon"
-              aria-label="Open user profile"
-              onClick={() => setPresetsDialogOpen(true)}
-              className="h-9 w-9"
-            >
-              <User className="h-4 w-4" />
-            </Button>
-          </div>
+      <div className="max-w-sm mx-auto space-y-5 sm:max-w-md">
+        <div className="flex justify-start">
+          <ModeToggle />
         </div>
 
         {/* Header */}
@@ -319,7 +308,7 @@ export default function App() {
         </div>
 
         {/* Main Control Buttons */}
-        <div className="space-y-4">
+        <div className="space-y-3.5">
           {lightButtons.map((button) => {
             const Icon = button.icon;
 
@@ -327,11 +316,11 @@ export default function App() {
               <Sheet key={button.id}>
                 <SheetTrigger asChild>
                   <button
-                    className="w-full p-6 rounded-xl bg-card border-2 border-border hover:border-primary/50 transition-all shadow-sm hover:shadow-md active:scale-98"
+                    className="w-full rounded-xl border-2 border-border bg-card p-5 transition-all shadow-sm hover:border-primary/50 hover:shadow-md active:scale-98"
                   >
                     <div className="flex items-center gap-4">
-                      <div className={`p-4 rounded-lg bg-gradient-to-r ${button.gradient} shadow-lg`}>
-                        <Icon className="w-8 h-8 text-white" />
+                      <div className={`rounded-lg bg-gradient-to-r ${button.gradient} p-3.5 shadow-lg`}>
+                        <Icon className="h-7 w-7 text-white" />
                       </div>
                       <div className="flex-1 text-left">
                         <h3>{button.title}</h3>
@@ -427,8 +416,8 @@ export default function App() {
 
       </div>
 
-      <div className="fixed inset-x-0 bottom-6 px-4">
-        <div className="max-w-md mx-auto">
+      <div className="fixed inset-x-0 bottom-6 z-40 px-4">
+        <div className="mx-auto max-w-sm sm:max-w-md">
           <div className="flex items-center gap-2 rounded-full border bg-card/80 p-2 shadow-lg backdrop-blur-sm">
             <Button
               variant="outline"
@@ -526,26 +515,25 @@ export default function App() {
 
       <Dialog open={presetsDialogOpen} onOpenChange={setPresetsDialogOpen}>
         <DialogContent className="max-h-[85vh] overflow-y-auto px-6 pb-6">
-          <div className="flex items-start justify-between gap-4">
-            <DialogHeader className="flex-1 space-y-2 text-left">
+          <div className="space-y-4">
+            <DialogHeader className="space-y-2 text-left">
               <DialogTitle>User Profile</DialogTitle>
               <DialogDescription>
                 Manage your rider identity, vehicles, and lighting presets.
               </DialogDescription>
             </DialogHeader>
-            <ModeToggle />
+            <UserProfileManager
+              currentSettings={{
+                turnIndicator,
+                lowBeam,
+                highBeam,
+                brakeLight,
+                animation,
+                animationScenario,
+              }}
+              onLoadPreset={handleLoadPreset}
+            />
           </div>
-          <UserProfileManager
-            currentSettings={{
-              turnIndicator,
-              lowBeam,
-              highBeam,
-              brakeLight,
-              animation,
-              animationScenario,
-            }}
-            onLoadPreset={handleLoadPreset}
-          />
         </DialogContent>
       </Dialog>
     </div>
