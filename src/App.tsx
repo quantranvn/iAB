@@ -297,14 +297,115 @@ export default function App() {
       <Toaster />
       <InstallPrompt />
       <div className="max-w-md mx-auto space-y-6">
-        <div className="flex justify-start">
-          <ModeToggle />
-        </div>
 
         {/* Header */}
         <div className="space-y-2 text-center">
           <h1>Scooter Smart Lights</h1>
           <p className="text-muted-foreground">Control your light animations</p>
+        </div>
+
+        {/* Quick Actions */}
+        <div className="flex flex-wrap items-center justify-center gap-3">
+          <Button
+            variant="outline"
+            size="sm"
+            className="flex-1 min-w-[9rem] justify-center gap-2"
+            onClick={() => setPresetsDialogOpen(true)}
+          >
+            <Bookmark className="w-4 h-4" />
+            Profile
+          </Button>
+
+          <Dialog open={connectionDialogOpen} onOpenChange={setConnectionDialogOpen}>
+            <DialogTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex-1 min-w-[9rem] justify-center gap-2"
+              >
+                {isBluetoothConnected ? (
+                  <Bluetooth className="w-4 h-4" />
+                ) : (
+                  <BluetoothOff className="w-4 h-4" />
+                )}
+                Connection
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="space-y-4 sm:max-w-lg">
+              <DialogHeader>
+                <DialogTitle>Connection Center</DialogTitle>
+                <DialogDescription>
+                  Review your scooter links and access Bluetooth controls.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">
+                {isBluetoothConnected
+                  ? "A Bluetooth device is currently connected."
+                  : "No active Bluetooth connections."}
+              </div>
+              <Dialog open={bluetoothDialogOpen} onOpenChange={setBluetoothDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button className="w-full justify-center gap-2" variant="outline">
+                    {isBluetoothConnected ? (
+                      <Bluetooth className="w-4 h-4" />
+                    ) : (
+                      <BluetoothOff className="w-4 h-4" />
+                    )}
+                    Bluetooth Controls
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-h-[85vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle>Bluetooth Controls</DialogTitle>
+                    <DialogDescription>
+                      Pair with your scooter or manage the active Bluetooth link.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <BluetoothConnection
+                    transport={connectionTransport}
+                    onConnect={handleBluetoothConnect}
+                    onDisconnect={handleBluetoothDisconnect}
+                  />
+                  <Dialog open={commandDialogOpen} onOpenChange={setCommandDialogOpen}>
+                    <DialogTrigger asChild>
+                      <Button className="w-full justify-center gap-2" variant="outline">
+                        <ScrollText className="h-4 w-4" />
+                        Command Log
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-h-[85vh] overflow-y-auto">
+                      <DialogHeader>
+                        <DialogTitle>Command Log</DialogTitle>
+                        <DialogDescription>
+                          Review the most recent lighting commands sent to your scooter.
+                        </DialogDescription>
+                      </DialogHeader>
+                      <CommandLog
+                        entries={commandHistory}
+                        onClear={() => setCommandHistory([])}
+                      />
+                    </DialogContent>
+                  </Dialog>
+                </DialogContent>
+              </Dialog>
+            </DialogContent>
+          </Dialog>
+
+          <Dialog open={appStoreOpen} onOpenChange={setAppStoreOpen}>
+            <DialogTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex-1 min-w-[9rem] justify-center gap-2"
+              >
+                <Store className="h-4 w-4" />
+                AppStore
+              </Button>
+            </DialogTrigger>
+            <AppStoreDialogContent />
+          </Dialog>
+
+          <ModeToggle />
         </div>
 
         {/* Main Control Buttons */}
@@ -414,103 +515,6 @@ export default function App() {
           })}
         </div>
 
-      </div>
-
-<div className="sticky bottom-0 z-[100] px-4 pb-[max(12px,env(safe-area-inset-bottom))]">
-  <div className="mx-auto max-w-md pointer-events-none">
-    <div className="pointer-events-auto flex items-center gap-4 bg-background/80 shadow-md backdrop-blur p-1">
-            <Button
-              variant="outline"
-              size="sm"
-              className="flex-1 justify-center gap-2"
-              onClick={() => setPresetsDialogOpen(true)}
-            >
-              <Bookmark className="w-4 h-4" />
-              Profile
-            </Button>
-
-            <Dialog open={connectionDialogOpen} onOpenChange={setConnectionDialogOpen}>
-              <DialogTrigger asChild>
-                <Button variant="outline" size="sm" className="flex-1 justify-center gap-2">
-                  {isBluetoothConnected ? (
-                    <Bluetooth className="w-4 h-4" />
-                  ) : (
-                    <BluetoothOff className="w-4 h-4" />
-                  )}
-                  Connection
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="space-y-4 sm:max-w-lg">
-                <DialogHeader>
-                  <DialogTitle>Connection Center</DialogTitle>
-                  <DialogDescription>
-                    Review your scooter links and access Bluetooth controls.
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">
-                  {isBluetoothConnected
-                    ? "A Bluetooth device is currently connected."
-                    : "No active Bluetooth connections."}
-                </div>
-                <Dialog open={bluetoothDialogOpen} onOpenChange={setBluetoothDialogOpen}>
-                  <DialogTrigger asChild>
-                    <Button className="w-full justify-center gap-2" variant="outline">
-                      {isBluetoothConnected ? (
-                        <Bluetooth className="w-4 h-4" />
-                      ) : (
-                        <BluetoothOff className="w-4 h-4" />
-                      )}
-                      Bluetooth Controls
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="max-h-[85vh] overflow-y-auto">
-                    <DialogHeader>
-                      <DialogTitle>Bluetooth Controls</DialogTitle>
-                      <DialogDescription>
-                        Pair with your scooter or manage the active Bluetooth link.
-                      </DialogDescription>
-                    </DialogHeader>
-                    <BluetoothConnection
-                      transport={connectionTransport}
-                      onConnect={handleBluetoothConnect}
-                      onDisconnect={handleBluetoothDisconnect}
-                    />
-                    <Dialog open={commandDialogOpen} onOpenChange={setCommandDialogOpen}>
-                      <DialogTrigger asChild>
-                        <Button className="w-full justify-center gap-2" variant="outline">
-                          <ScrollText className="h-4 w-4" />
-                          Command Log
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent className="max-h-[85vh] overflow-y-auto">
-                        <DialogHeader>
-                          <DialogTitle>Command Log</DialogTitle>
-                          <DialogDescription>
-                            Review the most recent lighting commands sent to your scooter.
-                          </DialogDescription>
-                        </DialogHeader>
-                        <CommandLog
-                          entries={commandHistory}
-                          onClear={() => setCommandHistory([])}
-                        />
-                      </DialogContent>
-                    </Dialog>
-                  </DialogContent>
-                </Dialog>
-              </DialogContent>
-            </Dialog>
-
-            <Dialog open={appStoreOpen} onOpenChange={setAppStoreOpen}>
-              <DialogTrigger asChild>
-                <Button variant="outline" size="sm" className="flex-1 justify-center gap-2">
-                  <Store className="h-4 w-4" />
-                  AppStore
-                </Button>
-              </DialogTrigger>
-              <AppStoreDialogContent />
-            </Dialog>
-          </div>
-        </div>
       </div>
 
       <Dialog open={presetsDialogOpen} onOpenChange={setPresetsDialogOpen}>
