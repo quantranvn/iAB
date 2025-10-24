@@ -61,7 +61,6 @@ export function ModeToggle() {
         <DropdownMenuContent
           side="right"        
           align="end"       
-          sideOffset={8}      
           className="min-w-[8rem]"
         >
         {THEME_OPTIONS.map(({ key, label, icon: Icon }) => (
