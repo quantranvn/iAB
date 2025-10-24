@@ -304,6 +304,7 @@ export default function App() {
         {/* Header */}
         <div className="space-y-2 text-center">
           <h1>Scooter Smart Lights</h1>
+          <p className="text-muted-foreground">Control your light animations</p>
         </div>
 
         {/* Main Control Buttons */}
