@@ -293,7 +293,10 @@ export default function App() {
   ];
 
   return (
-    <div className="relative min-h-screen bg-gradient-to-b from-background to-muted/20 px-4 pt-6 pb-32 sm:px-6">
+    <div
+    className="relative min-h-dvh overflow-x-hidden bg-gradient-to-b from-background to-muted/20"
+    style={{ "--bottom-bar-h": "64px" } as React.CSSProperties}
+    >
       <Toaster />
       <InstallPrompt />
       <div className="max-w-md mx-auto space-y-6">
