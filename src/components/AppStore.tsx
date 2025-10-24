@@ -46,7 +46,7 @@ const ownedAnimations = [
 
 export function AppStoreDialogContent() {
   return (
-    <DialogContent className="max-h-[85vh] overflow-hidden px-6 pb-6 sm:max-w-3xl">
+    <DialogContent className="max-h-[85vh] overflow-y-auto">
       <DialogHeader>
         <DialogTitle className="flex items-center gap-2">
           <Store className="h-5 w-5" />
