@@ -296,7 +296,7 @@ export default function App() {
     <div className="relative min-h-screen bg-gradient-to-b from-background to-muted/20 px-4 pt-6 pb-32 sm:px-6">
       <Toaster />
       <InstallPrompt />
-      <div className="max-w-sm mx-auto space-y-5 sm:max-w-md">
+      <div className="max-w-md mx-auto space-y-6">
         <div className="flex justify-start">
           <ModeToggle />
         </div>
