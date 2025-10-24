@@ -293,10 +293,7 @@ export default function App() {
   ];
 
   return (
-    <div
-    className="relative min-h-dvh overflow-x-hidden bg-gradient-to-b from-background to-muted/20"
-    style={{ "--bottom-bar-h": "64px" } as React.CSSProperties}
-    >
+    <div className="relative min-h-screen bg-gradient-to-b from-background to-muted/20 px-4 pt-6 pb-32 sm:px-6">
       <Toaster />
       <InstallPrompt />
       <div className="max-w-md mx-auto space-y-6">
@@ -307,7 +304,6 @@ export default function App() {
         {/* Header */}
         <div className="space-y-2 text-center">
           <h1>Scooter Smart Lights</h1>
-          <p className="text-muted-foreground">Control your light animations</p>
         </div>
 
         {/* Main Control Buttons */}
