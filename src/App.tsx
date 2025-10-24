@@ -308,7 +308,7 @@ export default function App() {
         </div>
 
         {/* Main Control Buttons */}
-        <div className="space-y-4">
+        <div className="space-y-3.5">
           {lightButtons.map((button) => {
             const Icon = button.icon;
 
@@ -316,11 +316,11 @@ export default function App() {
               <Sheet key={button.id}>
                 <SheetTrigger asChild>
                   <button
-                    className="w-full p-6 rounded-xl bg-card border-2 border-border hover:border-primary/50 transition-all shadow-sm hover:shadow-md active:scale-98"
+                    className="w-full rounded-xl border-2 border-border bg-card p-5 transition-all shadow-sm hover:border-primary/50 hover:shadow-md active:scale-98"
                   >
                     <div className="flex items-center gap-4">
-                      <div className={`p-4 rounded-lg bg-gradient-to-r ${button.gradient} shadow-lg`}>
-                        <Icon className="w-8 h-8 text-white" />
+                      <div className={`rounded-lg bg-gradient-to-r ${button.gradient} p-3.5 shadow-lg`}>
+                        <Icon className="h-7 w-7 text-white" />
                       </div>
                       <div className="flex-1 text-left">
                         <h3>{button.title}</h3>
@@ -416,8 +416,8 @@ export default function App() {
 
       </div>
 
-      <div className="fixed inset-x-0 bottom-6 px-4">
-        <div className="max-w-md mx-auto">
+      <div className="fixed inset-x-0 bottom-6 z-40 px-4">
+        <div className="mx-auto max-w-sm sm:max-w-md">
           <div className="flex items-center gap-2 rounded-full border bg-card/80 p-2 shadow-lg backdrop-blur-sm">
             <Button
               variant="outline"

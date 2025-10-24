@@ -64,16 +64,16 @@ export function LightControl({
   };
   
   return (
-    <div className="space-y-6 pb-6">
-      <div className="flex flex-col items-center gap-4">
-        <div 
-          className="w-full h-24 rounded-lg border-2 border-border shadow-inner"
+    <div className="space-y-5 pb-6">
+      <div className="flex flex-col items-center gap-3.5">
+        <div
+          className="h-20 w-full rounded-lg border-2 border-border shadow-inner"
           style={{ backgroundColor: previewColor }}
         />
         <p className="text-muted-foreground">Color Preview</p>
       </div>
-      
-      <div className="space-y-6">
+
+      <div className="space-y-5">
         <div className="space-y-3">
           <div className="flex justify-between items-center">
             <Label className="text-red-500">Red</Label>
