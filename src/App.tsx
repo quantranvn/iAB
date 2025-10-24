@@ -10,7 +10,7 @@ import { InstallPrompt } from "./components/InstallPrompt";
 import { Toaster } from "./components/ui/sonner";
 import {
   Sparkles,
-  Bookmark,
+  User,
   Bluetooth,
   BluetoothOff,
   Store,
@@ -314,7 +314,7 @@ export default function App() {
           aria-label="Profile"
           title="Profile"
         >
-          <Bookmark className="w-4 h-4" />
+          <User className="w-4 h-4" />
         </Button>
       
         {/* Connection (dialog trigger) */}
