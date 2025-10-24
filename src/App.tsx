@@ -416,8 +416,8 @@ export default function App() {
 
       </div>
 
-      <div className="fixed inset-x-0 bottom-6 px-4">
-        <div className="max-w-md mx-auto">
+      <div className="fixed inset-x-0 bottom-6 z-40 px-4">
+        <div className="mx-auto max-w-sm sm:max-w-md">
           <div className="flex items-center gap-2 rounded-full border bg-card/80 p-2 shadow-lg backdrop-blur-sm">
             <Button
               variant="outline"
