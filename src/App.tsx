@@ -15,6 +15,12 @@ import {
   BluetoothOff,
   Store,
   ScrollText,
+  SunMedium,
+  MoonStar,
+  CarFront,
+  Clock,
+  BatteryCharging,
+  GaugeCircle,
 } from "lucide-react";
 import { Button } from "./components/ui/button";
 import { TurnSignalIcon, LowBeamIcon, HighBeamIcon, BrakeLightIcon } from "./components/icons/AutomotiveIcons";
@@ -41,6 +47,24 @@ const BASIC_LIGHT_TYPES = {
 const ANIMATION_SCENARIO_NAMES = ["", "Rainbow Flow", "Lightning Pulse", "Ocean Wave", "Starlight"];
 
 export default function App() {
+  const [theme, setTheme] = useState<"light" | "dark">(() => {
+    if (typeof window !== "undefined") {
+      const stored = window.localStorage.getItem("theme");
+      if (stored === "dark" || stored === "light") {
+        return stored;
+      }
+    }
+
+    if (typeof document !== "undefined" && document.documentElement.classList.contains("dark")) {
+      return "dark";
+    }
+
+    if (typeof window !== "undefined" && typeof window.matchMedia === "function") {
+      return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+    }
+
+    return "light";
+  });
   const [connectionDialogOpen, setConnectionDialogOpen] = useState(false);
   const [bluetoothDialogOpen, setBluetoothDialogOpen] = useState(false);
   const [commandDialogOpen, setCommandDialogOpen] = useState(false);
@@ -48,6 +72,7 @@ export default function App() {
   const [connectionTransport, setConnectionTransport] = useState<BluetoothConnectionTransport | null>(null);
   const [commandHistory, setCommandHistory] = useState<CommandLogEntry[]>([]);
   const [appStoreOpen, setAppStoreOpen] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState(() => new Date());
 
   const [turnIndicator, setTurnIndicator] = useState<LightSettings>({
     red: 255,
@@ -86,8 +111,54 @@ export default function App() {
 
   const [animationScenario, setAnimationScenario] = useState(1);
 
+  const batteryLevel = 100;
+  const estimatedRangeKm = 556;
+
   // Send AT command when settings change
   const isBluetoothConnected = connectionTransport !== null;
+
+  useEffect(() => {
+    if (typeof document === "undefined") {
+      return;
+    }
+
+    if (theme === "dark") {
+      document.documentElement.classList.add("dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+    }
+
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem("theme", theme);
+    }
+  }, [theme]);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
+      return;
+    }
+
+    const media = window.matchMedia("(prefers-color-scheme: dark)");
+    const handler = (event: MediaQueryListEvent) => {
+      setTheme(event.matches ? "dark" : "light");
+    };
+
+    if (typeof media.addEventListener === "function") {
+      media.addEventListener("change", handler);
+      return () => {
+        media.removeEventListener("change", handler);
+      };
+    }
+
+    if (typeof media.addListener === "function") {
+      media.addListener(handler);
+      return () => {
+        media.removeListener(handler);
+      };
+    }
+
+    return undefined;
+  }, []);
 
   const sendBasicLightCommand = async (
     type: number,
@@ -106,6 +177,8 @@ export default function App() {
       bytes: Array.from(command),
       description: `${description} (Cmd 0x00, Type 0x${type.toString(16).padStart(2, "0")}): RGB(${settings.red}, ${settings.green}, ${settings.blue}), Intensity: ${settings.intensity}% (Level ${intensityLevel})`
     }, ...prev].slice(0, 50)); // Keep last 50 commands
+
+    setLastUpdated(new Date());
 
     // Only send via Bluetooth if connected
     if (isBluetoothConnected) {
@@ -130,6 +203,8 @@ export default function App() {
       bytes: Array.from(command),
       description: `${ANIMATION_SCENARIO_NAMES[scenario]} (Cmd 0x01, Type 0x${scenario.toString(16).padStart(2, "0")}): RGB(${settings.red}, ${settings.green}, ${settings.blue}), Intensity: ${settings.intensity}% (Level ${intensityLevel})`
     }, ...prev].slice(0, 50)); // Keep last 50 commands
+
+    setLastUpdated(new Date());
 
     // Only send via Bluetooth if connected
     if (isBluetoothConnected) {
@@ -291,237 +366,449 @@ export default function App() {
     },
   ];
 
+  const formattedLastUpdated = new Intl.DateTimeFormat("en-US", {
+    month: "numeric",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(lastUpdated);
+
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background to-muted/20 px-4 py-6 sm:px-6">
+    <div className="min-h-screen bg-gradient-to-b from-slate-100 via-slate-50 to-slate-200 px-4 py-8 text-slate-950 transition-colors dark:from-slate-950 dark:via-slate-950 dark:to-slate-900 dark:text-slate-100 sm:px-6">
       <Toaster />
       <InstallPrompt />
-      <div className="max-w-md mx-auto space-y-6">
-        {/* Header */}
-        <div className="space-y-4 pt-4 text-center">
-          <h1>Scooter Smart Lights</h1>
-          <p className="text-muted-foreground">Control your light animations</p>
-
-          {/* Action Buttons */}
-          <div className="flex flex-wrap gap-2 justify-center">
-            <Dialog open={presetsDialogOpen} onOpenChange={setPresetsDialogOpen}>
-              <DialogTrigger asChild>
-                <Button variant="outline" size="sm">
-                  <Bookmark className="w-4 h-4 mr-2" />
-                  Profile
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-h-[85vh] overflow-y-auto px-6 pb-6">
-                <DialogHeader>
-                  <DialogTitle>User Profile</DialogTitle>
-                  <DialogDescription>
-                    Manage your rider identity, vehicles, and lighting presets.
-                  </DialogDescription>
-                </DialogHeader>
-                <UserProfileManager
-                  currentSettings={{
-                    turnIndicator,
-                    lowBeam,
-                    highBeam,
-                    brakeLight,
-                    animation,
-                    animationScenario,
-                  }}
-                  onLoadPreset={handleLoadPreset}
-                />
-              </DialogContent>
-            </Dialog>
-
-            <Dialog open={connectionDialogOpen} onOpenChange={setConnectionDialogOpen}>
-              <DialogTrigger asChild>
-                <Button variant="outline" size="sm" className="gap-2">
-                  {isBluetoothConnected ? (
-                    <Bluetooth className="w-4 h-4" />
-                  ) : (
-                    <BluetoothOff className="w-4 h-4" />
-                  )}
-                  Connection
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="space-y-4 sm:max-w-lg">
-                <DialogHeader>
-                  <DialogTitle>Connection Center</DialogTitle>
-                  <DialogDescription>
-                    Review your scooter links and access Bluetooth controls.
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">
-                  {isBluetoothConnected
-                    ? "A Bluetooth device is currently connected."
-                    : "No active Bluetooth connections."}
-                </div>
-                <Dialog open={bluetoothDialogOpen} onOpenChange={setBluetoothDialogOpen}>
-                  <DialogTrigger asChild>
-                    <Button className="w-full justify-center gap-2" variant="outline">
-                      {isBluetoothConnected ? (
-                        <Bluetooth className="w-4 h-4" />
-                      ) : (
-                        <BluetoothOff className="w-4 h-4" />
-                      )}
-                      Bluetooth Controls
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="max-h-[85vh] overflow-y-auto">
-                    <DialogHeader>
-                      <DialogTitle>Bluetooth Controls</DialogTitle>
-                      <DialogDescription>
-                        Pair with your scooter or manage the active Bluetooth link.
-                      </DialogDescription>
-                    </DialogHeader>
-                    <BluetoothConnection
-                      transport={connectionTransport}
-                      onConnect={handleBluetoothConnect}
-                      onDisconnect={handleBluetoothDisconnect}
-                    />
-                    <Dialog open={commandDialogOpen} onOpenChange={setCommandDialogOpen}>
-                      <DialogTrigger asChild>
-                        <Button className="w-full justify-center gap-2" variant="outline">
-                          <ScrollText className="h-4 w-4" />
-                          Command Log
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent className="max-h-[85vh] overflow-y-auto">
-                        <DialogHeader>
-                          <DialogTitle>Command Log</DialogTitle>
-                          <DialogDescription>
-                            Review the most recent lighting commands sent to your scooter.
-                          </DialogDescription>
-                        </DialogHeader>
-                        <CommandLog
-                          entries={commandHistory}
-                          onClear={() => setCommandHistory([])}
-                        />
-                      </DialogContent>
-                    </Dialog>
-                  </DialogContent>
-                </Dialog>
-              </DialogContent>
-            </Dialog>
-
-            <Dialog open={appStoreOpen} onOpenChange={setAppStoreOpen}>
-              <DialogTrigger asChild>
-                <Button variant="outline" size="sm" className="gap-2">
-                  <Store className="h-4 w-4" />
-                  Open AppStore
-                </Button>
-              </DialogTrigger>
-              <AppStoreDialogContent />
-            </Dialog>
+      <div className="mx-auto flex w-full max-w-5xl flex-col gap-8">
+        <header className="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
+          <div className="space-y-2">
+            <span className="inline-flex items-center gap-2 rounded-full border border-slate-300/60 bg-white/60 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.4em] text-slate-600 shadow-sm dark:border-white/10 dark:bg-white/5 dark:text-white/70">
+              <CarFront className="h-3.5 w-3.5" />
+              Vehicle Control
+            </span>
+            <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">Scooter Smart Lights</h1>
+            <p className="max-w-xl text-sm text-slate-600 dark:text-slate-300">
+              Monitor your scooter and fine-tune every light zone with precision controls, Bluetooth connectivity, and saved rider profiles.
+            </p>
           </div>
-        </div>
+          <div className="flex flex-col items-start gap-3 sm:items-end">
+            <div className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-medium uppercase tracking-[0.3em] shadow-sm transition-colors ${
+              isBluetoothConnected
+                ? "border-emerald-500/40 bg-emerald-100/80 text-emerald-700 dark:border-emerald-400/40 dark:bg-emerald-500/10 dark:text-emerald-200"
+                : "border-slate-300/60 bg-white/70 text-slate-500 dark:border-white/10 dark:bg-white/5 dark:text-white/60"
+            }`}>
+              {isBluetoothConnected ? <Bluetooth className="h-3.5 w-3.5" /> : <BluetoothOff className="h-3.5 w-3.5" />}
+              {isBluetoothConnected ? "Connected" : "Not Connected"}
+            </div>
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-10 w-10 rounded-full border-slate-300/70 bg-white/70 shadow-sm backdrop-blur transition-colors hover:border-primary/50 hover:bg-primary/10 dark:border-white/10 dark:bg-white/5"
+              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+            >
+              {theme === "dark" ? (
+                <SunMedium className="h-5 w-5" />
+              ) : (
+                <MoonStar className="h-5 w-5" />
+              )}
+              <span className="sr-only">Toggle theme</span>
+            </Button>
+          </div>
+        </header>
 
-        {/* Main Control Buttons */}
-        <div className="space-y-4">
-          {lightButtons.map((button) => {
-            const Icon = button.icon;
-
-            return (
-              <Sheet key={button.id}>
-                <SheetTrigger asChild>
-                  <button
-                    className="w-full p-6 rounded-xl bg-card border-2 border-border hover:border-primary/50 transition-all shadow-sm hover:shadow-md active:scale-98"
+        <section className="relative overflow-hidden rounded-3xl border border-slate-200/70 bg-slate-900 text-white shadow-2xl transition-colors dark:border-white/10 dark:bg-slate-950">
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.22),transparent_55%)]" />
+          <div className="flex flex-col gap-10 p-8 sm:p-10">
+            <div className="flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between">
+              <div className="space-y-4">
+                <button
+                  type="button"
+                  className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-1 text-xs font-semibold uppercase tracking-[0.4em] text-white/80 shadow-sm transition hover:bg-white/20"
+                >
+                  Check Status
+                </button>
+                <div>
+                  <p className="text-sm uppercase tracking-[0.6em] text-white/60">System Health</p>
+                  <h2 className="mt-3 text-5xl font-semibold tracking-tight sm:text-6xl">All Good</h2>
+                </div>
+                <p className="max-w-md text-sm leading-relaxed text-white/70">
+                  Every lighting zone is synchronized and ready. Customize presets, check Bluetooth status, and push new commands instantly.
+                </p>
+              </div>
+              <div className="relative">
+                <div className="absolute inset-0 scale-[1.15] rounded-[3rem] bg-gradient-to-br from-white/15 via-white/5 to-transparent blur-2xl" aria-hidden />
+                <div className="relative flex h-40 w-[18rem] items-center justify-center rounded-[3rem] border border-white/10 bg-gradient-to-br from-slate-800/80 to-slate-900/70 shadow-lg">
+                  <svg
+                    viewBox="0 0 400 180"
+                    className="h-32 w-[15rem] text-white/80"
+                    role="presentation"
+                    aria-hidden
                   >
-                    <div className="flex items-center gap-4">
-                      <div className={`p-4 rounded-lg bg-gradient-to-r ${button.gradient} shadow-lg`}>
-                        <Icon className="w-8 h-8 text-white" />
+                    <defs>
+                      <linearGradient id="car-body" x1="0%" y1="0%" x2="100%" y2="0%">
+                        <stop offset="0%" stopColor="rgba(255,255,255,0.15)" />
+                        <stop offset="60%" stopColor="rgba(255,255,255,0.35)" />
+                        <stop offset="100%" stopColor="rgba(255,255,255,0.1)" />
+                      </linearGradient>
+                    </defs>
+                    <path
+                      d="M30 120c10-40 40-70 110-80h120c48 8 76 30 92 80H30Z"
+                      fill="url(#car-body)"
+                    />
+                    <path
+                      d="M70 120a32 32 0 1 0 64 0 32 32 0 1 0-64 0Zm196 0a32 32 0 1 0 64 0 32 32 0 1 0-64 0Z"
+                      fill="rgba(0,0,0,0.65)"
+                    />
+                    <path
+                      d="M90 120a20 20 0 1 0 40 0 20 20 0 1 0-40 0Zm196 0a20 20 0 1 0 40 0 20 20 0 1 0-40 0Z"
+                      fill="rgba(255,255,255,0.7)"
+                    />
+                    <rect x="140" y="65" width="120" height="20" rx="10" fill="rgba(255,255,255,0.55)" />
+                    <rect x="118" y="88" width="164" height="24" rx="12" fill="rgba(0,0,0,0.55)" />
+                    <rect x="126" y="92" width="148" height="16" rx="8" fill="rgba(255,255,255,0.6)" />
+                  </svg>
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-white/15 bg-white/10 p-4 text-xs uppercase tracking-[0.3em] text-white/70 shadow-inner backdrop-blur">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-center gap-2 text-[11px] font-medium">
+                  <Clock className="h-4 w-4 text-white/70" />
+                  Updated from scooter on {formattedLastUpdated}
+                </div>
+                <div className="flex flex-wrap items-center gap-6">
+                  <div className="flex items-center gap-3">
+                    <BatteryCharging className="h-5 w-5 text-white" />
+                    <div className="space-y-1 text-left normal-case tracking-normal">
+                      <p className="text-[11px] uppercase tracking-[0.3em] text-white/60">State of Charge</p>
+                      <div className="flex items-baseline gap-2 text-white">
+                        <span className="text-xl font-semibold">{batteryLevel}%</span>
+                        <span className="text-sm text-white/70">/ {estimatedRangeKm} km</span>
                       </div>
-                      <div className="flex-1 text-left">
-                        <h3>{button.title}</h3>
-                        {button.settings && (
-                          <p className="text-muted-foreground">
-                            RGB({button.settings.red}, {button.settings.green}, {button.settings.blue})
-                          </p>
-                        )}
-                        {button.isAnimation && (
-                          <p className="text-muted-foreground">
-                            Scenario {animationScenario}
-                          </p>
-                        )}
+                      <div className="h-1.5 w-44 rounded-full bg-white/20">
+                        <div
+                          className="h-full rounded-full bg-white"
+                          style={{ width: `${batteryLevel}%` }}
+                        />
                       </div>
                     </div>
-                  </button>
-                </SheetTrigger>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <GaugeCircle className="h-5 w-5 text-white" />
+                    <div className="space-y-1 text-left normal-case tracking-normal">
+                      <p className="text-[11px] uppercase tracking-[0.3em] text-white/60">Active Scene</p>
+                      <p className="text-base font-semibold text-white">
+                        {buttonLabelForScenario(animationScenario)}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
 
-                <SheetContent
-                  side="bottom"
-                  className="max-h-[85vh] w-full overflow-y-auto px-2 pb-6 sm:max-w-3xl sm:px-4"
-                >
-                  <SheetHeader className="pb-4">
-                    <SheetTitle className="flex items-center gap-3">
-                      <div className={`p-3 rounded-lg bg-gradient-to-r ${button.gradient}`}>
-                        <Icon className="w-6 h-6 text-white" />
+        <section className="grid gap-4 md:grid-cols-3">
+          <Dialog open={presetsDialogOpen} onOpenChange={setPresetsDialogOpen}>
+            <DialogTrigger asChild>
+              <button
+                type="button"
+                className="group relative overflow-hidden rounded-3xl border border-slate-200/70 bg-white/80 p-5 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg dark:border-white/10 dark:bg-white/5"
+              >
+                <div className="absolute inset-0 bg-gradient-to-br from-slate-200/70 via-transparent to-transparent opacity-0 transition group-hover:opacity-100 dark:from-white/10" />
+                <div className="relative flex h-full flex-col gap-4">
+                  <div className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-slate-900 text-white shadow-sm dark:bg-white/10">
+                    <Bookmark className="h-5 w-5" />
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500 dark:text-white/60">Profiles</p>
+                    <h3 className="text-lg font-semibold">Rider Library</h3>
+                    <p className="text-sm text-slate-600 dark:text-slate-300">
+                      Load saved lighting combinations or build presets for each rider in seconds.
+                    </p>
+                  </div>
+                  <span className="mt-auto inline-flex items-center text-sm font-medium text-primary">Manage</span>
+                </div>
+              </button>
+            </DialogTrigger>
+            <DialogContent className="max-h-[85vh] overflow-y-auto px-6 pb-6">
+              <DialogHeader>
+                <DialogTitle>User Profile</DialogTitle>
+                <DialogDescription>
+                  Manage your rider identity, vehicles, and lighting presets.
+                </DialogDescription>
+              </DialogHeader>
+              <UserProfileManager
+                currentSettings={{
+                  turnIndicator,
+                  lowBeam,
+                  highBeam,
+                  brakeLight,
+                  animation,
+                  animationScenario,
+                }}
+                onLoadPreset={handleLoadPreset}
+              />
+            </DialogContent>
+          </Dialog>
+
+          <Dialog open={connectionDialogOpen} onOpenChange={setConnectionDialogOpen}>
+            <DialogTrigger asChild>
+              <button
+                type="button"
+                className="group relative overflow-hidden rounded-3xl border border-slate-200/70 bg-white/80 p-5 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg dark:border-white/10 dark:bg-white/5"
+              >
+                <div className="absolute inset-0 bg-gradient-to-br from-slate-200/70 via-transparent to-transparent opacity-0 transition group-hover:opacity-100 dark:from-white/10" />
+                <div className="relative flex h-full flex-col gap-4">
+                  <div className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-slate-900 text-white shadow-sm dark:bg-white/10">
+                    {isBluetoothConnected ? <Bluetooth className="h-5 w-5" /> : <BluetoothOff className="h-5 w-5" />}
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500 dark:text-white/60">Connections</p>
+                    <h3 className="text-lg font-semibold">Link Center</h3>
+                    <p className="text-sm text-slate-600 dark:text-slate-300">
+                      Pair a new scooter, review connected devices, or inspect the latest command history.
+                    </p>
+                  </div>
+                  <span className="mt-auto inline-flex items-center text-sm font-medium text-primary">Open Hub</span>
+                </div>
+              </button>
+            </DialogTrigger>
+            <DialogContent className="space-y-4 sm:max-w-lg">
+              <DialogHeader>
+                <DialogTitle>Connection Center</DialogTitle>
+                <DialogDescription>
+                  Review your scooter links and access Bluetooth controls.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="rounded-xl border border-dashed border-slate-200/60 bg-muted/40 p-4 text-sm text-muted-foreground dark:border-white/10 dark:bg-white/5">
+                {isBluetoothConnected
+                  ? "A Bluetooth device is currently connected."
+                  : "No active Bluetooth connections."}
+              </div>
+              <Dialog open={bluetoothDialogOpen} onOpenChange={setBluetoothDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button className="w-full justify-center gap-2" variant="outline">
+                    {isBluetoothConnected ? (
+                      <Bluetooth className="w-4 h-4" />
+                    ) : (
+                      <BluetoothOff className="w-4 h-4" />
+                    )}
+                    Bluetooth Controls
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-h-[85vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle>Bluetooth Controls</DialogTitle>
+                    <DialogDescription>
+                      Pair with your scooter or manage the active Bluetooth link.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <BluetoothConnection
+                    transport={connectionTransport}
+                    onConnect={handleBluetoothConnect}
+                    onDisconnect={handleBluetoothDisconnect}
+                  />
+                  <Dialog open={commandDialogOpen} onOpenChange={setCommandDialogOpen}>
+                    <DialogTrigger asChild>
+                      <Button className="w-full justify-center gap-2" variant="outline">
+                        <ScrollText className="h-4 w-4" />
+                        Command Log
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-h-[85vh] overflow-y-auto">
+                      <DialogHeader>
+                        <DialogTitle>Command Log</DialogTitle>
+                        <DialogDescription>
+                          Review the most recent lighting commands sent to your scooter.
+                        </DialogDescription>
+                      </DialogHeader>
+                      <CommandLog
+                        entries={commandHistory}
+                        onClear={() => setCommandHistory([])}
+                      />
+                    </DialogContent>
+                  </Dialog>
+                </DialogContent>
+              </Dialog>
+            </DialogContent>
+          </Dialog>
+
+          <Dialog open={appStoreOpen} onOpenChange={setAppStoreOpen}>
+            <DialogTrigger asChild>
+              <button
+                type="button"
+                className="group relative overflow-hidden rounded-3xl border border-slate-200/70 bg-white/80 p-5 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg dark:border-white/10 dark:bg-white/5"
+              >
+                <div className="absolute inset-0 bg-gradient-to-br from-slate-200/70 via-transparent to-transparent opacity-0 transition group-hover:opacity-100 dark:from-white/10" />
+                <div className="relative flex h-full flex-col gap-4">
+                  <div className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-slate-900 text-white shadow-sm dark:bg-white/10">
+                    <Store className="h-5 w-5" />
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500 dark:text-white/60">Extensions</p>
+                    <h3 className="text-lg font-semibold">Lighting AppStore</h3>
+                    <p className="text-sm text-slate-600 dark:text-slate-300">
+                      Discover new ambient packs, effects, and OTA upgrades tailored to your scooter model.
+                    </p>
+                  </div>
+                  <span className="mt-auto inline-flex items-center text-sm font-medium text-primary">Browse</span>
+                </div>
+              </button>
+            </DialogTrigger>
+            <AppStoreDialogContent />
+          </Dialog>
+        </section>
+
+        <section className="rounded-3xl border border-slate-200/70 bg-white/80 p-6 shadow-sm transition dark:border-white/10 dark:bg-white/5 sm:p-8">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500 dark:text-white/60">Lighting Zones</p>
+              <h2 className="text-xl font-semibold sm:text-2xl">Live Control Center</h2>
+            </div>
+            <p className="text-sm text-slate-600 dark:text-slate-300">
+              Tap any zone to fine tune colors, intensity, and animations in real time.
+            </p>
+          </div>
+          <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {lightButtons.map((button) => {
+              const Icon = button.icon;
+
+              return (
+                <Sheet key={button.id}>
+                  <SheetTrigger asChild>
+                    <button
+                      type="button"
+                      className="group relative overflow-hidden rounded-2xl border border-slate-200/70 bg-white/70 p-5 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg dark:border-white/10 dark:bg-white/5"
+                    >
+                      <div
+                        className={`absolute inset-0 bg-gradient-to-br ${button.gradient} opacity-0 transition group-hover:opacity-40`}
+                        aria-hidden
+                      />
+                      <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-white/40 via-transparent to-transparent opacity-0 transition group-hover:opacity-100 dark:from-white/10" />
+                      <div className="relative flex h-full flex-col gap-4">
+                        <div className={`inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br ${button.gradient} text-white shadow-lg`}>
+                          <Icon className="h-6 w-6" />
+                        </div>
+                        <div className="space-y-2">
+                          <div className="flex items-start justify-between gap-2">
+                            <div>
+                              <h3 className="text-lg font-semibold">{button.title}</h3>
+                              {button.settings && (
+                                <p className="text-xs uppercase tracking-[0.3em] text-slate-500 dark:text-white/50">
+                                  RGB {button.settings.red}/{button.settings.green}/{button.settings.blue}
+                                </p>
+                              )}
+                            </div>
+                            {button.isAnimation && (
+                              <span className="inline-flex items-center rounded-full bg-slate-900/80 px-3 py-1 text-[11px] font-medium uppercase tracking-[0.3em] text-white shadow-sm dark:bg-white/10">
+                                Scene {animationScenario}
+                              </span>
+                            )}
+                          </div>
+                          {button.settings && (
+                            <div className="space-y-2">
+                              <div className="flex items-center justify-between text-xs text-slate-600 dark:text-slate-300">
+                                <span className="uppercase tracking-[0.3em]">Intensity</span>
+                                <span className="font-medium">{button.settings.intensity}%</span>
+                              </div>
+                              <div className="h-1.5 rounded-full bg-slate-200/80 dark:bg-white/10">
+                                <div
+                                  className="h-full rounded-full bg-slate-900 dark:bg-white"
+                                  style={{ width: `${button.settings.intensity}%` }}
+                                />
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                        <span className="mt-auto inline-flex items-center text-sm font-medium text-primary">
+                          Adjust
+                        </span>
                       </div>
-                      {button.title}
-                    </SheetTitle>
-                    <SheetDescription>
-                      {button.isAnimation 
-                        ? "Choose an animation effect and adjust base colors"
-                        : "Adjust RGB color channels and intensity level"
-                      }
-                    </SheetDescription>
-                  </SheetHeader>
+                    </button>
+                  </SheetTrigger>
 
-                  {button.isAnimation ? (
-                    <AnimationControl
-                      selectedScenario={animationScenario}
-                      onScenarioChange={setAnimationScenario}
-                      red={animation.red}
-                      green={animation.green}
-                      blue={animation.blue}
-                      intensity={animation.intensity}
-                      onRedChange={(value) =>
-                        updateLightSetting(setAnimation, "red", value)
-                      }
-                      onGreenChange={(value) =>
-                        updateLightSetting(setAnimation, "green", value)
-                      }
-                      onBlueChange={(value) =>
-                        updateLightSetting(setAnimation, "blue", value)
-                      }
-                      onIntensityChange={(value) =>
-                        updateLightSetting(setAnimation, "intensity", value)
-                      }
-                      onSend={() => sendAnimationCommand(animationScenario, animation)}
-                    />
-                  ) : button.settings && button.setter ? (
-                    <LightControl
-                      lightType={button.title}
-                      red={button.settings.red}
-                      green={button.settings.green}
-                      blue={button.settings.blue}
-                      intensity={button.settings.intensity}
-                      onRedChange={(value) =>
-                        updateLightSetting(button.setter!, "red", value)
-                      }
-                      onGreenChange={(value) =>
-                        updateLightSetting(button.setter!, "green", value)
-                      }
-                      onBlueChange={(value) =>
-                        updateLightSetting(button.setter!, "blue", value)
-                      }
-                      onIntensityChange={(value) =>
-                        updateLightSetting(button.setter!, "intensity", value)
-                      }
-                      onSend={() =>
-                        sendBasicLightCommand(
-                          button.commandType!,
-                          button.settings!,
-                          button.title
-                        )
-                      }
-                    />
-                  ) : null}
-                </SheetContent>
-              </Sheet>
-            );
-          })}
-        </div>
+                  <SheetContent
+                    side="bottom"
+                    className="max-h-[85vh] w-full overflow-y-auto rounded-t-[2rem] border border-border bg-background px-2 pb-6 sm:max-w-3xl sm:px-6"
+                  >
+                    <SheetHeader className="pb-4">
+                      <SheetTitle className="flex items-center gap-3 text-lg sm:text-xl">
+                        <div className={`flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br ${button.gradient}`}>
+                          <Icon className="h-6 w-6 text-white" />
+                        </div>
+                        {button.title}
+                      </SheetTitle>
+                      <SheetDescription>
+                        {button.isAnimation
+                          ? "Choose an animation effect and adjust base colors"
+                          : "Adjust RGB color channels and intensity level"
+                        }
+                      </SheetDescription>
+                    </SheetHeader>
 
+                    {button.isAnimation ? (
+                      <AnimationControl
+                        selectedScenario={animationScenario}
+                        onScenarioChange={setAnimationScenario}
+                        red={animation.red}
+                        green={animation.green}
+                        blue={animation.blue}
+                        intensity={animation.intensity}
+                        onRedChange={(value) =>
+                          updateLightSetting(setAnimation, "red", value)
+                        }
+                        onGreenChange={(value) =>
+                          updateLightSetting(setAnimation, "green", value)
+                        }
+                        onBlueChange={(value) =>
+                          updateLightSetting(setAnimation, "blue", value)
+                        }
+                        onIntensityChange={(value) =>
+                          updateLightSetting(setAnimation, "intensity", value)
+                        }
+                        onSend={() => sendAnimationCommand(animationScenario, animation)}
+                      />
+                    ) : button.settings && button.setter ? (
+                      <LightControl
+                        lightType={button.title}
+                        red={button.settings.red}
+                        green={button.settings.green}
+                        blue={button.settings.blue}
+                        intensity={button.settings.intensity}
+                        onRedChange={(value) =>
+                          updateLightSetting(button.setter!, "red", value)
+                        }
+                        onGreenChange={(value) =>
+                          updateLightSetting(button.setter!, "green", value)
+                        }
+                        onBlueChange={(value) =>
+                          updateLightSetting(button.setter!, "blue", value)
+                        }
+                        onIntensityChange={(value) =>
+                          updateLightSetting(button.setter!, "intensity", value)
+                        }
+                        onSend={() =>
+                          sendBasicLightCommand(
+                            button.commandType!,
+                            button.settings!,
+                            button.title
+                          )
+                        }
+                      />
+                    ) : null}
+                  </SheetContent>
+                </Sheet>
+              );
+            })}
+          </div>
+        </section>
       </div>
     </div>
   );
+}
+
+function buttonLabelForScenario(scenario: number) {
+  const names = ["Idle", "Rainbow Flow", "Lightning Pulse", "Ocean Wave", "Starlight"];
+  return names[scenario] ?? `Scenario ${scenario}`;
 }
