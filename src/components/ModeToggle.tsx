@@ -59,7 +59,7 @@ export function ModeToggle() {
         </Button>
       </DropdownMenuTrigger>
         <DropdownMenuContent
-          side="right"        
+          side="left"        
           align="start"       
           sideOffset={8}      
           className="min-w-[8rem]"
