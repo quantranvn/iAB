@@ -60,7 +60,7 @@ export function ModeToggle() {
       </DropdownMenuTrigger>
         <DropdownMenuContent
           side="right"        
-          align="end"       
+          align="center"       
           className="min-w-[8rem]"
         >
         {THEME_OPTIONS.map(({ key, label, icon: Icon }) => (
