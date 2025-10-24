@@ -15,7 +15,6 @@ import {
   BluetoothOff,
   Store,
   ScrollText,
-  User,
 } from "lucide-react";
 import { Button } from "./components/ui/button";
 import { TurnSignalIcon, LowBeamIcon, HighBeamIcon, BrakeLightIcon } from "./components/icons/AutomotiveIcons";
@@ -298,18 +297,8 @@ export default function App() {
       <Toaster />
       <InstallPrompt />
       <div className="max-w-md mx-auto space-y-6">
-        <div className="flex justify-end">
-          <div className="flex items-center">
-            <Button
-              variant="outline"
-              size="icon"
-              aria-label="Open user profile"
-              onClick={() => setPresetsDialogOpen(true)}
-              className="h-9 w-9"
-            >
-              <User className="h-4 w-4" />
-            </Button>
-          </div>
+        <div className="flex justify-start">
+          <ModeToggle />
         </div>
 
         {/* Header */}
@@ -526,26 +515,25 @@ export default function App() {
 
       <Dialog open={presetsDialogOpen} onOpenChange={setPresetsDialogOpen}>
         <DialogContent className="max-h-[85vh] overflow-y-auto px-6 pb-6">
-          <div className="flex items-start justify-between gap-4">
-            <DialogHeader className="flex-1 space-y-2 text-left">
+          <div className="space-y-4">
+            <DialogHeader className="space-y-2 text-left">
               <DialogTitle>User Profile</DialogTitle>
               <DialogDescription>
                 Manage your rider identity, vehicles, and lighting presets.
               </DialogDescription>
             </DialogHeader>
-            <ModeToggle />
+            <UserProfileManager
+              currentSettings={{
+                turnIndicator,
+                lowBeam,
+                highBeam,
+                brakeLight,
+                animation,
+                animationScenario,
+              }}
+              onLoadPreset={handleLoadPreset}
+            />
           </div>
-          <UserProfileManager
-            currentSettings={{
-              turnIndicator,
-              lowBeam,
-              highBeam,
-              brakeLight,
-              animation,
-              animationScenario,
-            }}
-            onLoadPreset={handleLoadPreset}
-          />
         </DialogContent>
       </Dialog>
     </div>
