@@ -76,34 +76,34 @@ export function AnimationControl({
   };
 
   return (
-    <div className="space-y-5 pb-6">
+    <div className="space-y-6 pb-6">
       {/* Animation Scenario Selection */}
-      <div className="space-y-3.5">
+      <div className="space-y-4">
         <p className="text-muted-foreground">Select Animation Scenario</p>
-
-        <div className="grid grid-cols-2 gap-3.5">
+        
+        <div className="grid grid-cols-2 gap-4">
           {scenarios.map((scenario) => {
             const Icon = scenario.icon;
             const isSelected = selectedScenario === scenario.id;
-
+            
             return (
               <button
                 key={scenario.id}
                 onClick={() => onScenarioChange(scenario.id)}
                 className={`
-                  relative rounded-lg border-2 p-5 transition-all
-                  ${isSelected
-                    ? 'border-primary bg-primary/5 scale-105'
+                  relative p-6 rounded-lg border-2 transition-all
+                  ${isSelected 
+                    ? 'border-primary bg-primary/5 scale-105' 
                     : 'border-border hover:border-primary/50'
                   }
                 `}
               >
                 <div className="flex flex-col items-center gap-3">
                   <div className={`
-                    rounded-full bg-gradient-to-r ${scenario.color} p-2.5
+                    p-3 rounded-full bg-gradient-to-r ${scenario.color}
                     ${isSelected ? 'shadow-lg' : ''}
                   `}>
-                    <Icon className="h-5 w-5 text-white" />
+                    <Icon className="w-6 h-6 text-white" />
                   </div>
                   <span className="text-center">{scenario.name}</span>
                 </div>
@@ -116,16 +116,16 @@ export function AnimationControl({
       <Separator />
 
       {/* Color Controls */}
-      <div className="space-y-5">
-        <div className="flex flex-col items-center gap-3.5">
-          <div
-            className="h-20 w-full rounded-lg border-2 border-border shadow-inner"
+      <div className="space-y-6">
+        <div className="flex flex-col items-center gap-4">
+          <div 
+            className="w-full h-24 rounded-lg border-2 border-border shadow-inner"
             style={{ backgroundColor: previewColor }}
           />
           <p className="text-muted-foreground">Base Color</p>
         </div>
-
-        <div className="space-y-5">
+        
+        <div className="space-y-6">
           <div className="space-y-3">
             <div className="flex justify-between items-center">
               <Label className="text-red-500">Red</Label>
