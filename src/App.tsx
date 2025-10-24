@@ -306,31 +306,34 @@ export default function App() {
 
         {/* Quick Actions */}
         <div className="flex flex-wrap items-center justify-center gap-3">
-          <Button
-            variant="outline"
-            size="sm"
-            className="flex-1 min-w-[9rem] justify-center gap-2"
-            onClick={() => setPresetsDialogOpen(true)}
-          >
-            <Bookmark className="w-4 h-4" />
-            Profile
-          </Button>
-
-          <Dialog open={connectionDialogOpen} onOpenChange={setConnectionDialogOpen}>
-            <DialogTrigger asChild>
-              <Button
-                variant="outline"
-                size="sm"
-                className="flex-1 min-w-[9rem] justify-center gap-2"
-              >
-                {isBluetoothConnected ? (
-                  <Bluetooth className="w-4 h-4" />
-                ) : (
-                  <BluetoothOff className="w-4 h-4" />
-                )}
-                Connection
-              </Button>
-            </DialogTrigger>
+        <Button
+          variant="outline"
+          size="icon"
+          className="rounded-xl"
+          onClick={() => setPresetsDialogOpen(true)}
+          aria-label="Profile"
+          title="Profile"
+        >
+          <Bookmark className="w-4 h-4" />
+        </Button>
+      
+        {/* Connection (dialog trigger) */}
+        <Dialog open={connectionDialogOpen} onOpenChange={setConnectionDialogOpen}>
+          <DialogTrigger asChild>
+            <Button
+              variant="outline"
+              size="icon"
+              className="rounded-xl"
+              aria-label="Connection"
+              title="Connection"
+            >
+              {isBluetoothConnected ? (
+                <Bluetooth className="w-4 h-4" />
+              ) : (
+                <BluetoothOff className="w-4 h-4" />
+              )}
+            </Button>
+          </DialogTrigger>
             <DialogContent className="space-y-4 sm:max-w-lg">
               <DialogHeader>
                 <DialogTitle>Connection Center</DialogTitle>
@@ -391,19 +394,20 @@ export default function App() {
             </DialogContent>
           </Dialog>
 
-          <Dialog open={appStoreOpen} onOpenChange={setAppStoreOpen}>
-            <DialogTrigger asChild>
-              <Button
-                variant="outline"
-                size="sm"
-                className="flex-1 min-w-[9rem] justify-center gap-2"
-              >
-                <Store className="h-4 w-4" />
-                AppStore
-              </Button>
-            </DialogTrigger>
-            <AppStoreDialogContent />
-          </Dialog>
+        <Dialog open={appStoreOpen} onOpenChange={setAppStoreOpen}>
+          <DialogTrigger asChild>
+            <Button
+              variant="outline"
+              size="icon"
+              className="rounded-xl"
+              aria-label="App Store"
+              title="App Store"
+            >
+              <Store className="w-4 h-4" />
+            </Button>
+          </DialogTrigger>
+          <AppStoreDialogContent />
+        </Dialog>
 
           <ModeToggle />
         </div>
