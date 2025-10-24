@@ -17,5 +17,4 @@ The repository now also contains a Flutter port of the application in [`flutter_
 1. Install Flutter 3.3 or newer and run `flutter doctor` to verify your setup.
 2. Navigate to `flutter_app/` and run `flutter pub get`.
 3. Launch the application with `flutter run` on your desired target (web, desktop, or mobile).
-4. Use the Connect button in the Flutter UI to pair with your scooter's BLE controller. The app now uses `flutter_blue_plus` to send the same AT commands as the web experience.
   

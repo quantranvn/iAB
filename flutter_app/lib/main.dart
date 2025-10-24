@@ -1,15 +1,10 @@
-import 'dart:async';
-import 'dart:typed_data';
-
 import 'package:flutter/material.dart';
-import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 
 import 'models/light_settings.dart';
 import 'widgets/animation_control_card.dart';
 import 'widgets/command_log.dart';
 import 'widgets/connection_status_chip.dart';
 import 'widgets/light_control_card.dart';
-import 'services/bluetooth_connection_manager.dart';
 
 void main() {
   runApp(const IntelligentAmbientBeamApp());
@@ -49,35 +44,17 @@ class _HomeScreenState extends State<HomeScreen> {
   late Map<String, LightSettings> _lightSettings;
   LightSettings _animationSettings = const LightSettings(red: 128, green: 0, blue: 255, intensity: 100);
   bool _connected = false;
-  bool _isConnecting = false;
-  String? _connectedName;
-  String? _connectionStatus;
-  String? _connectionError;
-  late final BluetoothConnectionManager _connectionManager;
-  late final TextEditingController _serviceController;
-  late final TextEditingController _characteristicController;
   final List<CommandLogEntry> _commandHistory = <CommandLogEntry>[];
 
   @override
   void initState() {
     super.initState();
-    _connectionManager = BluetoothConnectionManager();
-    _serviceController = TextEditingController(text: BluetoothConnectionManager.defaultServiceUuid);
-    _characteristicController = TextEditingController(text: BluetoothConnectionManager.defaultCharacteristicUuid);
     _lightSettings = <String, LightSettings>{
       'Turn Indicator': const LightSettings(red: 255, green: 165, blue: 0, intensity: 100),
       'Low Beam': const LightSettings(red: 255, green: 255, blue: 200, intensity: 80),
       'High Beam': const LightSettings(red: 255, green: 255, blue: 255, intensity: 100),
       'Brake Light': const LightSettings(red: 255, green: 0, blue: 0, intensity: 100),
     };
-  }
-
-  @override
-  void dispose() {
-    unawaited(_connectionManager.disconnect());
-    _serviceController.dispose();
-    _characteristicController.dispose();
-    super.dispose();
   }
 
   void _handleCommand(CommandLogEntry entry) {
@@ -89,158 +66,41 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
-  Future<void> _connectToDevice() async {
-    final selected = await showModalBottomSheet<ScanResult>(
-      context: context,
-      isScrollControlled: true,
-      builder: (context) {
-        return _DevicePickerSheet(
-          manager: _connectionManager,
-          serviceController: _serviceController,
-          characteristicController: _characteristicController,
-        );
-      },
+  void _mockConnect() {
+    setState(() => _connected = true);
+    final entry = CommandLogEntry(
+      timestamp: DateTime.now(),
+      hexString: '---',
+      bytes: const <int>[],
+      description: 'Connected to mock scooter lighting controller.',
     );
-
-    if (!mounted || selected == null) {
-      return;
-    }
-
-    final label = _connectionManager.labelForResult(selected);
-    final serviceUuid = _serviceController.text.trim().isEmpty
-        ? BluetoothConnectionManager.defaultServiceUuid
-        : _serviceController.text.trim();
-    final characteristicUuid = _characteristicController.text.trim().isEmpty
-        ? BluetoothConnectionManager.defaultCharacteristicUuid
-        : _characteristicController.text.trim();
-
-    setState(() {
-      _isConnecting = true;
-      _connectionError = null;
-      _connectionStatus = 'Connecting to $label...';
-      _connected = false;
-      _connectedName = null;
-    });
-
-    _handleCommand(
-      CommandLogEntry(
-        timestamp: DateTime.now(),
-        hexString: '---',
-        bytes: const <int>[],
-        description: 'Attempting to connect to $label (service $serviceUuid, characteristic $characteristicUuid).',
-      ),
-    );
-
-    try {
-      await _connectionManager.connect(
-        selected,
-        serviceUuid: serviceUuid,
-        characteristicUuid: characteristicUuid,
-      );
-
-      if (!mounted) {
-        return;
-      }
-
-      setState(() {
-        _connected = true;
-        _isConnecting = false;
-        _connectedName = _connectionManager.connectedDeviceLabel ?? label;
-        _connectionStatus = 'Connected to ${_connectedName ?? label}.';
-      });
-
-      _handleCommand(
-        CommandLogEntry(
-          timestamp: DateTime.now(),
-          hexString: '---',
-          bytes: const <int>[],
-          description: 'Connected to ${_connectedName ?? label}. Ready to stream lighting commands.',
-        ),
-      );
-    } catch (error) {
-      final message = error is StateError ? error.message : error.toString();
-
-      if (!mounted) {
-        return;
-      }
-
-      setState(() {
-        _connected = false;
-        _isConnecting = false;
-        _connectedName = null;
-        _connectionStatus = null;
-        _connectionError = message;
-      });
-
-      _handleCommand(
-        CommandLogEntry(
-          timestamp: DateTime.now(),
-          hexString: '---',
-          bytes: const <int>[],
-          description: 'Failed to connect to $label: $message',
-        ),
-      );
-    }
+    _handleCommand(entry);
   }
 
-  Future<void> _disconnectDevice() async {
-    await _connectionManager.disconnect();
-
-    if (!mounted) {
-      return;
-    }
-
-    setState(() {
-      _connected = false;
-      _connectedName = null;
-      _connectionStatus = 'Disconnected from lighting controller.';
-      _connectionError = null;
-    });
-
-    _handleCommand(
-      CommandLogEntry(
-        timestamp: DateTime.now(),
-        hexString: '---',
-        bytes: const <int>[],
-        description: 'Disconnected from lighting controller.',
-      ),
+  void _mockDisconnect() {
+    setState(() => _connected = false);
+    final entry = CommandLogEntry(
+      timestamp: DateTime.now(),
+      hexString: '---',
+      bytes: const <int>[],
+      description: 'Disconnected from controller.',
     );
+    _handleCommand(entry);
   }
 
-  Future<void> _sendCommand(CommandLogEntry entry) async {
-    if (!_connectionManager.isConnected) {
-      _handleCommand(
-        CommandLogEntry(
-          timestamp: entry.timestamp,
-          hexString: entry.hexString,
-          bytes: entry.bytes,
-          description: '[Not sent] ${entry.description} (no active connection).',
-        ),
+  void _sendMockCommand(CommandLogEntry entry) {
+    if (!_connected) {
+      final mockEntry = CommandLogEntry(
+        timestamp: entry.timestamp,
+        hexString: entry.hexString,
+        bytes: entry.bytes,
+        description: '[Mock] ${entry.description}',
       );
+      _handleCommand(mockEntry);
       return;
     }
 
-    try {
-      await _connectionManager.send(Uint8List.fromList(entry.bytes));
-      _handleCommand(
-        CommandLogEntry(
-          timestamp: entry.timestamp,
-          hexString: entry.hexString,
-          bytes: entry.bytes,
-          description: "${entry.description} → Sent to ${_connectedName ?? 'device'}."
-        ),
-      );
-    } catch (error) {
-      final message = error is StateError ? error.message : error.toString();
-      _handleCommand(
-        CommandLogEntry(
-          timestamp: DateTime.now(),
-          hexString: entry.hexString,
-          bytes: entry.bytes,
-          description: '[Error] ${entry.description} (Failed: $message)',
-        ),
-      );
-    }
+    _handleCommand(entry);
   }
 
   @override
@@ -327,58 +187,18 @@ class _HomeScreenState extends State<HomeScreen> {
         children: <Widget>[
           ConnectionStatusChip(
             isConnected: _connected,
-            isBusy: _isConnecting,
-            onConnect: () {
-              _connectToDevice();
-            },
-            onDisconnect: () {
-              _disconnectDevice();
-            },
+            onConnect: _mockConnect,
+            onDisconnect: _mockDisconnect,
           ),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
-              _connected
-                  ? "Connected to ${_connectedName ?? 'lighting controller'}"
-                  : 'Not connected',
+              _connected ? 'Connected to mock device' : 'Not connected',
               style: Theme.of(context).textTheme.bodyMedium,
             ),
           ),
         ],
       ),
-      if (_connectionStatus != null) ...<Widget>[
-        const SizedBox(height: 8),
-        Row(
-          children: <Widget>[
-            const Icon(Icons.check_circle_outline, size: 18),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                _connectionStatus!,
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-            ),
-          ],
-        ),
-      ],
-      if (_connectionError != null) ...<Widget>[
-        const SizedBox(height: 8),
-        Row(
-          children: <Widget>[
-            const Icon(Icons.error_outline, size: 18, color: Colors.redAccent),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                _connectionError!,
-                style: Theme.of(context)
-                    .textTheme
-                    .bodySmall
-                    ?.copyWith(color: Theme.of(context).colorScheme.error),
-              ),
-            ),
-          ],
-        ),
-      ],
       const SizedBox(height: 16),
       ...basicLightTypes.entries.map((entry) {
         final settings = _lightSettings[entry.key]!;
@@ -390,9 +210,7 @@ class _HomeScreenState extends State<HomeScreen> {
           onChanged: (updated) {
             setState(() => _lightSettings[entry.key] = updated);
           },
-          onCommandGenerated: (entryLog) {
-            _sendCommand(entryLog);
-          },
+          onCommandGenerated: _sendMockCommand,
         );
       }),
       AnimationControlCard(
@@ -400,9 +218,7 @@ class _HomeScreenState extends State<HomeScreen> {
         onSettingsChanged: (settings) {
           setState(() => _animationSettings = settings);
         },
-        onCommandGenerated: (entryLog) {
-          _sendCommand(entryLog);
-        },
+        onCommandGenerated: _sendMockCommand,
       ),
       const SizedBox(height: 24),
     ];
@@ -467,186 +283,5 @@ class _HomeScreenState extends State<HomeScreen> {
       default:
         return Icons.lightbulb_outline;
     }
-  }
-}
-
-class _DevicePickerSheet extends StatefulWidget {
-  const _DevicePickerSheet({
-    required this.manager,
-    required this.serviceController,
-    required this.characteristicController,
-  });
-
-  final BluetoothConnectionManager manager;
-  final TextEditingController serviceController;
-  final TextEditingController characteristicController;
-
-  @override
-  State<_DevicePickerSheet> createState() => _DevicePickerSheetState();
-}
-
-class _DevicePickerSheetState extends State<_DevicePickerSheet> {
-  List<ScanResult> _results = <ScanResult>[];
-  bool _isScanning = false;
-  String? _errorMessage;
-
-  @override
-  void initState() {
-    super.initState();
-    _refresh();
-  }
-
-  Future<void> _refresh() async {
-    setState(() {
-      _isScanning = true;
-      _errorMessage = null;
-    });
-
-    try {
-      final results = await widget.manager.scanForDevices();
-      if (!mounted) {
-        return;
-      }
-
-      setState(() {
-        _results = results;
-      });
-    } catch (error) {
-      if (!mounted) {
-        return;
-      }
-
-      setState(() {
-        _results = <ScanResult>[];
-        _errorMessage = error.toString();
-      });
-    } finally {
-      if (!mounted) {
-        return;
-      }
-
-      setState(() {
-        _isScanning = false;
-      });
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
-
-    return SafeArea(
-      child: SingleChildScrollView(
-        padding: EdgeInsets.fromLTRB(16, 16, 16, bottomInset + 16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            Center(
-              child: Container(
-                width: 48,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.outlineVariant,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Select Bluetooth Device',
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Choose the HM-10/HC-05 compatible controller you want to pair with.',
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-            const SizedBox(height: 16),
-            SizedBox(
-              height: 260,
-              child: _buildScanResults(context),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: widget.serviceController,
-              decoration: const InputDecoration(
-                labelText: 'Service UUID',
-                helperText: 'Defaults to 0000ffe0-0000-1000-8000-00805f9b34fb',
-              ),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: widget.characteristicController,
-              decoration: const InputDecoration(
-                labelText: 'Characteristic UUID',
-                helperText: 'Defaults to 0000ffe1-0000-1000-8000-00805f9b34fb',
-              ),
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: <Widget>[
-                OutlinedButton.icon(
-                  onPressed: _isScanning ? null : _refresh,
-                  icon: const Icon(Icons.refresh),
-                  label: const Text('Scan again'),
-                ),
-                const Spacer(),
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  child: const Text('Cancel'),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildScanResults(BuildContext context) {
-    if (_isScanning) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
-    if (_errorMessage != null) {
-      return Center(
-        child: Text(
-          _errorMessage!,
-          textAlign: TextAlign.center,
-          style: Theme.of(context)
-              .textTheme
-              .bodyMedium
-              ?.copyWith(color: Theme.of(context).colorScheme.error),
-        ),
-      );
-    }
-
-    if (_results.isEmpty) {
-      return Center(
-        child: Text(
-          'No Bluetooth controllers found nearby. Try scanning again or adjust the UUIDs below.',
-          textAlign: TextAlign.center,
-          style: Theme.of(context).textTheme.bodyMedium,
-        ),
-      );
-    }
-
-    return ListView.separated(
-      itemCount: _results.length,
-      separatorBuilder: (_, __) => const Divider(height: 1),
-      itemBuilder: (context, index) {
-        final result = _results[index];
-        final label = widget.manager.labelForResult(result);
-        final identifier = result.device.remoteId.str;
-        return ListTile(
-          leading: const Icon(Icons.bluetooth),
-          title: Text(label),
-          subtitle: Text(identifier),
-          trailing: Text('${result.rssi} dBm'),
-          onTap: () => Navigator.of(context).pop(result),
-        );
-      },
-    );
   }
 }
