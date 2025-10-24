@@ -1,7 +1,7 @@
 
   # Scooter Smartlight Control App
 
-  This is a code bundle for Scooter Smartlight Control App. 
+  This is a code bundle for Scooter Smartlight Control App. <br>
   The application is available at [Scooter-Smartlight-Control-App](https://i-ab.vercel.app/).
 
   ## Running the code
