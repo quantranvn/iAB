@@ -53,12 +53,12 @@ export function ModeToggle() {
           variant="outline"
           size="icon"
           aria-label="Toggle theme"
-          className="h-9 w-9"
+          className="rounded-xl"
         >
           <ActiveIcon className="h-4 w-4" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="min-w-[8rem]">
+      <DropdownMenuContent align="center" side="right" sideOffset={8} className="min-w-[8rem]">
         {THEME_OPTIONS.map(({ key, label, icon: Icon }) => (
           <DropdownMenuItem
             key={key}

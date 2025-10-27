@@ -22,114 +22,17 @@ export interface VehicleProfile {
   presets: Preset[];
 }
 
-export interface AnimationDetails {
-  uid: string;
-  name: string;
-  description?: string;
-  base64?: string;
-  gradient?: string;
-  price?: number;
-  status?: string;
-  featured?: boolean;
-}
-
-export interface MotorbikeProfile {
-  bikeId: string;
-  brand: string;
-  model: string;
-  plateNumber: string;
-  status: string;
-  lastUpdated?: string;
-}
-
-export interface UserSettings {
-  notifications: boolean;
-  language: string;
-  theme: string;
-}
-
-export interface UserLocation {
-  country: string;
-  city: string;
-}
-
-export interface UserAccountDetails {
-  firstName: string;
-  lastName: string;
-  email: string;
-  phoneNumber: string;
-  role: string;
-  profileImageUrl: string;
-}
-
 export interface UserProfile {
   userId: string;
   username: string;
   vehicles: VehicleProfile[];
-  ownedAnimations: Record<string, AnimationDetails>;
-  account?: UserAccountDetails;
-  motorbikes?: Record<string, MotorbikeProfile>;
-  settings?: UserSettings;
-  location?: UserLocation;
-  createdAt?: string;
-  lastLogin?: string;
+  ownedAnimations: string[];
 }
-
-const createTimestamp = (daysAgo: number) => new Date(Date.now() - daysAgo * 86400000).toISOString();
 
 export const FALLBACK_USER_PROFILE: UserProfile = {
   userId: "rider-001",
   username: "Night Rider",
-  account: {
-    firstName: "Night",
-    lastName: "Rider",
-    email: "nightrider@example.com",
-    phoneNumber: "+15555550100",
-    role: "rider",
-    profileImageUrl:
-      "https://firebasestorage.googleapis.com/v0/b/appname/o/users%2Frider-001%2Favatar.png?alt=media",
-  },
-  motorbikes: {
-    "SCT-042": {
-      bikeId: "SCT-042",
-      brand: "Lunar",
-      model: "Glide XR",
-      plateNumber: "XR042",
-      status: "active",
-      lastUpdated: createTimestamp(1),
-    },
-    "SCT-099": {
-      bikeId: "SCT-099",
-      brand: "Solar",
-      model: "Burst RS",
-      plateNumber: "RS099",
-      status: "active",
-      lastUpdated: createTimestamp(2),
-    },
-  },
-  settings: {
-    notifications: true,
-    language: "en",
-    theme: "dark",
-  },
-  location: {
-    country: "USA",
-    city: "Neo City",
-  },
-  createdAt: createTimestamp(30),
-  lastLogin: createTimestamp(0),
-  ownedAnimations: {
-    "aurora-veil": {
-      uid: "aurora-veil",
-      name: "Aurora Veil",
-      status: "active",
-    },
-    "starlight-chase": {
-      uid: "starlight-chase",
-      name: "Starlight Chase",
-      status: "active",
-    },
-  },
+  ownedAnimations: ["aurora-veil", "starlight-chase"],
   vehicles: [
     {
       id: "SCT-042",

@@ -10,7 +10,7 @@ import { InstallPrompt } from "./components/InstallPrompt";
 import { Toaster } from "./components/ui/sonner";
 import {
   Sparkles,
-  Bookmark,
+  User,
   Bluetooth,
   BluetoothOff,
   Store,
@@ -305,32 +305,36 @@ export default function App() {
         </div>
 
         {/* Quick Actions */}
-        <div className="flex flex-wrap items-center justify-center gap-3">
-          <Button
-            variant="outline"
-            size="sm"
-            className="flex-1 min-w-[9rem] justify-center gap-2"
-            onClick={() => setPresetsDialogOpen(true)}
-          >
-            <Bookmark className="w-4 h-4" />
-            Profile
-          </Button>
-
-          <Dialog open={connectionDialogOpen} onOpenChange={setConnectionDialogOpen}>
-            <DialogTrigger asChild>
-              <Button
-                variant="outline"
-                size="sm"
-                className="flex-1 min-w-[9rem] justify-center gap-2"
-              >
-                {isBluetoothConnected ? (
-                  <Bluetooth className="w-4 h-4" />
-                ) : (
-                  <BluetoothOff className="w-4 h-4" />
-                )}
-                Connection
-              </Button>
-            </DialogTrigger>
+          <div className="flex flex-wrap items-center justify-center gap-2">
+            {/* Profile */}
+            <Button
+              variant="outline"
+              size="icon"
+              className="rounded-xl"
+              onClick={() => setPresetsDialogOpen(true)}
+              aria-label="Profile"
+              title="Profile"
+            >
+              <User className="w-4 h-4" />
+            </Button>
+          
+            {/* Connection (dialog trigger) */}
+            <Dialog open={connectionDialogOpen} onOpenChange={setConnectionDialogOpen}>
+              <DialogTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="rounded-xl"
+                  aria-label="Connection"
+                  title="Connection"
+                >
+                  {isBluetoothConnected ? (
+                    <Bluetooth className="w-4 h-4" />
+                  ) : (
+                    <BluetoothOff className="w-4 h-4" />
+                  )}
+                </Button>
+              </DialogTrigger>
             <DialogContent className="space-y-4 sm:max-w-lg">
               <DialogHeader>
                 <DialogTitle>Connection Center</DialogTitle>
@@ -395,11 +399,12 @@ export default function App() {
             <DialogTrigger asChild>
               <Button
                 variant="outline"
-                size="sm"
-                className="flex-1 min-w-[9rem] justify-center gap-2"
+                size="icon"
+                className="rounded-xl"
+                aria-label="App Store"
+                title="App Store"
               >
-                <Store className="h-4 w-4" />
-                AppStore
+                <Store className="w-4 h-4" />
               </Button>
             </DialogTrigger>
             <AppStoreDialogContent />

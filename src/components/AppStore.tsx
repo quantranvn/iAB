@@ -92,8 +92,9 @@ export function AppStoreDialogContent() {
           return;
         }
 
-        const ownedAnimationMap = profile?.ownedAnimations ?? FALLBACK_USER_PROFILE.ownedAnimations;
-        const ownedIds = new Set(Object.keys(ownedAnimationMap));
+        const ownedIds = new Set(
+          profile?.ownedAnimations ?? FALLBACK_USER_PROFILE.ownedAnimations
+        );
 
         if (animations.length > 0) {
           const owned = animations.filter((animation) => ownedIds.has(animation.id));
@@ -142,7 +143,7 @@ export function AppStoreDialogContent() {
 
     setPurchaseInProgress(animation.id);
     try {
-      await recordAnimationPurchase(activeUserId, animation);
+      await recordAnimationPurchase(activeUserId, animation.id);
       setOwnedAnimations((prev) => [animation, ...prev.filter((item) => item.id !== animation.id)]);
       setAvailableAnimations((prev) => prev.filter((item) => item.id !== animation.id));
       setUsingFallbackData(false);

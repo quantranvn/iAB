@@ -48,29 +48,12 @@ const cloneVehicle = (vehicle: VehicleProfile): VehicleProfile => ({
   presets: vehicle.presets.map(clonePreset),
 });
 
-const cloneOwnedAnimations = (
-  animations: UserProfile["ownedAnimations"]
-): UserProfile["ownedAnimations"] =>
-  Object.entries(animations).reduce<UserProfile["ownedAnimations"]>((acc, [key, value]) => {
-    acc[key] = { ...value };
-    return acc;
-  }, {});
-
-const cloneMotorbikes = (
-  motorbikes: NonNullable<UserProfile["motorbikes"]> | undefined
-) => {
-  if (!motorbikes) {
-    return undefined;
-  }
-
-  return Object.entries(motorbikes).reduce<NonNullable<UserProfile["motorbikes"]>>(
-    (acc, [key, value]) => {
-      acc[key] = { ...value };
-      return acc;
-    },
-    {}
-  );
-};
+const buildFallbackProfile = (userId: string): UserProfile => ({
+  ...FALLBACK_USER_PROFILE,
+  userId,
+  ownedAnimations: [...FALLBACK_USER_PROFILE.ownedAnimations],
+  vehicles: FALLBACK_USER_PROFILE.vehicles.map(cloneVehicle),
+});
 
 const buildFallbackProfile = (userId: string): UserProfile => ({
   ...FALLBACK_USER_PROFILE,
