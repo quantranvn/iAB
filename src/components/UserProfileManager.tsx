@@ -1,7 +1,7 @@
 import { ChangeEvent, useEffect, useMemo, useState } from "react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
-import { Car, Download, Save, Trash2, User, Plus } from "lucide-react";
+import { Motorbike, Download, Save, Trash2, User, Plus } from "lucide-react";
 import { toast } from "sonner@2.0.3";
 
 import {
@@ -390,7 +390,7 @@ export function UserProfileManager({
 
       <section className="space-y-4">
         <div className="flex items-center gap-3">
-          <Car className="w-5 h-5" />
+          <Motorbike className="w-5 h-5" />
           <h3>Motorbikes</h3>
         </div>
 
