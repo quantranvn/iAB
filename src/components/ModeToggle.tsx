@@ -53,7 +53,7 @@ export function ModeToggle() {
           variant="outline"
           size="icon"
           aria-label="Toggle theme"
-          className="h-9 w-9"
+          className="rounded-xl"
         >
           <ActiveIcon className="h-4 w-4" />
         </Button>
