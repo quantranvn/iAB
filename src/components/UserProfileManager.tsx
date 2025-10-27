@@ -9,7 +9,7 @@ import {
   type LightSettings,
   type Preset,
   type UserProfile,
-  type VehicleProfile,
+  type MotorbikeProfile,
 } from "../types/userProfile";
 import {
   getActiveUserId,
@@ -43,16 +43,23 @@ const clonePreset = (preset: Preset): Preset => ({
   animation: cloneLightSettings(preset.animation),
 });
 
-const cloneVehicle = (vehicle: VehicleProfile): VehicleProfile => ({
-  ...vehicle,
-  presets: vehicle.presets.map(clonePreset),
+const cloneMotorbike = (motorbike: MotorbikeProfile): MotorbikeProfile => ({
+  ...motorbike,
+  presets: motorbike.presets.map(clonePreset),
 });
 
-const buildFallbackProfile = (userId: string): UserProfile => ({
+const buildFallbackProfile = (userUid: string): UserProfile => ({
   ...FALLBACK_USER_PROFILE,
-  userId,
+  uid: userUid,
   ownedAnimations: [...FALLBACK_USER_PROFILE.ownedAnimations],
-  vehicles: FALLBACK_USER_PROFILE.vehicles.map(cloneVehicle),
+  userAnimations: [...FALLBACK_USER_PROFILE.userAnimations],
+  motorbikes: FALLBACK_USER_PROFILE.motorbikes.map(cloneMotorbike),
+  settings: { ...FALLBACK_USER_PROFILE.settings },
+  location: { ...FALLBACK_USER_PROFILE.location },
+  turnIndicator: { ...FALLBACK_USER_PROFILE.turnIndicator },
+  lowBeam: { ...FALLBACK_USER_PROFILE.lowBeam },
+  highBeam: { ...FALLBACK_USER_PROFILE.highBeam },
+  brakeLight: { ...FALLBACK_USER_PROFILE.brakeLight },
 });
 
 export function UserProfileManager({
@@ -66,8 +73,8 @@ export function UserProfileManager({
   );
 
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
-  const [selectedVehicleId, setSelectedVehicleId] = useState<string>("");
-  const [newVehicleId, setNewVehicleId] = useState("");
+  const [selectedMotorbikeId, setSelectedMotorbikeId] = useState<string>("");
+  const [newMotorbikeId, setNewMotorbikeId] = useState("");
   const [presetName, setPresetName] = useState("");
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
@@ -80,7 +87,7 @@ export function UserProfileManager({
         if (!isFirebaseConfigured()) {
           if (!isMounted) return;
           setUserProfile(fallbackProfile);
-          setSelectedVehicleId(fallbackProfile.vehicles[0]?.id ?? "");
+          setSelectedMotorbikeId(fallbackProfile.motorbikes[0]?.bikeId ?? "");
           return;
         }
 
@@ -92,18 +99,18 @@ export function UserProfileManager({
 
         if (profile) {
           setUserProfile(profile);
-          setSelectedVehicleId(profile.vehicles[0]?.id ?? "");
+          setSelectedMotorbikeId(profile.motorbikes[0]?.bikeId ?? "");
         } else {
           await saveUserProfile(fallbackProfile, activeUserId);
           setUserProfile(fallbackProfile);
-          setSelectedVehicleId(fallbackProfile.vehicles[0]?.id ?? "");
+          setSelectedMotorbikeId(fallbackProfile.motorbikes[0]?.bikeId ?? "");
         }
       } catch (error) {
         console.error("Failed to load user profile", error);
         toast.error("Unable to load your profile from the cloud. Using local data.");
         if (isMounted) {
           setUserProfile(fallbackProfile);
-          setSelectedVehicleId(fallbackProfile.vehicles[0]?.id ?? "");
+          setSelectedMotorbikeId(fallbackProfile.motorbikes[0]?.bikeId ?? "");
         }
       } finally {
         if (isMounted) {
@@ -147,68 +154,87 @@ export function UserProfileManager({
     });
   };
 
-  const selectedVehicle = useMemo(() => {
-    return userProfile?.vehicles.find((vehicle) => vehicle.id === selectedVehicleId);
-  }, [selectedVehicleId, userProfile]);
+  const selectedMotorbike = useMemo(() => {
+    return userProfile?.motorbikes.find((motorbike) => motorbike.bikeId === selectedMotorbikeId);
+  }, [selectedMotorbikeId, userProfile]);
 
-  const handleUpdateProfileField = (field: "userId" | "username") =>
+  const handleUpdateProfileField = (
+    field:
+      | "uid"
+      | "firstName"
+      | "lastName"
+      | "email"
+      | "phoneNumber"
+      | "role"
+      | "status"
+      | "profileImageUrl"
+  ) =>
     (event: ChangeEvent<HTMLInputElement>) => {
       const value = event.target.value;
       updateProfile((prev) => ({ ...prev, [field]: value }));
     };
 
-  const handleAddVehicle = () => {
-    const vehicleId = newVehicleId.trim();
-    if (!vehicleId) {
-      toast.error("Please enter a vehicle ID");
+  const handleAddMotorbike = () => {
+    const motorbikeId = newMotorbikeId.trim();
+    if (!motorbikeId) {
+      toast.error("Please enter a motorbike ID");
       return;
     }
 
-    if (userProfile?.vehicles.some((vehicle) => vehicle.id === vehicleId)) {
-      toast.error("Vehicle ID already exists");
+    if (userProfile?.motorbikes.some((motorbike) => motorbike.bikeId === motorbikeId)) {
+      toast.error("Motorbike ID already exists");
       return;
     }
 
     updateProfile((prev) => ({
       ...prev,
-      vehicles: [
-        ...prev.vehicles,
-        { id: vehicleId, presets: [] },
+      motorbikes: [
+        ...prev.motorbikes,
+        {
+          bikeId: motorbikeId,
+          brand: "Custom",
+          model: "Motorbike",
+          year: new Date().getFullYear(),
+          licensePlate: "",
+          color: "Custom",
+          status: "active",
+          presets: [],
+        },
       ],
     }));
-    setSelectedVehicleId(vehicleId);
-    setNewVehicleId("");
-    toast.success(`Vehicle ${vehicleId} added`);
+    setSelectedMotorbikeId(motorbikeId);
+    setNewMotorbikeId("");
+    toast.success(`Motorbike ${motorbikeId} added`);
   };
 
-  const handleRemoveVehicle = (vehicleId: string) => {
+  const handleRemoveMotorbike = (motorbikeId: string) => {
     if (!userProfile) {
       return;
     }
 
-    if (userProfile.vehicles.length === 1) {
-      toast.error("At least one vehicle is required");
+    if (userProfile.motorbikes.length === 1) {
+      toast.error("At least one motorbike is required");
       return;
     }
 
     updateProfile((prev) => ({
       ...prev,
-      vehicles: prev.vehicles.filter((vehicle) => vehicle.id !== vehicleId),
+      motorbikes: prev.motorbikes.filter((motorbike) => motorbike.bikeId !== motorbikeId),
     }));
 
-    if (selectedVehicleId === vehicleId) {
-      const remainingVehicles = userProfile.vehicles.filter(
-        (vehicle) => vehicle.id !== vehicleId
+    if (selectedMotorbikeId === motorbikeId) {
+      const remainingMotorbikes = userProfile.motorbikes.filter(
+        (motorbike) => motorbike.bikeId !== motorbikeId
       );
-      setSelectedVehicleId(remainingVehicles[0]?.id ?? "");
+      setSelectedMotorbikeId(remainingMotorbikes[0]?.bikeId ?? "");
     }
 
-    toast.success(`Vehicle ${vehicleId} removed`);
+    toast.success(`Motorbike ${motorbikeId} removed`);
   };
 
   const handleSavePreset = () => {
-    if (!selectedVehicle || !userProfile) {
-      toast.error("Please select a vehicle before saving");
+    if (!selectedMotorbike || !userProfile) {
+      toast.error("Please select a motorbike before saving");
       return;
     }
 
@@ -231,33 +257,33 @@ export function UserProfileManager({
 
     updateProfile((prev) => ({
       ...prev,
-      vehicles: prev.vehicles.map((vehicle) =>
-        vehicle.id === selectedVehicle.id
-          ? { ...vehicle, presets: [newPreset, ...vehicle.presets] }
-          : vehicle
+      motorbikes: prev.motorbikes.map((motorbike) =>
+        motorbike.bikeId === selectedMotorbike.bikeId
+          ? { ...motorbike, presets: [newPreset, ...motorbike.presets] }
+          : motorbike
       ),
     }));
 
     setPresetName("");
-    toast.success(`Preset "${newPreset.name}" saved for ${selectedVehicle.id}`);
+    toast.success(`Preset "${newPreset.name}" saved for ${selectedMotorbike.bikeId}`);
   };
 
   const handleDeletePreset = (presetId: string) => {
-    if (!selectedVehicle) {
+    if (!selectedMotorbike) {
       return;
     }
 
-    const preset = selectedVehicle.presets.find((p) => p.id === presetId);
+    const preset = selectedMotorbike.presets.find((p) => p.id === presetId);
 
     updateProfile((prev) => ({
       ...prev,
-      vehicles: prev.vehicles.map((vehicle) =>
-        vehicle.id === selectedVehicle.id
+      motorbikes: prev.motorbikes.map((motorbike) =>
+        motorbike.bikeId === selectedMotorbike.bikeId
           ? {
-              ...vehicle,
-              presets: vehicle.presets.filter((p) => p.id !== presetId),
+              ...motorbike,
+              presets: motorbike.presets.filter((p) => p.id !== presetId),
             }
-          : vehicle
+          : motorbike
       ),
     }));
 
@@ -294,21 +320,69 @@ export function UserProfileManager({
           <User className="w-5 h-5" />
           <h3>User Profile</h3>
         </div>
-        <div className="grid gap-4">
-          <div>
-            <label className="text-sm font-medium">User ID</label>
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className="space-y-2">
+            <label className="text-sm font-medium">User UID</label>
             <Input
-              value={userProfile.userId}
-              onChange={handleUpdateProfileField("userId")}
-              placeholder="Enter user ID"
+              value={userProfile.uid}
+              onChange={handleUpdateProfileField("uid")}
+              placeholder="Enter user UID"
             />
           </div>
-          <div>
-            <label className="text-sm font-medium">Username</label>
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Email</label>
             <Input
-              value={userProfile.username}
-              onChange={handleUpdateProfileField("username")}
-              placeholder="Enter username"
+              value={userProfile.email}
+              onChange={handleUpdateProfileField("email")}
+              placeholder="Enter email"
+            />
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium">First Name</label>
+            <Input
+              value={userProfile.firstName}
+              onChange={handleUpdateProfileField("firstName")}
+              placeholder="Enter first name"
+            />
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Last Name</label>
+            <Input
+              value={userProfile.lastName}
+              onChange={handleUpdateProfileField("lastName")}
+              placeholder="Enter last name"
+            />
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Phone Number</label>
+            <Input
+              value={userProfile.phoneNumber}
+              onChange={handleUpdateProfileField("phoneNumber")}
+              placeholder="Enter phone number"
+            />
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Profile Image URL</label>
+            <Input
+              value={userProfile.profileImageUrl}
+              onChange={handleUpdateProfileField("profileImageUrl")}
+              placeholder="Enter profile image URL"
+            />
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Role</label>
+            <Input
+              value={userProfile.role}
+              onChange={handleUpdateProfileField("role")}
+              placeholder="Enter role"
+            />
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Status</label>
+            <Input
+              value={userProfile.status}
+              onChange={handleUpdateProfileField("status")}
+              placeholder="Enter status"
             />
           </div>
         </div>
@@ -317,26 +391,26 @@ export function UserProfileManager({
       <section className="space-y-4">
         <div className="flex items-center gap-3">
           <Car className="w-5 h-5" />
-          <h3>Vehicles</h3>
+          <h3>Motorbikes</h3>
         </div>
 
         <div className="flex gap-2">
           <Input
-            placeholder="Add vehicle ID"
-            value={newVehicleId}
-            onChange={(event) => setNewVehicleId(event.target.value)}
+            placeholder="Add motorbike ID"
+            value={newMotorbikeId}
+            onChange={(event) => setNewMotorbikeId(event.target.value)}
           />
-          <Button onClick={handleAddVehicle}>
+          <Button onClick={handleAddMotorbike}>
             <Plus className="w-4 h-4" />
           </Button>
         </div>
 
         <div className="space-y-2">
-          {userProfile.vehicles.map((vehicle) => (
+          {userProfile.motorbikes.map((motorbike) => (
             <div
-              key={vehicle.id}
-              className={`flex items-center justify-between rounded-lg border p-3 transition-colors ${
-                selectedVehicleId === vehicle.id
+              key={motorbike.bikeId}
+              className={`flex flex-col gap-2 rounded-lg border p-3 transition-colors sm:flex-row sm:items-center sm:justify-between ${
+                selectedMotorbikeId === motorbike.bikeId
                   ? "border-primary bg-primary/5"
                   : "border-border"
               }`}
@@ -344,17 +418,17 @@ export function UserProfileManager({
               <button
                 type="button"
                 className="text-left flex-1"
-                onClick={() => setSelectedVehicleId(vehicle.id)}
+                onClick={() => setSelectedMotorbikeId(motorbike.bikeId)}
               >
-                <p className="font-medium">{vehicle.id}</p>
+                <p className="font-medium">{motorbike.bikeId}</p>
                 <p className="text-sm text-muted-foreground">
-                  {vehicle.presets.length} saved presets
+                  {motorbike.brand} {motorbike.model} • {motorbike.presets.length} saved presets
                 </p>
               </button>
               <Button
                 size="icon"
                 variant="ghost"
-                onClick={() => handleRemoveVehicle(vehicle.id)}
+                onClick={() => handleRemoveMotorbike(motorbike.bikeId)}
               >
                 <Trash2 className="w-4 h-4" />
               </Button>
@@ -368,11 +442,11 @@ export function UserProfileManager({
           <Save className="w-5 h-5" />
           <h3>Animation Presets</h3>
         </div>
-        {selectedVehicle ? (
+        {selectedMotorbike ? (
           <div className="space-y-4">
             <div className="space-y-2">
               <label className="text-sm font-medium">
-                Save current settings for {selectedVehicle.id}
+                Save current settings for {selectedMotorbike.bikeId}
               </label>
               <div className="flex gap-2">
                 <Input
@@ -386,13 +460,13 @@ export function UserProfileManager({
               </div>
             </div>
 
-            {selectedVehicle.presets.length === 0 ? (
+            {selectedMotorbike.presets.length === 0 ? (
               <div className="rounded-lg border border-dashed p-6 text-center text-muted-foreground">
-                No presets saved for this vehicle yet
+                No presets saved for this motorbike yet
               </div>
             ) : (
               <div className="space-y-2">
-                {selectedVehicle.presets.map((preset) => (
+                {selectedMotorbike.presets.map((preset) => (
                   <div
                     key={preset.id}
                     className="flex items-start gap-3 rounded-lg border border-border bg-card p-4"
@@ -410,7 +484,7 @@ export function UserProfileManager({
                         onClick={() => {
                           onLoadPreset(preset);
                           toast.success(
-                            `Loaded preset "${preset.name}" for ${selectedVehicle.id}`
+                            `Loaded preset "${preset.name}" for ${selectedMotorbike.bikeId}`
                           );
                         }}
                       >
@@ -431,7 +505,7 @@ export function UserProfileManager({
           </div>
         ) : (
           <div className="rounded-lg border border-dashed p-6 text-center text-muted-foreground">
-            Add a vehicle to start saving presets
+            Add a motorbike to start saving presets
           </div>
         )}
       </section>
