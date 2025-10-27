@@ -1,38 +1,22 @@
-import { ChangeEvent, useMemo, useState } from "react";
+import { ChangeEvent, useEffect, useMemo, useState } from "react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Car, Download, Save, Trash2, User, Plus } from "lucide-react";
 import { toast } from "sonner@2.0.3";
 
-interface LightSettings {
-  red: number;
-  green: number;
-  blue: number;
-  intensity: number;
-}
-
-interface Preset {
-  id: string;
-  name: string;
-  turnIndicator: LightSettings;
-  lowBeam: LightSettings;
-  highBeam: LightSettings;
-  brakeLight: LightSettings;
-  animation: LightSettings;
-  animationScenario: number;
-  timestamp: number;
-}
-
-interface VehicleProfile {
-  id: string;
-  presets: Preset[];
-}
-
-interface UserProfile {
-  userId: string;
-  username: string;
-  vehicles: VehicleProfile[];
-}
+import {
+  FALLBACK_USER_PROFILE,
+  type LightSettings,
+  type Preset,
+  type UserProfile,
+  type VehicleProfile,
+} from "../types/userProfile";
+import {
+  getActiveUserId,
+  isFirebaseConfigured,
+  loadUserProfile,
+  saveUserProfile,
+} from "../utils/firebase";
 
 interface UserProfileManagerProps {
   currentSettings: {
@@ -46,64 +30,131 @@ interface UserProfileManagerProps {
   onLoadPreset: (preset: Preset) => void;
 }
 
-const initialProfile: UserProfile = {
-  userId: "rider-001",
-  username: "Night Rider",
-  vehicles: [
-    {
-      id: "SCT-042",
-      presets: [
-        {
-          id: "1",
-          name: "Night Mode",
-          turnIndicator: { red: 255, green: 140, blue: 0, intensity: 80 },
-          lowBeam: { red: 255, green: 255, blue: 180, intensity: 60 },
-          highBeam: { red: 255, green: 255, blue: 255, intensity: 90 },
-          brakeLight: { red: 200, green: 0, blue: 0, intensity: 100 },
-          animation: { red: 100, green: 100, blue: 255, intensity: 70 },
-          animationScenario: 3,
-          timestamp: Date.now() - 86400000,
-        },
-      ],
-    },
-    {
-      id: "SCT-099",
-      presets: [
-        {
-          id: "2",
-          name: "Racing",
-          turnIndicator: { red: 255, green: 50, blue: 0, intensity: 100 },
-          lowBeam: { red: 255, green: 255, blue: 255, intensity: 100 },
-          highBeam: { red: 255, green: 255, blue: 255, intensity: 100 },
-          brakeLight: { red: 255, green: 0, blue: 0, intensity: 100 },
-          animation: { red: 255, green: 0, blue: 0, intensity: 100 },
-          animationScenario: 2,
-          timestamp: Date.now() - 172800000,
-        },
-      ],
-    },
-  ],
-};
+const cloneLightSettings = (settings: LightSettings): LightSettings => ({
+  ...settings,
+});
+
+const clonePreset = (preset: Preset): Preset => ({
+  ...preset,
+  turnIndicator: cloneLightSettings(preset.turnIndicator),
+  lowBeam: cloneLightSettings(preset.lowBeam),
+  highBeam: cloneLightSettings(preset.highBeam),
+  brakeLight: cloneLightSettings(preset.brakeLight),
+  animation: cloneLightSettings(preset.animation),
+});
+
+const cloneVehicle = (vehicle: VehicleProfile): VehicleProfile => ({
+  ...vehicle,
+  presets: vehicle.presets.map(clonePreset),
+});
+
+const buildFallbackProfile = (userId: string): UserProfile => ({
+  ...FALLBACK_USER_PROFILE,
+  userId,
+  ownedAnimations: [...FALLBACK_USER_PROFILE.ownedAnimations],
+  vehicles: FALLBACK_USER_PROFILE.vehicles.map(cloneVehicle),
+});
 
 export function UserProfileManager({
   currentSettings,
   onLoadPreset,
 }: UserProfileManagerProps) {
-  const [userProfile, setUserProfile] = useState<UserProfile>(initialProfile);
-  const [selectedVehicleId, setSelectedVehicleId] = useState<string>(
-    initialProfile.vehicles[0]?.id ?? ""
+  const activeUserId = getActiveUserId();
+  const fallbackProfile = useMemo(
+    () => buildFallbackProfile(activeUserId),
+    [activeUserId]
   );
+
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [selectedVehicleId, setSelectedVehicleId] = useState<string>("");
   const [newVehicleId, setNewVehicleId] = useState("");
   const [presetName, setPresetName] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [syncing, setSyncing] = useState(false);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const fetchProfile = async () => {
+      try {
+        if (!isFirebaseConfigured()) {
+          if (!isMounted) return;
+          setUserProfile(fallbackProfile);
+          setSelectedVehicleId(fallbackProfile.vehicles[0]?.id ?? "");
+          return;
+        }
+
+        const profile = await loadUserProfile(activeUserId);
+
+        if (!isMounted) {
+          return;
+        }
+
+        if (profile) {
+          setUserProfile(profile);
+          setSelectedVehicleId(profile.vehicles[0]?.id ?? "");
+        } else {
+          await saveUserProfile(fallbackProfile, activeUserId);
+          setUserProfile(fallbackProfile);
+          setSelectedVehicleId(fallbackProfile.vehicles[0]?.id ?? "");
+        }
+      } catch (error) {
+        console.error("Failed to load user profile", error);
+        toast.error("Unable to load your profile from the cloud. Using local data.");
+        if (isMounted) {
+          setUserProfile(fallbackProfile);
+          setSelectedVehicleId(fallbackProfile.vehicles[0]?.id ?? "");
+        }
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    fetchProfile();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [activeUserId, fallbackProfile]);
+
+  const persistProfile = async (profile: UserProfile) => {
+    if (!isFirebaseConfigured()) {
+      return;
+    }
+
+    setSyncing(true);
+    try {
+      await saveUserProfile(profile, activeUserId);
+    } catch (error) {
+      console.error("Failed to sync user profile", error);
+      toast.error("Unable to sync your changes to Firebase");
+    } finally {
+      setSyncing(false);
+    }
+  };
+
+  const updateProfile = (updater: (prev: UserProfile) => UserProfile) => {
+    setUserProfile((prev) => {
+      if (!prev) {
+        return prev;
+      }
+
+      const updatedProfile = updater(prev);
+      void persistProfile(updatedProfile);
+      return updatedProfile;
+    });
+  };
 
   const selectedVehicle = useMemo(() => {
-    return userProfile.vehicles.find((vehicle) => vehicle.id === selectedVehicleId);
-  }, [selectedVehicleId, userProfile.vehicles]);
+    return userProfile?.vehicles.find((vehicle) => vehicle.id === selectedVehicleId);
+  }, [selectedVehicleId, userProfile]);
 
   const handleUpdateProfileField = (field: "userId" | "username") =>
     (event: ChangeEvent<HTMLInputElement>) => {
       const value = event.target.value;
-      setUserProfile((prev) => ({ ...prev, [field]: value }));
+      updateProfile((prev) => ({ ...prev, [field]: value }));
     };
 
   const handleAddVehicle = () => {
@@ -113,19 +164,17 @@ export function UserProfileManager({
       return;
     }
 
-    if (userProfile.vehicles.some((vehicle) => vehicle.id === vehicleId)) {
+    if (userProfile?.vehicles.some((vehicle) => vehicle.id === vehicleId)) {
       toast.error("Vehicle ID already exists");
       return;
     }
 
-    const updatedVehicles = [
-      ...userProfile.vehicles,
-      { id: vehicleId, presets: [] },
-    ];
-
-    setUserProfile((prev) => ({
+    updateProfile((prev) => ({
       ...prev,
-      vehicles: updatedVehicles,
+      vehicles: [
+        ...prev.vehicles,
+        { id: vehicleId, presets: [] },
+      ],
     }));
     setSelectedVehicleId(vehicleId);
     setNewVehicleId("");
@@ -133,29 +182,32 @@ export function UserProfileManager({
   };
 
   const handleRemoveVehicle = (vehicleId: string) => {
+    if (!userProfile) {
+      return;
+    }
+
     if (userProfile.vehicles.length === 1) {
       toast.error("At least one vehicle is required");
       return;
     }
 
-    const updatedVehicles = userProfile.vehicles.filter(
-      (vehicle) => vehicle.id !== vehicleId
-    );
-
-    setUserProfile((prev) => ({
+    updateProfile((prev) => ({
       ...prev,
-      vehicles: updatedVehicles,
+      vehicles: prev.vehicles.filter((vehicle) => vehicle.id !== vehicleId),
     }));
 
     if (selectedVehicleId === vehicleId) {
-      setSelectedVehicleId(updatedVehicles[0]?.id ?? "");
+      const remainingVehicles = userProfile.vehicles.filter(
+        (vehicle) => vehicle.id !== vehicleId
+      );
+      setSelectedVehicleId(remainingVehicles[0]?.id ?? "");
     }
 
     toast.success(`Vehicle ${vehicleId} removed`);
   };
 
   const handleSavePreset = () => {
-    if (!selectedVehicle) {
+    if (!selectedVehicle || !userProfile) {
       toast.error("Please select a vehicle before saving");
       return;
     }
@@ -168,11 +220,16 @@ export function UserProfileManager({
     const newPreset: Preset = {
       id: Date.now().toString(),
       name: presetName.trim(),
-      ...currentSettings,
+      turnIndicator: { ...currentSettings.turnIndicator },
+      lowBeam: { ...currentSettings.lowBeam },
+      highBeam: { ...currentSettings.highBeam },
+      brakeLight: { ...currentSettings.brakeLight },
+      animation: { ...currentSettings.animation },
+      animationScenario: currentSettings.animationScenario,
       timestamp: Date.now(),
     };
 
-    setUserProfile((prev) => ({
+    updateProfile((prev) => ({
       ...prev,
       vehicles: prev.vehicles.map((vehicle) =>
         vehicle.id === selectedVehicle.id
@@ -192,7 +249,7 @@ export function UserProfileManager({
 
     const preset = selectedVehicle.presets.find((p) => p.id === presetId);
 
-    setUserProfile((prev) => ({
+    updateProfile((prev) => ({
       ...prev,
       vehicles: prev.vehicles.map((vehicle) =>
         vehicle.id === selectedVehicle.id
@@ -217,8 +274,21 @@ export function UserProfileManager({
     });
   };
 
+  if (loading || !userProfile) {
+    return (
+      <div className="rounded-lg border border-dashed p-6 text-center text-muted-foreground">
+        Loading profile data...
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-8">
+      {syncing && (
+        <p className="text-xs text-muted-foreground">
+          Syncing changes with Firebase...
+        </p>
+      )}
       <section className="space-y-4">
         <div className="flex items-center gap-3">
           <User className="w-5 h-5" />
