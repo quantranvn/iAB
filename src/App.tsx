@@ -528,7 +528,7 @@ export default function App() {
             <DialogHeader className="space-y-2 text-left">
               <DialogTitle>User Profile</DialogTitle>
               <DialogDescription>
-                Manage your rider identity, vehicles, and lighting presets.
+                Manage your rider identity, motorbikes, and lighting presets.
               </DialogDescription>
             </DialogHeader>
             <UserProfileManager

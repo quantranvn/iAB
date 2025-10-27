@@ -174,7 +174,7 @@ export async function saveUserProfile(
   }
 
   const { firestore } = context;
-  const docRef = firestore.collection("users").doc(documentId ?? profile.userId);
+  const docRef = firestore.collection("users").doc(documentId ?? profile.uid);
   await docRef.set(profile, { merge: true });
 }
 
