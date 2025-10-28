@@ -51,6 +51,7 @@ const firebaseConfig = {
 };
 
 const firebaseConfigValid = Object.values(firebaseConfig).every((value) => Boolean(value));
+const ACTIVE_USER_STORAGE_KEY = "iab-active-user-id";
 const firebaseCompatVersion = "10.12.4";
 
 let firebaseNamespace: FirebaseNamespace | null = null;
@@ -171,7 +172,37 @@ export const initializeFirebaseIfReady = async () => {
 
 export const isFirebaseConfigured = () => firebaseConfigValid;
 
-export const getActiveUserId = () => import.meta.env.VITE_FIREBASE_USER_ID ?? "rider-001";
+const readStoredActiveUserId = () => {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  try {
+    return window.localStorage.getItem(ACTIVE_USER_STORAGE_KEY);
+  } catch (error) {
+    console.warn("Unable to read stored user id", error);
+    return null;
+  }
+};
+
+export const setActiveUserId = (userId: string | null) => {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  try {
+    if (userId) {
+      window.localStorage.setItem(ACTIVE_USER_STORAGE_KEY, userId);
+    } else {
+      window.localStorage.removeItem(ACTIVE_USER_STORAGE_KEY);
+    }
+  } catch (error) {
+    console.warn("Unable to persist user id", error);
+  }
+};
+
+export const getActiveUserId = () =>
+  readStoredActiveUserId() ?? import.meta.env.VITE_FIREBASE_USER_ID ?? "rider-001";
 
 export const getFirestoreInstance = () => firestoreInstance;
 
