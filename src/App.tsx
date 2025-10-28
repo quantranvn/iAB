@@ -75,40 +75,40 @@ export default function App() {
   const [commandHistory, setCommandHistory] = useState<CommandLogEntry[]>([]);
   const [appStoreOpen, setAppStoreOpen] = useState(false);
 
-  const [turnIndicator, setTurnIndicator] = useState<LightSettings>({
-    red: 255,
-    green: 165,
-    blue: 0,
-    intensity: 100,
-  });
+const [turnIndicator, setTurnIndicator] = useState<LightSettings>({
+  red: 255,
+  green: 179,
+  blue: 0,
+  intensity: 100,
+});
 
-  const [lowBeam, setLowBeam] = useState<LightSettings>({
-    red: 255,
-    green: 255,
-    blue: 200,
-    intensity: 80,
-  });
+const [lowBeam, setLowBeam] = useState<LightSettings>({
+  red: 0,
+  green: 210,
+  blue: 80,
+  intensity: 90,
+});
 
-  const [highBeam, setHighBeam] = useState<LightSettings>({
-    red: 255,
-    green: 255,
-    blue: 255,
-    intensity: 100,
-  });
+const [highBeam, setHighBeam] = useState<LightSettings>({
+  red: 50,
+  green: 130,
+  blue: 255,
+  intensity: 100,
+});
 
-  const [brakeLight, setBrakeLight] = useState<LightSettings>({
-    red: 255,
-    green: 0,
-    blue: 0,
-    intensity: 100,
-  });
+const [brakeLight, setBrakeLight] = useState<LightSettings>({
+  red: 255,
+  green: 36,
+  blue: 36,
+  intensity: 100,
+});
 
-  const [animation, setAnimation] = useState<LightSettings>({
-    red: 128,
-    green: 0,
-    blue: 255,
-    intensity: 100,
-  });
+const [animation, setAnimation] = useState<LightSettings>({
+  red: 122,
+  green: 0,
+  blue: 255,
+  intensity: 100,
+});
 
   const [animationScenario, setAnimationScenario] = useState(1);
   const [ownedAnimationOptions, setOwnedAnimationOptions] = useState<StoreAnimation[]>(
