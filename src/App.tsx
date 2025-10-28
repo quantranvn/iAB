@@ -1,4 +1,4 @@
-import type { Dispatch, SetStateAction } from "react";
+import type { Dispatch, SetStateAction, CSSProperties } from "react";
 import { useState, useEffect, useMemo } from "react";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "./components/ui/sheet";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "./components/ui/dialog";
@@ -114,6 +114,31 @@ export default function App() {
   const [ownedAnimationOptions, setOwnedAnimationOptions] = useState<StoreAnimation[]>(
     FALLBACK_OWNED_ANIMATIONS
   );
+
+  const clamp = (value: number, min: number, max: number) =>
+    Math.min(Math.max(value, min), max);
+
+  const lightenChannel = (value: number) => Math.min(255, Math.round(value + (255 - value) * 0.35));
+  const darkenChannel = (value: number) => Math.max(0, Math.round(value * 0.65));
+
+  const getButtonGradientStyle = (settings?: LightSettings): CSSProperties | undefined => {
+    if (!settings) {
+      return undefined;
+    }
+
+    const alpha = clamp(settings.intensity / 100, 0.25, 1);
+    const start = `rgba(${lightenChannel(settings.red)}, ${lightenChannel(settings.green)}, ${lightenChannel(
+      settings.blue
+    )}, ${clamp(alpha + 0.15, 0.35, 1)})`;
+    const end = `rgba(${darkenChannel(settings.red)}, ${darkenChannel(settings.green)}, ${darkenChannel(
+      settings.blue
+    )}, ${alpha})`;
+
+    return {
+      backgroundColor: end,
+      backgroundImage: `linear-gradient(135deg, ${start}, ${end})`,
+    };
+  };
 
   // Send AT command when settings change
   const isBluetoothConnected = connectionTransport !== null;
@@ -357,11 +382,12 @@ export default function App() {
     setPresetsDialogOpen(false);
   };
 
+  const AnimationIcon = selectedAnimationOption?.icon ?? Sparkles;
   const lightButtons = [
     {
       id: "animation",
       title: "Animation",
-      icon: Sparkles,
+      icon: AnimationIcon,
       gradient: selectedAnimationOption?.gradient ?? "from-purple-500 to-pink-500",
       isAnimation: true,
       settings: animation,
@@ -530,6 +556,7 @@ export default function App() {
         <div className="space-y-4">
           {lightButtons.map((button) => {
             const Icon = button.icon;
+            const previewStyle = getButtonGradientStyle(button.settings);
 
             return (
               <Sheet key={button.id}>
@@ -538,7 +565,12 @@ export default function App() {
                     className="w-full p-6 rounded-xl bg-card border-2 border-border hover:border-primary/50 transition-all shadow-sm hover:shadow-md active:scale-98"
                   >
                     <div className="flex items-center gap-4">
-                      <div className={`p-4 rounded-lg bg-gradient-to-r ${button.gradient} shadow-lg`}>
+                      <div
+                        className={`p-4 rounded-lg shadow-lg ${
+                          previewStyle ? "" : `bg-gradient-to-r ${button.gradient}`
+                        }`}
+                        style={previewStyle}
+                      >
                         <Icon className="w-8 h-8 text-white" />
                       </div>
                       <div className="flex-1 text-left">
@@ -564,7 +596,12 @@ export default function App() {
                 >
                   <SheetHeader className="pb-4">
                     <SheetTitle className="flex items-center gap-3">
-                      <div className={`p-3 rounded-lg bg-gradient-to-r ${button.gradient}`}>
+                      <div
+                        className={`p-3 rounded-lg ${
+                          previewStyle ? "" : `bg-gradient-to-r ${button.gradient}`
+                        }`}
+                        style={previewStyle}
+                      >
                         <Icon className="w-6 h-6 text-white" />
                       </div>
                       {button.title}
@@ -583,6 +620,12 @@ export default function App() {
                       selectedScenario={animationScenario}
                       onScenarioChange={setAnimationScenario}
                       currentSettings={animation}
+                      onRedChange={(value) => updateLightSetting(setAnimation, "red", value)}
+                      onGreenChange={(value) => updateLightSetting(setAnimation, "green", value)}
+                      onBlueChange={(value) => updateLightSetting(setAnimation, "blue", value)}
+                      onIntensityChange={(value) =>
+                        updateLightSetting(setAnimation, "intensity", value)
+                      }
                       onSend={() => sendAnimationCommand(animationScenario, animation)}
                     />
                   ) : button.settings && button.setter ? (
