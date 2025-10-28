@@ -137,7 +137,7 @@ export function AppStoreDialogContent() {
         }
       } catch (error) {
         console.error("Failed to load app store data", error);
-        toast.error("Unable to load store data from Firebase. Showing sample content.");
+        toast.error("Unable to load store data from Server. Showing sample content.");
         if (isMounted) {
           setOwnedAnimations(FALLBACK_OWNED_ANIMATIONS);
           setAvailableAnimations(FALLBACK_FEATURED_ANIMATIONS);
@@ -159,7 +159,7 @@ export function AppStoreDialogContent() {
 
   const handlePurchase = async (animation: StoreAnimation) => {
     if (!firebaseConfigured) {
-      toast.error("Connect Firebase to enable purchases.");
+      toast.error("Connect Server to enable purchases.");
       return;
     }
 
@@ -167,7 +167,7 @@ export function AppStoreDialogContent() {
     if (!readyState) {
       readyState = await initializeFirebaseIfReady();
       if (!readyState) {
-        toast.error("Connect Firebase to enable purchases.");
+        toast.error("Connect Server to enable purchases.");
         return;
       }
       setFirebaseReady(true);
@@ -203,7 +203,7 @@ export function AppStoreDialogContent() {
         </DialogDescription>
         {usingFallbackData && (
           <p className="text-xs text-muted-foreground">
-            Showing sample store data. Configure Firebase to sync real animations and purchases.
+            Showing sample store data. Configure Server to sync real animations and purchases.
           </p>
         )}
       </DialogHeader>
