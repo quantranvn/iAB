@@ -107,7 +107,7 @@ const [animation, setAnimation] = useState<LightSettings>({
   red: 122,
   green: 0,
   blue: 255,
-  intensity: 100,
+  intensity: 90,
 });
 
   const [animationScenario, setAnimationScenario] = useState(1);
