@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { Send, CheckCircle2 } from "lucide-react";
 import { Button } from "./ui/button";
+import { Slider } from "./ui/slider";
+import { Label } from "./ui/label";
 import { toast } from "sonner@2.0.3";
 import type { AnimationScenarioOption } from "../types/animation";
 import type { LightSettings } from "../types/userProfile";
@@ -10,6 +12,10 @@ interface AnimationControlProps {
   selectedScenario: number;
   onScenarioChange: (scenario: number) => void;
   currentSettings: LightSettings;
+  onRedChange: (value: number[]) => void;
+  onGreenChange: (value: number[]) => void;
+  onBlueChange: (value: number[]) => void;
+  onIntensityChange: (value: number[]) => void;
   onSend: () => void | Promise<void>;
 }
 
@@ -18,6 +24,10 @@ export function AnimationControl({
   selectedScenario,
   onScenarioChange,
   currentSettings,
+  onRedChange,
+  onGreenChange,
+  onBlueChange,
+  onIntensityChange,
   onSend,
 }: AnimationControlProps) {
   const [isSending, setIsSending] = useState(false);
@@ -26,6 +36,12 @@ export function AnimationControl({
   const selectedScenarioName =
     scenarios.find((scenario) => scenario.id === selectedScenario)?.name ??
     `Scenario ${selectedScenario}`;
+
+  const previewColor = `rgba(${currentSettings.red}, ${currentSettings.green}, ${currentSettings.blue}, ${Math.max(
+    currentSettings.intensity / 100,
+    0.25,
+  )})`;
+  const intensityLevel = Math.round(currentSettings.intensity / 5);
 
   const handleSend = async () => {
     setIsSending(true);
@@ -96,6 +112,75 @@ export function AnimationControl({
               </button>
             );
           })}
+        </div>
+      </div>
+
+      <div className="space-y-6">
+        <div className="flex flex-col items-center gap-4">
+          <div
+            className="w-full h-24 rounded-lg border-2 border-border shadow-inner"
+            style={{ backgroundColor: previewColor }}
+          />
+          <p className="text-muted-foreground">Color Preview</p>
+        </div>
+
+        <div className="space-y-6">
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <Label className="text-red-500">Red</Label>
+              <span className="text-muted-foreground">{currentSettings.red}</span>
+            </div>
+            <Slider
+              value={[currentSettings.red]}
+              onValueChange={onRedChange}
+              max={255}
+              step={1}
+              className="[&_[role=slider]]:bg-red-500 [&_[role=slider]]:border-red-600"
+            />
+          </div>
+
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <Label className="text-green-500">Green</Label>
+              <span className="text-muted-foreground">{currentSettings.green}</span>
+            </div>
+            <Slider
+              value={[currentSettings.green]}
+              onValueChange={onGreenChange}
+              max={255}
+              step={1}
+              className="[&_[role=slider]]:bg-green-500 [&_[role=slider]]:border-green-600"
+            />
+          </div>
+
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <Label className="text-blue-500">Blue</Label>
+              <span className="text-muted-foreground">{currentSettings.blue}</span>
+            </div>
+            <Slider
+              value={[currentSettings.blue]}
+              onValueChange={onBlueChange}
+              max={255}
+              step={1}
+              className="[&_[role=slider]]:bg-blue-500 [&_[role=slider]]:border-blue-600"
+            />
+          </div>
+
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <Label>Intensity</Label>
+              <span className="text-muted-foreground">
+                Level {intensityLevel} ({currentSettings.intensity}%)
+              </span>
+            </div>
+            <Slider
+              value={[currentSettings.intensity]}
+              onValueChange={onIntensityChange}
+              max={100}
+              step={5}
+            />
+          </div>
         </div>
       </div>
 
