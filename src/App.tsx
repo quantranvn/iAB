@@ -194,8 +194,6 @@ export default function App() {
     [animationScenarioOptions, animationScenario]
   );
 
-  const animationIcon = selectedAnimationOption?.icon ?? Sparkles;
-
   useEffect(() => {
     if (!selectedAnimationOption && animationScenarioOptions.length > 0) {
       setAnimationScenario(animationScenarioOptions[0].id);
@@ -363,7 +361,7 @@ export default function App() {
     {
       id: "animation",
       title: "Animation",
-      icon: animationIcon,
+      icon: Sparkles,
       gradient: selectedAnimationOption?.gradient ?? "from-purple-500 to-pink-500",
       isAnimation: true,
       settings: animation,
@@ -580,25 +578,13 @@ export default function App() {
                   </SheetHeader>
 
                   {button.isAnimation ? (
-                  <AnimationControl
-                    scenarios={animationScenarioOptions}
-                    selectedScenario={animationScenario}
-                    onScenarioChange={setAnimationScenario}
-                    currentSettings={animation}
-                    onRedChange={(value) =>
-                      updateLightSetting(setAnimation, "red", value)
-                    }
-                    onGreenChange={(value) =>
-                      updateLightSetting(setAnimation, "green", value)
-                    }
-                    onBlueChange={(value) =>
-                      updateLightSetting(setAnimation, "blue", value)
-                    }
-                    onIntensityChange={(value) =>
-                      updateLightSetting(setAnimation, "intensity", value)
-                    }
-                    onSend={() => sendAnimationCommand(animationScenario, animation)}
-                  />
+                    <AnimationControl
+                      scenarios={animationScenarioOptions}
+                      selectedScenario={animationScenario}
+                      onScenarioChange={setAnimationScenario}
+                      currentSettings={animation}
+                      onSend={() => sendAnimationCommand(animationScenario, animation)}
+                    />
                   ) : button.settings && button.setter ? (
                     <LightControl
                       lightType={button.title}
