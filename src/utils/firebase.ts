@@ -50,12 +50,14 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID,
 };
 
-const firebaseReady = Object.values(firebaseConfig).every((value) => Boolean(value));
+const firebaseConfigValid = Object.values(firebaseConfig).every((value) => Boolean(value));
 const firebaseCompatVersion = "10.12.4";
 
 let firebaseNamespace: FirebaseNamespace | null = null;
 let firestoreInstance: FirestoreCompat | null = null;
 let firebaseLoader: Promise<FirebaseNamespace | null> | null = null;
+let firebaseInitialized = false;
+let firebaseInitializationPromise: Promise<boolean> | null = null;
 
 const loadScript = (src: string) =>
   new Promise<void>((resolve, reject) => {
@@ -118,7 +120,7 @@ const loadFirebaseCompat = async (): Promise<FirebaseNamespace | null> => {
 };
 
 const ensureFirebase = async () => {
-  if (!firebaseReady) {
+  if (!firebaseConfigValid) {
     return null;
   }
 
@@ -138,10 +140,36 @@ const ensureFirebase = async () => {
   firebaseNamespace = namespace;
   firestoreInstance = namespace.firestore();
 
+  firebaseInitialized = true;
+
   return { firebase: firebaseNamespace, firestore: firestoreInstance };
 };
 
-export const isFirebaseConfigured = () => firebaseReady;
+export const initializeFirebaseIfReady = async () => {
+  if (!firebaseConfigValid) {
+    return false;
+  }
+
+  if (firebaseInitialized && firebaseNamespace && firestoreInstance) {
+    return true;
+  }
+
+  if (!firebaseInitializationPromise) {
+    firebaseInitializationPromise = ensureFirebase().then((context) => {
+      if (!context) {
+        firebaseInitializationPromise = null;
+        return false;
+      }
+
+      firebaseInitialized = true;
+      return true;
+    });
+  }
+
+  return firebaseInitializationPromise;
+};
+
+export const isFirebaseConfigured = () => firebaseConfigValid;
 
 export const getActiveUserId = () => import.meta.env.VITE_FIREBASE_USER_ID ?? "rider-001";
 
