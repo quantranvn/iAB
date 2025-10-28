@@ -13,6 +13,7 @@ import {
 } from "../types/userProfile";
 import {
   getActiveUserId,
+  initializeFirebaseIfReady,
   isFirebaseConfigured,
   loadUserProfile,
   saveUserProfile,
@@ -67,6 +68,7 @@ export function UserProfileManager({
   onLoadPreset,
 }: UserProfileManagerProps) {
   const activeUserId = getActiveUserId();
+  const firebaseConfigured = isFirebaseConfigured();
   const fallbackProfile = useMemo(
     () => buildFallbackProfile(activeUserId),
     [activeUserId]
@@ -84,8 +86,20 @@ export function UserProfileManager({
 
     const fetchProfile = async () => {
       try {
-        if (!isFirebaseConfigured()) {
+        if (!firebaseConfigured) {
           if (!isMounted) return;
+          setUserProfile(fallbackProfile);
+          setSelectedMotorbikeId(fallbackProfile.motorbikes[0]?.bikeId ?? "");
+          return;
+        }
+
+        const ready = await initializeFirebaseIfReady();
+
+        if (!isMounted) {
+          return;
+        }
+
+        if (!ready) {
           setUserProfile(fallbackProfile);
           setSelectedMotorbikeId(fallbackProfile.motorbikes[0]?.bikeId ?? "");
           return;
@@ -124,10 +138,15 @@ export function UserProfileManager({
     return () => {
       isMounted = false;
     };
-  }, [activeUserId, fallbackProfile]);
+  }, [activeUserId, fallbackProfile, firebaseConfigured]);
 
   const persistProfile = async (profile: UserProfile) => {
-    if (!isFirebaseConfigured()) {
+    if (!firebaseConfigured) {
+      return;
+    }
+
+    const ready = await initializeFirebaseIfReady();
+    if (!ready) {
       return;
     }
 

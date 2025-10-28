@@ -9,6 +9,7 @@ import { toast } from "sonner@2.0.3";
 import {
   fetchStoreAnimations,
   getActiveUserId,
+  initializeFirebaseIfReady,
   isFirebaseConfigured,
   loadUserProfile,
   recordAnimationPurchase,
@@ -56,7 +57,7 @@ export const FALLBACK_OWNED_ANIMATIONS: StoreAnimation[] = [
 ];
 
 export function AppStoreDialogContent() {
-  const firebaseReady = isFirebaseConfigured();
+  const firebaseConfigured = isFirebaseConfigured();
   const activeUserId = getActiveUserId();
   const [availableAnimations, setAvailableAnimations] = useState<StoreAnimation[]>(
     FALLBACK_FEATURED_ANIMATIONS
@@ -64,19 +65,45 @@ export function AppStoreDialogContent() {
   const [ownedAnimations, setOwnedAnimations] = useState<StoreAnimation[]>(
     FALLBACK_OWNED_ANIMATIONS
   );
-  const [loading, setLoading] = useState(firebaseReady);
+  const [loading, setLoading] = useState(firebaseConfigured);
   const [purchaseInProgress, setPurchaseInProgress] = useState<string | null>(null);
-  const [usingFallbackData, setUsingFallbackData] = useState(!firebaseReady);
+  const [usingFallbackData, setUsingFallbackData] = useState(!firebaseConfigured);
+  const [firebaseReady, setFirebaseReady] = useState(firebaseConfigured);
 
   useEffect(() => {
-    if (!firebaseReady) {
-      return;
-    }
-
     let isMounted = true;
 
     const loadData = async () => {
+      if (!firebaseConfigured) {
+        if (!isMounted) {
+          return;
+        }
+
+        setFirebaseReady(false);
+        setLoading(false);
+        setOwnedAnimations(FALLBACK_OWNED_ANIMATIONS);
+        setAvailableAnimations(FALLBACK_FEATURED_ANIMATIONS);
+        setUsingFallbackData(true);
+        return;
+      }
+
       setLoading(true);
+      const ready = await initializeFirebaseIfReady();
+
+      if (!isMounted) {
+        return;
+      }
+
+      setFirebaseReady(ready);
+
+      if (!ready) {
+        setLoading(false);
+        setOwnedAnimations(FALLBACK_OWNED_ANIMATIONS);
+        setAvailableAnimations(FALLBACK_FEATURED_ANIMATIONS);
+        setUsingFallbackData(true);
+        return;
+      }
+
       try {
         const [animations, profile] = await Promise.all([
           fetchStoreAnimations(),
@@ -128,12 +155,22 @@ export function AppStoreDialogContent() {
     return () => {
       isMounted = false;
     };
-  }, [activeUserId, firebaseReady]);
+  }, [activeUserId, firebaseConfigured]);
 
   const handlePurchase = async (animation: StoreAnimation) => {
-    if (!firebaseReady) {
+    if (!firebaseConfigured) {
       toast.error("Connect Firebase to enable purchases.");
       return;
+    }
+
+    let readyState = firebaseReady;
+    if (!readyState) {
+      readyState = await initializeFirebaseIfReady();
+      if (!readyState) {
+        toast.error("Connect Firebase to enable purchases.");
+        return;
+      }
+      setFirebaseReady(true);
     }
 
     setPurchaseInProgress(animation.id);

@@ -32,6 +32,7 @@ import { ModeToggle } from "./components/ModeToggle";
 import {
   fetchStoreAnimations,
   getActiveUserId,
+  initializeFirebaseIfReady,
   isFirebaseConfigured,
   loadUserProfile,
   type StoreAnimation,
@@ -148,6 +149,16 @@ const [animation, setAnimation] = useState<LightSettings>({
 
     const loadOwnedAnimations = async () => {
       if (!isFirebaseConfigured()) {
+        setOwnedAnimationOptions(FALLBACK_OWNED_ANIMATIONS);
+        return;
+      }
+
+      const firebaseReady = await initializeFirebaseIfReady();
+      if (!isMounted) {
+        return;
+      }
+
+      if (!firebaseReady) {
         setOwnedAnimationOptions(FALLBACK_OWNED_ANIMATIONS);
         return;
       }
