@@ -1,5 +1,5 @@
 import type { Dispatch, SetStateAction } from "react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "./components/ui/sheet";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "./components/ui/dialog";
 import { LightControl } from "./components/LightControl";
@@ -10,11 +10,16 @@ import { InstallPrompt } from "./components/InstallPrompt";
 import { Toaster } from "./components/ui/sonner";
 import {
   Sparkles,
+  Zap,
+  Waves,
+  Star,
   User,
   Bluetooth,
   BluetoothOff,
   Store,
   ScrollText,
+  Crown,
+  Gem,
 } from "lucide-react";
 import { Button } from "./components/ui/button";
 import { TurnSignalIcon, LowBeamIcon, HighBeamIcon, BrakeLightIcon } from "./components/icons/AutomotiveIcons";
@@ -22,8 +27,17 @@ import { BluetoothCommandGenerator } from "./utils/bluetooth-commands";
 import { CommandLog, CommandLogEntry } from "./components/CommandLog";
 import { toast } from "sonner@2.0.3";
 import { BluetoothConnectionTransport } from "./utils/bluetooth-types";
-import { AppStoreDialogContent } from "./components/AppStore";
+import { AppStoreDialogContent, FALLBACK_OWNED_ANIMATIONS } from "./components/AppStore";
 import { ModeToggle } from "./components/ModeToggle";
+import {
+  fetchStoreAnimations,
+  getActiveUserId,
+  isFirebaseConfigured,
+  loadUserProfile,
+  type StoreAnimation,
+} from "./utils/firebase";
+import { FALLBACK_USER_PROFILE } from "./types/userProfile";
+import type { AnimationScenarioOption } from "./types/animation";
 
 interface LightSettings {
   red: number;
@@ -39,7 +53,18 @@ const BASIC_LIGHT_TYPES = {
   brakeLight: 4,
 } as const;
 
-const ANIMATION_SCENARIO_NAMES = ["", "Rainbow Flow", "Lightning Pulse", "Ocean Wave", "Starlight"];
+const BASE_ANIMATION_SCENARIOS: AnimationScenarioOption[] = [
+  { id: 1, name: "Rainbow Flow", icon: Sparkles, gradient: "from-red-500 to-purple-500" },
+  { id: 2, name: "Lightning Pulse", icon: Zap, gradient: "from-yellow-400 to-orange-500" },
+  { id: 3, name: "Ocean Wave", icon: Waves, gradient: "from-blue-400 to-cyan-500" },
+  { id: 4, name: "Starlight", icon: Star, gradient: "from-indigo-400 to-pink-500" },
+];
+
+const PURCHASED_SCENARIO_ICONS = [Crown, Gem];
+const DEFAULT_PURCHASED_GRADIENTS = [
+  "from-emerald-500 via-teal-500 to-cyan-500",
+  "from-rose-500 via-purple-500 to-indigo-500",
+];
 
 export default function App() {
   const [connectionDialogOpen, setConnectionDialogOpen] = useState(false);
@@ -86,9 +111,94 @@ export default function App() {
   });
 
   const [animationScenario, setAnimationScenario] = useState(1);
+  const [ownedAnimationOptions, setOwnedAnimationOptions] = useState<StoreAnimation[]>(
+    FALLBACK_OWNED_ANIMATIONS
+  );
 
   // Send AT command when settings change
   const isBluetoothConnected = connectionTransport !== null;
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadOwnedAnimations = async () => {
+      if (!isFirebaseConfigured()) {
+        setOwnedAnimationOptions(FALLBACK_OWNED_ANIMATIONS);
+        return;
+      }
+
+      try {
+        const [storeAnimations, profile] = await Promise.all([
+          fetchStoreAnimations(),
+          loadUserProfile(getActiveUserId()),
+        ]);
+
+        if (!isMounted) {
+          return;
+        }
+
+        const ownedIds = new Set(
+          profile?.ownedAnimations?.length
+            ? profile.ownedAnimations
+            : FALLBACK_USER_PROFILE.ownedAnimations
+        );
+
+        if (ownedIds.size === 0) {
+          setOwnedAnimationOptions(FALLBACK_OWNED_ANIMATIONS);
+          return;
+        }
+
+        const catalog = [...storeAnimations, ...FALLBACK_OWNED_ANIMATIONS];
+        const catalogMap = new Map(catalog.map((animation) => [animation.id, animation]));
+        const ownedAnimations = Array.from(ownedIds)
+          .map((id) => catalogMap.get(id))
+          .filter((animation): animation is StoreAnimation => Boolean(animation));
+
+        setOwnedAnimationOptions(
+          ownedAnimations.length > 0 ? ownedAnimations : FALLBACK_OWNED_ANIMATIONS
+        );
+      } catch (error) {
+        console.error("Failed to load owned animations", error);
+        if (isMounted) {
+          setOwnedAnimationOptions(FALLBACK_OWNED_ANIMATIONS);
+        }
+      }
+    };
+
+    loadOwnedAnimations();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const purchasedScenarioOptions = useMemo<AnimationScenarioOption[]>(() =>
+    ownedAnimationOptions.slice(0, 2).map((animation, index) => ({
+      id: BASE_ANIMATION_SCENARIOS.length + index + 1,
+      name: animation.name,
+      icon: PURCHASED_SCENARIO_ICONS[index % PURCHASED_SCENARIO_ICONS.length],
+      gradient:
+        animation.gradient ??
+        DEFAULT_PURCHASED_GRADIENTS[index % DEFAULT_PURCHASED_GRADIENTS.length],
+      sourceId: animation.id,
+    })),
+  [ownedAnimationOptions]);
+
+  const animationScenarioOptions = useMemo(
+    () => [...BASE_ANIMATION_SCENARIOS, ...purchasedScenarioOptions],
+    [purchasedScenarioOptions]
+  );
+
+  const selectedAnimationOption = useMemo(
+    () => animationScenarioOptions.find((option) => option.id === animationScenario),
+    [animationScenarioOptions, animationScenario]
+  );
+
+  useEffect(() => {
+    if (!selectedAnimationOption && animationScenarioOptions.length > 0) {
+      setAnimationScenario(animationScenarioOptions[0].id);
+    }
+  }, [selectedAnimationOption, animationScenarioOptions]);
 
   const sendBasicLightCommand = async (
     type: number,
@@ -122,6 +232,9 @@ export default function App() {
     const command = BluetoothCommandGenerator.generateAnimationCommand(scenario, settings);
     const hexString = BluetoothCommandGenerator.commandToHexString(command);
     const intensityLevel = Math.round(settings.intensity / 5);
+    const scenarioName =
+      animationScenarioOptions.find((option) => option.id === scenario)?.name ??
+      `Scenario ${scenario}`;
 
     // Add to command history
     setCommandHistory(prev => [{
@@ -129,7 +242,7 @@ export default function App() {
       type: "animation",
       hexString,
       bytes: Array.from(command),
-      description: `${ANIMATION_SCENARIO_NAMES[scenario]} (Cmd 0x01, Type 0x${scenario.toString(16).padStart(2, "0")}): RGB(${settings.red}, ${settings.green}, ${settings.blue}), Intensity: ${settings.intensity}% (Level ${intensityLevel})`
+      description: `${scenarioName} (Cmd 0x01, Type 0x${scenario.toString(16).padStart(2, "0")}): RGB(${settings.red}, ${settings.green}, ${settings.blue}), Intensity: ${settings.intensity}% (Level ${intensityLevel})`
     }, ...prev].slice(0, 50)); // Keep last 50 commands
 
     // Only send via Bluetooth if connected
@@ -249,7 +362,7 @@ export default function App() {
       id: "animation",
       title: "Animation",
       icon: Sparkles,
-      gradient: "from-purple-500 to-pink-500",
+      gradient: selectedAnimationOption?.gradient ?? "from-purple-500 to-pink-500",
       isAnimation: true,
       settings: animation,
       setter: setAnimation,
@@ -437,7 +550,7 @@ export default function App() {
                         )}
                         {button.isAnimation && (
                           <p className="text-muted-foreground">
-                            Scenario {animationScenario}
+                            {selectedAnimationOption?.name ?? `Scenario ${animationScenario}`}
                           </p>
                         )}
                       </div>
@@ -457,8 +570,8 @@ export default function App() {
                       {button.title}
                     </SheetTitle>
                     <SheetDescription>
-                      {button.isAnimation 
-                        ? "Choose an animation effect and adjust base colors"
+                      {button.isAnimation
+                        ? "Choose an animation effect, including premium App Store purchases."
                         : "Adjust RGB color channels and intensity level"
                       }
                     </SheetDescription>
@@ -466,24 +579,10 @@ export default function App() {
 
                   {button.isAnimation ? (
                     <AnimationControl
+                      scenarios={animationScenarioOptions}
                       selectedScenario={animationScenario}
                       onScenarioChange={setAnimationScenario}
-                      red={animation.red}
-                      green={animation.green}
-                      blue={animation.blue}
-                      intensity={animation.intensity}
-                      onRedChange={(value) =>
-                        updateLightSetting(setAnimation, "red", value)
-                      }
-                      onGreenChange={(value) =>
-                        updateLightSetting(setAnimation, "green", value)
-                      }
-                      onBlueChange={(value) =>
-                        updateLightSetting(setAnimation, "blue", value)
-                      }
-                      onIntensityChange={(value) =>
-                        updateLightSetting(setAnimation, "intensity", value)
-                      }
+                      currentSettings={animation}
                       onSend={() => sendAnimationCommand(animationScenario, animation)}
                     />
                   ) : button.settings && button.setter ? (

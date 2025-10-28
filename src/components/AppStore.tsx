@@ -16,7 +16,7 @@ import {
 } from "../utils/firebase";
 import { FALLBACK_USER_PROFILE } from "../types/userProfile";
 
-const FALLBACK_FEATURED_ANIMATIONS: StoreAnimation[] = [
+export const FALLBACK_FEATURED_ANIMATIONS: StoreAnimation[] = [
   {
     id: "nebula-drift",
     name: "Nebula Drift",
@@ -40,7 +40,7 @@ const FALLBACK_FEATURED_ANIMATIONS: StoreAnimation[] = [
   },
 ];
 
-const FALLBACK_OWNED_ANIMATIONS: StoreAnimation[] = [
+export const FALLBACK_OWNED_ANIMATIONS: StoreAnimation[] = [
   {
     id: "aurora-veil",
     name: "Aurora Veil",
