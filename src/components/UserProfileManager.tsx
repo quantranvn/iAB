@@ -12,7 +12,6 @@ import {
   type MotorbikeProfile,
 } from "../types/userProfile";
 import {
-  getActiveUserId,
   initializeFirebaseIfReady,
   isFirebaseConfigured,
   loadUserProfile,
@@ -20,6 +19,7 @@ import {
 } from "../utils/firebase";
 
 interface UserProfileManagerProps {
+  activeUserId: string;
   currentSettings: {
     turnIndicator: LightSettings;
     lowBeam: LightSettings;
@@ -64,10 +64,10 @@ const buildFallbackProfile = (userUid: string): UserProfile => ({
 });
 
 export function UserProfileManager({
+  activeUserId,
   currentSettings,
   onLoadPreset,
 }: UserProfileManagerProps) {
-  const activeUserId = getActiveUserId();
   const firebaseConfigured = isFirebaseConfigured();
   const fallbackProfile = useMemo(
     () => buildFallbackProfile(activeUserId),
@@ -86,6 +86,16 @@ export function UserProfileManager({
 
     const fetchProfile = async () => {
       try {
+        if (!activeUserId) {
+          if (!isMounted) {
+            return;
+          }
+
+          setUserProfile(fallbackProfile);
+          setSelectedMotorbikeId(fallbackProfile.motorbikes[0]?.bikeId ?? "");
+          return;
+        }
+
         if (!firebaseConfigured) {
           if (!isMounted) return;
           setUserProfile(fallbackProfile);
@@ -141,6 +151,10 @@ export function UserProfileManager({
   }, [activeUserId, fallbackProfile, firebaseConfigured]);
 
   const persistProfile = async (profile: UserProfile) => {
+    if (!activeUserId) {
+      return;
+    }
+
     if (!firebaseConfigured) {
       return;
     }

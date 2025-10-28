@@ -8,7 +8,6 @@ import { Separator } from "./ui/separator";
 import { toast } from "sonner@2.0.3";
 import {
   fetchStoreAnimations,
-  getActiveUserId,
   initializeFirebaseIfReady,
   isFirebaseConfigured,
   loadUserProfile,
@@ -56,9 +55,12 @@ export const FALLBACK_OWNED_ANIMATIONS: StoreAnimation[] = [
   },
 ];
 
-export function AppStoreDialogContent() {
+interface AppStoreDialogContentProps {
+  activeUserId: string;
+}
+
+export function AppStoreDialogContent({ activeUserId }: AppStoreDialogContentProps) {
   const firebaseConfigured = isFirebaseConfigured();
-  const activeUserId = getActiveUserId();
   const [availableAnimations, setAvailableAnimations] = useState<StoreAnimation[]>(
     FALLBACK_FEATURED_ANIMATIONS
   );
@@ -74,6 +76,18 @@ export function AppStoreDialogContent() {
     let isMounted = true;
 
     const loadData = async () => {
+      if (!activeUserId) {
+        if (!isMounted) {
+          return;
+        }
+
+        setLoading(false);
+        setOwnedAnimations(FALLBACK_OWNED_ANIMATIONS);
+        setAvailableAnimations(FALLBACK_FEATURED_ANIMATIONS);
+        setUsingFallbackData(true);
+        return;
+      }
+
       if (!firebaseConfigured) {
         if (!isMounted) {
           return;
@@ -158,6 +172,11 @@ export function AppStoreDialogContent() {
   }, [activeUserId, firebaseConfigured]);
 
   const handlePurchase = async (animation: StoreAnimation) => {
+    if (!activeUserId) {
+      toast.error("Sign in to enable purchases.");
+      return;
+    }
+
     if (!firebaseConfigured) {
       toast.error("Connect Server to enable purchases.");
       return;

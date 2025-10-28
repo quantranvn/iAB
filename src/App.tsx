@@ -1,4 +1,4 @@
-import type { Dispatch, SetStateAction, CSSProperties } from "react";
+import type { Dispatch, SetStateAction, CSSProperties, FormEvent } from "react";
 import { useState, useEffect, useMemo } from "react";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "./components/ui/sheet";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "./components/ui/dialog";
@@ -20,8 +20,12 @@ import {
   ScrollText,
   Crown,
   Gem,
+  LogIn,
+  Loader2,
 } from "lucide-react";
 import { Button } from "./components/ui/button";
+import { Input } from "./components/ui/input";
+import { Label } from "./components/ui/label";
 import { TurnSignalIcon, LowBeamIcon, HighBeamIcon, BrakeLightIcon } from "./components/icons/AutomotiveIcons";
 import { BluetoothCommandGenerator } from "./utils/bluetooth-commands";
 import { CommandLog, CommandLogEntry } from "./components/CommandLog";
@@ -35,6 +39,7 @@ import {
   initializeFirebaseIfReady,
   isFirebaseConfigured,
   loadUserProfile,
+  setActiveUserId as persistActiveUserId,
   type StoreAnimation,
 } from "./utils/firebase";
 import { FALLBACK_USER_PROFILE } from "./types/userProfile";
@@ -68,6 +73,7 @@ const DEFAULT_PURCHASED_GRADIENTS = [
 ];
 
 export default function App() {
+  const [activeUserId, setActiveUserIdState] = useState(() => getActiveUserId());
   const [connectionDialogOpen, setConnectionDialogOpen] = useState(false);
   const [bluetoothDialogOpen, setBluetoothDialogOpen] = useState(false);
   const [commandDialogOpen, setCommandDialogOpen] = useState(false);
@@ -75,6 +81,19 @@ export default function App() {
   const [connectionTransport, setConnectionTransport] = useState<BluetoothConnectionTransport | null>(null);
   const [commandHistory, setCommandHistory] = useState<CommandLogEntry[]>([]);
   const [appStoreOpen, setAppStoreOpen] = useState(false);
+  const [loginDialogOpen, setLoginDialogOpen] = useState(false);
+  const [loginUserIdInput, setLoginUserIdInput] = useState(() => getActiveUserId());
+  const [loginPasswordInput, setLoginPasswordInput] = useState("");
+  const [loginError, setLoginError] = useState<string | null>(null);
+  const [loginInProgress, setLoginInProgress] = useState(false);
+
+  useEffect(() => {
+    if (!loginDialogOpen) {
+      setLoginError(null);
+      setLoginPasswordInput("");
+      setLoginUserIdInput(activeUserId);
+    }
+  }, [activeUserId, loginDialogOpen]);
 
 const [turnIndicator, setTurnIndicator] = useState<LightSettings>({
   red: 255,
@@ -148,6 +167,11 @@ const [animation, setAnimation] = useState<LightSettings>({
     let isMounted = true;
 
     const loadOwnedAnimations = async () => {
+      if (!activeUserId) {
+        setOwnedAnimationOptions(FALLBACK_OWNED_ANIMATIONS);
+        return;
+      }
+
       if (!isFirebaseConfigured()) {
         setOwnedAnimationOptions(FALLBACK_OWNED_ANIMATIONS);
         return;
@@ -166,7 +190,7 @@ const [animation, setAnimation] = useState<LightSettings>({
       try {
         const [storeAnimations, profile] = await Promise.all([
           fetchStoreAnimations(),
-          loadUserProfile(getActiveUserId()),
+          loadUserProfile(activeUserId),
         ]);
 
         if (!isMounted) {
@@ -206,7 +230,55 @@ const [animation, setAnimation] = useState<LightSettings>({
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [activeUserId]);
+
+  const handleUserLogin = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    const trimmedUserId = loginUserIdInput.trim();
+    if (!trimmedUserId) {
+      setLoginError("Please enter a user ID.");
+      return;
+    }
+
+    if (!loginPasswordInput.trim()) {
+      setLoginError("Please enter the demo password.");
+      return;
+    }
+
+    if (!isFirebaseConfigured()) {
+      setLoginError("Server connection is not configured. Using local sample data instead.");
+      return;
+    }
+
+    setLoginError(null);
+    setLoginInProgress(true);
+
+    try {
+      const ready = await initializeFirebaseIfReady();
+      if (!ready) {
+        setLoginError("Unable to connect to the server. Please try again.");
+        return;
+      }
+
+      const profile = await loadUserProfile(trimmedUserId);
+
+      if (!profile) {
+        setLoginError("No profile was found for that user ID.");
+        return;
+      }
+
+      persistActiveUserId(trimmedUserId);
+      setActiveUserIdState(trimmedUserId);
+      toast.success(`Welcome back${profile.firstName ? `, ${profile.firstName}` : ""}!`);
+      setLoginDialogOpen(false);
+    } catch (error) {
+      console.error("Failed to sign in", error);
+      setLoginError("Unable to sign in. Please try again.");
+    } finally {
+      setLoginInProgress(false);
+    }
+  };
 
   const purchasedScenarioOptions = useMemo<AnimationScenarioOption[]>(() =>
     ownedAnimationOptions.slice(0, 2).map((animation, index) => ({
@@ -456,6 +528,68 @@ const [animation, setAnimation] = useState<LightSettings>({
 
         {/* Quick Actions */}
           <div className="flex flex-wrap items-center justify-center gap-2">
+            <Dialog open={loginDialogOpen} onOpenChange={setLoginDialogOpen}>
+              <DialogTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="rounded-xl"
+                  aria-label="Sign in"
+                  title="Sign in"
+                >
+                  <LogIn className="w-4 h-4" />
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="space-y-4 sm:max-w-sm">
+                <DialogHeader>
+                  <DialogTitle>Sign in</DialogTitle>
+                  <DialogDescription>
+                    Use your rider ID and demo password to load your cloud profile from Firestore.
+                  </DialogDescription>
+                </DialogHeader>
+                <form className="space-y-4" onSubmit={handleUserLogin}>
+                  <div className="space-y-2">
+                    <Label htmlFor="login-user-id">User ID</Label>
+                    <Input
+                      id="login-user-id"
+                      value={loginUserIdInput}
+                      onChange={(event) => setLoginUserIdInput(event.target.value)}
+                      placeholder="e.g. rider-001"
+                      autoComplete="username"
+                      autoFocus
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="login-password">Password</Label>
+                    <Input
+                      id="login-password"
+                      type="password"
+                      value={loginPasswordInput}
+                      onChange={(event) => setLoginPasswordInput(event.target.value)}
+                      placeholder="Enter demo password"
+                      autoComplete="current-password"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      The password is for demonstration only—any value will work.
+                    </p>
+                  </div>
+                  <div className="space-y-2 text-sm">
+                    {loginError ? (
+                      <p className="text-destructive">{loginError}</p>
+                    ) : (
+                      <p className="text-muted-foreground">
+                        Currently signed in as <span className="font-medium">{activeUserId}</span>.
+                      </p>
+                    )}
+                  </div>
+                  <Button type="submit" className="w-full" disabled={loginInProgress}>
+                    {loginInProgress && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Sign In
+                  </Button>
+                </form>
+              </DialogContent>
+            </Dialog>
+
             {/* Profile */}
             <Button
               variant="outline"
@@ -557,7 +691,7 @@ const [animation, setAnimation] = useState<LightSettings>({
                 <Store className="w-4 h-4" />
               </Button>
             </DialogTrigger>
-            <AppStoreDialogContent />
+            <AppStoreDialogContent activeUserId={activeUserId} />
           </Dialog>
 
           <ModeToggle />
@@ -685,6 +819,7 @@ const [animation, setAnimation] = useState<LightSettings>({
               </DialogDescription>
             </DialogHeader>
             <UserProfileManager
+              activeUserId={activeUserId}
               currentSettings={{
                 turnIndicator,
                 lowBeam,
