@@ -869,9 +869,9 @@ const [animation, setAnimation] = useState<LightSettings>({
                 <SheetContent
                   side="bottom"
                   className="
-                    max-h-[85vh] overflow-y-auto px-6 pb-6
-                    sm:inset-x-auto sm:left-1/2 sm:-translate-x-1/2
-                    sm:w-full sm:max-w-lg sm:rounded-2xl sm:border
+                    mx-auto my-4 max-h-[85vh] overflow-y-auto
+                    sm:max-w-lg sm:rounded-2xl sm:border sm:shadow-lg
+                    px-6 pb-6 pt-4 bg-background
                   "                
                   >
                   <SheetHeader className="pb-4">
