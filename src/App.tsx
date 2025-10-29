@@ -15,7 +15,6 @@ import {
   Star,
   Bluetooth,
   BluetoothOff,
-  Store,
   ScrollText,
   LogIn,
   Loader2,
@@ -29,7 +28,11 @@ import { BluetoothCommandGenerator } from "./utils/bluetooth-commands";
 import { CommandLog, CommandLogEntry } from "./components/CommandLog";
 import { toast } from "sonner@2.0.3";
 import { BluetoothConnectionTransport } from "./utils/bluetooth-types";
-import { AppStoreDialogContent, FALLBACK_USER_ANIMATIONS } from "./components/AppStore";
+import {
+  AppStoreDialogContent,
+  FALLBACK_USER_ANIMATIONS,
+  type AnimationLibraryTab,
+} from "./components/AppStore";
 import { ModeToggle } from "./components/ModeToggle";
 import {
   fetchStoreAnimations,
@@ -79,6 +82,7 @@ export default function App() {
   const [connectionTransport, setConnectionTransport] = useState<BluetoothConnectionTransport | null>(null);
   const [commandHistory, setCommandHistory] = useState<CommandLogEntry[]>([]);
   const [appStoreOpen, setAppStoreOpen] = useState(false);
+  const [appStoreInitialTab, setAppStoreInitialTab] = useState<AnimationLibraryTab>("owned");
   const [loginDialogOpen, setLoginDialogOpen] = useState(false);
   const [loginUserIdInput, setLoginUserIdInput] = useState(() => getActiveUserId());
   const [loginPasswordInput, setLoginPasswordInput] = useState("");
@@ -910,21 +914,13 @@ const [animationCatalog, setAnimationCatalog] = useState<StoreAnimation[]>([]);
           </Dialog>
 
           <Dialog open={appStoreOpen} onOpenChange={setAppStoreOpen}>
-            <DialogTrigger asChild>
-              <Button
-                variant="outline"
-                size="icon"
-                className="rounded-xl"
-                aria-label="App Store"
-                title="App Store"
-              >
-                <Store className="w-4 h-4" />
-              </Button>
-            </DialogTrigger>
             <AppStoreDialogContent
               activeUserId={activeUserId}
               onAnimationSelect={handleSelectUserAnimationById}
               selectedAnimationId={selectedUserAnimationId}
+              initialTab={appStoreInitialTab}
+              onTabChange={setAppStoreInitialTab}
+              onClose={() => setAppStoreOpen(false)}
             />
           </Dialog>
 
@@ -1010,7 +1006,10 @@ const [animationCatalog, setAnimationCatalog] = useState<StoreAnimation[]>([]);
                         updateLightSetting(setAnimation, "intensity", value)
                       }
                       onSend={() => sendAnimationCommand(animationScenario, animation)}
-                      onOpenAnimationLibrary={() => setAppStoreOpen(true)}
+                      onOpenAnimationLibrary={() => {
+                        setAppStoreInitialTab("owned");
+                        setAppStoreOpen(true);
+                      }}
                     />
                   ) : button.settings && button.setter ? (
                     <LightControl
