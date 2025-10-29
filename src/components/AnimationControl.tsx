@@ -231,7 +231,7 @@ export function AnimationControl({
 
       <Button
         onClick={handleSend}
-        className="w-full relative overflow-hidden"
+        className="w-full relative overflow-y-auto"
         size="lg"
         disabled={isSending}
       >
