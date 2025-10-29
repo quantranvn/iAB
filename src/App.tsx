@@ -13,13 +13,10 @@ import {
   Zap,
   Waves,
   Star,
-  User,
   Bluetooth,
   BluetoothOff,
   Store,
   ScrollText,
-  Crown,
-  Gem,
   LogIn,
   Loader2,
 } from "lucide-react";
@@ -31,7 +28,7 @@ import { BluetoothCommandGenerator } from "./utils/bluetooth-commands";
 import { CommandLog, CommandLogEntry } from "./components/CommandLog";
 import { toast } from "sonner@2.0.3";
 import { BluetoothConnectionTransport } from "./utils/bluetooth-types";
-import { AppStoreDialogContent, FALLBACK_OWNED_ANIMATIONS } from "./components/AppStore";
+import { AppStoreDialogContent, FALLBACK_USER_ANIMATIONS } from "./components/AppStore";
 import { ModeToggle } from "./components/ModeToggle";
 import {
   fetchStoreAnimations,
@@ -42,15 +39,10 @@ import {
   setActiveUserId as persistActiveUserId,
   type StoreAnimation,
 } from "./utils/firebase";
-import { FALLBACK_USER_PROFILE } from "./types/userProfile";
+import { FALLBACK_USER_PROFILE, type LightSettings, type Preset, type UserProfile } from "./types/userProfile";
 import type { AnimationScenarioOption } from "./types/animation";
-
-interface LightSettings {
-  red: number;
-  green: number;
-  blue: number;
-  intensity: number;
-}
+import { Avatar, AvatarFallback, AvatarImage } from "./components/ui/avatar";
+import { buildFallbackProfile, normalizeUserProfile } from "./utils/profileHelpers";
 
 const BASIC_LIGHT_TYPES = {
   lowBeam: 1,
@@ -66,10 +58,11 @@ const BASE_ANIMATION_SCENARIOS: AnimationScenarioOption[] = [
   { id: 4, name: "Starlight", icon: Star, gradient: "from-indigo-400 to-pink-500" },
 ];
 
-const PURCHASED_SCENARIO_ICONS = [Crown, Gem];
-const DEFAULT_PURCHASED_GRADIENTS = [
+const USER_ANIMATION_GRADIENTS = [
   "from-emerald-500 via-teal-500 to-cyan-500",
   "from-rose-500 via-purple-500 to-indigo-500",
+  "from-amber-400 via-orange-500 to-rose-500",
+  "from-blue-400 via-sky-500 to-indigo-500",
 ];
 
 export default function App() {
@@ -131,9 +124,27 @@ const [animation, setAnimation] = useState<LightSettings>({
 });
 
   const [animationScenario, setAnimationScenario] = useState(1);
-  const [ownedAnimationOptions, setOwnedAnimationOptions] = useState<StoreAnimation[]>(
-    FALLBACK_OWNED_ANIMATIONS
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [userProfileLoading, setUserProfileLoading] = useState(true);
+  const [userAnimationOptions, setUserAnimationOptions] = useState<StoreAnimation[]>(
+    FALLBACK_USER_ANIMATIONS
   );
+  const [animationCatalog, setAnimationCatalog] = useState<StoreAnimation[]>([]);
+
+  const computeUserAnimations = (
+    animationIds: string[],
+    catalog: StoreAnimation[]
+  ): StoreAnimation[] => {
+    const lookup = new Map(
+      [...catalog, ...FALLBACK_USER_ANIMATIONS].map((animation) => [animation.id, animation])
+    );
+
+    const resolved = animationIds
+      .map((animationId) => lookup.get(animationId))
+      .filter((animation): animation is StoreAnimation => Boolean(animation));
+
+    return resolved.length > 0 ? resolved : FALLBACK_USER_ANIMATIONS;
+  };
 
   const clamp = (value: number, min: number, max: number) =>
     Math.min(Math.max(value, min), max);
@@ -166,16 +177,25 @@ const [animation, setAnimation] = useState<LightSettings>({
   useEffect(() => {
     let isMounted = true;
 
-    const loadOwnedAnimations = async () => {
-      if (!activeUserId) {
-        setOwnedAnimationOptions(FALLBACK_OWNED_ANIMATIONS);
+    const loadUserData = async () => {
+      const fallbackProfile = buildFallbackProfile(
+        activeUserId || FALLBACK_USER_PROFILE.uid
+      );
+
+      if (!activeUserId || !isFirebaseConfigured()) {
+        if (!isMounted) {
+          return;
+        }
+
+        setUserProfile(fallbackProfile);
+        setUserAnimationOptions(FALLBACK_USER_ANIMATIONS);
+        setAnimationCatalog(FALLBACK_USER_ANIMATIONS);
+        setAnimationScenario(fallbackProfile.animationScenario);
+        setUserProfileLoading(false);
         return;
       }
 
-      if (!isFirebaseConfigured()) {
-        setOwnedAnimationOptions(FALLBACK_OWNED_ANIMATIONS);
-        return;
-      }
+      setUserProfileLoading(true);
 
       const firebaseReady = await initializeFirebaseIfReady();
       if (!isMounted) {
@@ -183,12 +203,16 @@ const [animation, setAnimation] = useState<LightSettings>({
       }
 
       if (!firebaseReady) {
-        setOwnedAnimationOptions(FALLBACK_OWNED_ANIMATIONS);
+        setUserProfile(fallbackProfile);
+        setUserAnimationOptions(FALLBACK_USER_ANIMATIONS);
+        setAnimationCatalog(FALLBACK_USER_ANIMATIONS);
+        setAnimationScenario(fallbackProfile.animationScenario);
+        setUserProfileLoading(false);
         return;
       }
 
       try {
-        const [storeAnimations, profile] = await Promise.all([
+        const [catalog, profile] = await Promise.all([
           fetchStoreAnimations(),
           loadUserProfile(activeUserId),
         ]);
@@ -197,35 +221,33 @@ const [animation, setAnimation] = useState<LightSettings>({
           return;
         }
 
-        const ownedIds = new Set(
-          profile?.ownedAnimations?.length
-            ? profile.ownedAnimations
-            : FALLBACK_USER_PROFILE.ownedAnimations
-        );
+        const normalizedProfile = normalizeUserProfile(profile, fallbackProfile);
+        setUserProfile(normalizedProfile);
+        setAnimationCatalog(catalog);
+        setAnimationScenario(normalizedProfile.animationScenario);
 
-        if (ownedIds.size === 0) {
-          setOwnedAnimationOptions(FALLBACK_OWNED_ANIMATIONS);
-          return;
-        }
+        const preferredAnimationIds =
+          normalizedProfile.userAnimations.length > 0
+            ? normalizedProfile.userAnimations
+            : fallbackProfile.userAnimations;
 
-        const catalog = [...storeAnimations, ...FALLBACK_OWNED_ANIMATIONS];
-        const catalogMap = new Map(catalog.map((animation) => [animation.id, animation]));
-        const ownedAnimations = Array.from(ownedIds)
-          .map((id) => catalogMap.get(id))
-          .filter((animation): animation is StoreAnimation => Boolean(animation));
-
-        setOwnedAnimationOptions(
-          ownedAnimations.length > 0 ? ownedAnimations : FALLBACK_OWNED_ANIMATIONS
-        );
+        setUserAnimationOptions(computeUserAnimations(preferredAnimationIds, catalog));
       } catch (error) {
-        console.error("Failed to load owned animations", error);
+        console.error("Failed to load user data", error);
         if (isMounted) {
-          setOwnedAnimationOptions(FALLBACK_OWNED_ANIMATIONS);
+          setUserProfile(fallbackProfile);
+          setUserAnimationOptions(FALLBACK_USER_ANIMATIONS);
+          setAnimationCatalog(FALLBACK_USER_ANIMATIONS);
+          setAnimationScenario(fallbackProfile.animationScenario);
+        }
+      } finally {
+        if (isMounted) {
+          setUserProfileLoading(false);
         }
       }
     };
 
-    loadOwnedAnimations();
+    loadUserData();
 
     return () => {
       isMounted = false;
@@ -280,27 +302,129 @@ const [animation, setAnimation] = useState<LightSettings>({
     }
   };
 
-  const purchasedScenarioOptions = useMemo<AnimationScenarioOption[]>(() =>
-    ownedAnimationOptions.slice(0, 2).map((animation, index) => ({
-      id: BASE_ANIMATION_SCENARIOS.length + index + 1,
-      name: animation.name,
-      icon: PURCHASED_SCENARIO_ICONS[index % PURCHASED_SCENARIO_ICONS.length],
-      gradient:
-        animation.gradient ??
-        DEFAULT_PURCHASED_GRADIENTS[index % DEFAULT_PURCHASED_GRADIENTS.length],
-      sourceId: animation.id,
-    })),
-  [ownedAnimationOptions]);
+  const handleApplyProfileSettings = (settings: {
+    turnIndicator: LightSettings;
+    lowBeam: LightSettings;
+    highBeam: LightSettings;
+    brakeLight: LightSettings;
+    animation: LightSettings;
+    animationScenario: number;
+  }) => {
+    setTurnIndicator({ ...settings.turnIndicator });
+    setLowBeam({ ...settings.lowBeam });
+    setHighBeam({ ...settings.highBeam });
+    setBrakeLight({ ...settings.brakeLight });
+    setAnimation({ ...settings.animation });
+    setAnimationScenario(settings.animationScenario);
+  };
+
+  const handleProfileUpdated = (profile: UserProfile) => {
+    const fallback = userProfile ?? buildFallbackProfile(profile.uid);
+    const normalized = normalizeUserProfile(profile, fallback);
+    setUserProfile(normalized);
+
+    const catalogSource =
+      animationCatalog.length > 0 ? animationCatalog : FALLBACK_USER_ANIMATIONS;
+
+    const preferredIds =
+      normalized.userAnimations.length > 0
+        ? normalized.userAnimations
+        : FALLBACK_USER_PROFILE.userAnimations;
+
+    setUserAnimationOptions(computeUserAnimations(preferredIds, catalogSource));
+    setAnimationScenario(normalized.animationScenario);
+  };
+
+  const handleSelectUserAnimationById = (animationId: string) => {
+    const scenarioId = userAnimationIdToScenarioId.get(animationId);
+
+    if (!scenarioId) {
+      toast.error("Animation is not available yet. Sync your profile to refresh the list.");
+      return;
+    }
+
+    setAnimationScenario(scenarioId);
+
+    const option = animationScenarioOptions.find((candidate) => candidate.id === scenarioId);
+    if (option) {
+      toast.success(`Selected ${option.name}`);
+    } else {
+      toast.success("Animation selected");
+    }
+  };
+
+  const userAnimationScenarioData = useMemo(() => {
+    const startId = BASE_ANIMATION_SCENARIOS.length + 1;
+    const options: AnimationScenarioOption[] = [];
+    const sourceToId = new Map<string, number>();
+    const idToSource = new Map<number, string>();
+
+    userAnimationOptions.forEach((animation, index) => {
+      const id = startId + index;
+      sourceToId.set(animation.id, id);
+      idToSource.set(id, animation.id);
+      options.push({
+        id,
+        name: animation.name,
+        icon: Sparkles,
+        gradient:
+          animation.gradient ??
+          USER_ANIMATION_GRADIENTS[index % USER_ANIMATION_GRADIENTS.length],
+        sourceId: animation.id,
+      });
+    });
+
+    return { options, sourceToId, idToSource };
+  }, [userAnimationOptions]);
 
   const animationScenarioOptions = useMemo(
-    () => [...BASE_ANIMATION_SCENARIOS, ...purchasedScenarioOptions],
-    [purchasedScenarioOptions]
+    () => [...BASE_ANIMATION_SCENARIOS, ...userAnimationScenarioData.options],
+    [userAnimationScenarioData.options]
   );
+
+  const userAnimationIdToScenarioId = userAnimationScenarioData.sourceToId;
+  const scenarioIdToUserAnimationId = userAnimationScenarioData.idToSource;
 
   const selectedAnimationOption = useMemo(
     () => animationScenarioOptions.find((option) => option.id === animationScenario),
     [animationScenarioOptions, animationScenario]
   );
+
+  const selectedUserAnimationId = useMemo(
+    () => scenarioIdToUserAnimationId.get(animationScenario) ?? null,
+    [scenarioIdToUserAnimationId, animationScenario]
+  );
+
+  const profileInitials = useMemo(() => {
+    const first = userProfile?.firstName?.trim().charAt(0) ?? "";
+    const last = userProfile?.lastName?.trim().charAt(0) ?? "";
+    const initials = `${first}${last}`.trim();
+    if (initials.length > 0) {
+      return initials.toUpperCase();
+    }
+
+    const fallback = userProfile?.email?.charAt(0) ?? userProfile?.uid?.charAt(0) ?? "U";
+    return fallback.toUpperCase();
+  }, [userProfile]);
+
+  const profileDisplayName = useMemo(() => {
+    if (userProfileLoading) {
+      return "Loading profile";
+    }
+
+    if (!userProfile) {
+      return "Guest Rider";
+    }
+
+    const first = userProfile.firstName?.trim();
+    const last = userProfile.lastName?.trim();
+    const fullName = [first, last].filter(Boolean).join(" ");
+    if (fullName) {
+      return fullName;
+    }
+
+    return userProfile.email || userProfile.uid;
+  }, [userProfile, userProfileLoading]);
 
   useEffect(() => {
     if (!selectedAnimationOption && animationScenarioOptions.length > 0) {
@@ -455,12 +579,12 @@ const [animation, setAnimation] = useState<LightSettings>({
     }
   }, [bluetoothDialogOpen]);
 
-  const handleLoadPreset = (preset: any) => {
-    setTurnIndicator(preset.turnIndicator);
-    setLowBeam(preset.lowBeam);
-    setHighBeam(preset.highBeam);
-    setBrakeLight(preset.brakeLight);
-    setAnimation(preset.animation);
+  const handleLoadPreset = (preset: Preset) => {
+    setTurnIndicator({ ...preset.turnIndicator });
+    setLowBeam({ ...preset.lowBeam });
+    setHighBeam({ ...preset.highBeam });
+    setBrakeLight({ ...preset.brakeLight });
+    setAnimation({ ...preset.animation });
     setAnimationScenario(preset.animationScenario);
     setPresetsDialogOpen(false);
   };
@@ -593,13 +717,21 @@ const [animation, setAnimation] = useState<LightSettings>({
             {/* Profile */}
             <Button
               variant="outline"
-              size="icon"
-              className="rounded-xl"
+              className="rounded-xl flex items-center gap-3 px-3 py-2"
               onClick={() => setPresetsDialogOpen(true)}
               aria-label="Profile"
               title="Profile"
             >
-              <User className="w-4 h-4" />
+              <Avatar className="h-8 w-8">
+                <AvatarImage src={userProfile?.profileImageUrl} alt={profileDisplayName} />
+                <AvatarFallback>{profileInitials}</AvatarFallback>
+              </Avatar>
+              <div className="flex flex-col items-start">
+                <span className="text-sm font-semibold leading-tight">
+                  {profileDisplayName}
+                </span>
+                <span className="text-xs text-muted-foreground">User profile</span>
+              </div>
             </Button>
           
             {/* Connection (dialog trigger) */}
@@ -691,7 +823,11 @@ const [animation, setAnimation] = useState<LightSettings>({
                 <Store className="w-4 h-4" />
               </Button>
             </DialogTrigger>
-            <AppStoreDialogContent activeUserId={activeUserId} />
+            <AppStoreDialogContent
+              activeUserId={activeUserId}
+              onAnimationSelect={handleSelectUserAnimationById}
+              selectedAnimationId={selectedUserAnimationId}
+            />
           </Dialog>
 
           <ModeToggle />
@@ -829,6 +965,8 @@ const [animation, setAnimation] = useState<LightSettings>({
                 animationScenario,
               }}
               onLoadPreset={handleLoadPreset}
+              onApplyProfileSettings={handleApplyProfileSettings}
+              onProfileUpdated={handleProfileUpdated}
             />
           </div>
         </DialogContent>

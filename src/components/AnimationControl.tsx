@@ -3,6 +3,13 @@ import { Send, CheckCircle2 } from "lucide-react";
 import { Button } from "./ui/button";
 import { Slider } from "./ui/slider";
 import { Label } from "./ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "./ui/select";
 import { toast } from "sonner@2.0.3";
 import type { AnimationScenarioOption } from "../types/animation";
 import type { LightSettings } from "../types/userProfile";
@@ -32,6 +39,11 @@ export function AnimationControl({
 }: AnimationControlProps) {
   const [isSending, setIsSending] = useState(false);
   const [justSent, setJustSent] = useState(false);
+
+  const userScenarios = scenarios.filter((scenario) => scenario.sourceId);
+  const selectedUserScenario = userScenarios.find(
+    (scenario) => scenario.id === selectedScenario
+  );
 
   const selectedScenarioName =
     scenarios.find((scenario) => scenario.id === selectedScenario)?.name ??
@@ -105,7 +117,7 @@ export function AnimationControl({
                   <span className="text-center font-medium">{scenario.name}</span>
                   {scenario.sourceId && (
                     <span className="text-xs font-medium uppercase tracking-wide text-primary">
-                      Purchased
+                      My animation
                     </span>
                   )}
                 </div>
@@ -114,6 +126,44 @@ export function AnimationControl({
           })}
         </div>
       </div>
+
+      {userScenarios.length > 0 && (
+        <div className="space-y-2">
+          <Label className="text-sm font-medium">Choose from My Animations</Label>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <Select
+              value={selectedUserScenario ? String(selectedUserScenario.id) : undefined}
+              onValueChange={(value) => onScenarioChange(Number(value))}
+            >
+              <SelectTrigger className="w-full sm:w-64">
+                <SelectValue placeholder="Select an animation" />
+              </SelectTrigger>
+              <SelectContent>
+                {userScenarios.map((scenario) => (
+                  <SelectItem key={scenario.id} value={String(scenario.id)}>
+                    {scenario.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => {
+                if (!selectedUserScenario) {
+                  toast.info("Pick an animation from your library first");
+                  return;
+                }
+
+                onScenarioChange(selectedUserScenario.id);
+                toast.success(`${selectedUserScenario.name} ready to play`);
+              }}
+            >
+              Play My Animation
+            </Button>
+          </div>
+        </div>
+      )}
 
       <div className="space-y-6">
         <div className="flex flex-col items-center gap-4">

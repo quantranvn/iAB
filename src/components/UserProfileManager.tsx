@@ -1,22 +1,22 @@
 import { ChangeEvent, useEffect, useMemo, useState } from "react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
-import { Car, Download, Save, Trash2, User, Plus } from "lucide-react";
+import { Car, Download, Save, Trash2, User, Plus, RefreshCw } from "lucide-react";
 import { toast } from "sonner@2.0.3";
+import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 
-import {
-  FALLBACK_USER_PROFILE,
-  type LightSettings,
-  type Preset,
-  type UserProfile,
-  type MotorbikeProfile,
-} from "../types/userProfile";
+import { type LightSettings, type Preset, type UserProfile } from "../types/userProfile";
 import {
   initializeFirebaseIfReady,
   isFirebaseConfigured,
   loadUserProfile,
   saveUserProfile,
 } from "../utils/firebase";
+import {
+  buildFallbackProfile,
+  cloneLightSettings,
+  normalizeUserProfile,
+} from "../utils/profileHelpers";
 
 interface UserProfileManagerProps {
   activeUserId: string;
@@ -29,44 +29,23 @@ interface UserProfileManagerProps {
     animationScenario: number;
   };
   onLoadPreset: (preset: Preset) => void;
+  onApplyProfileSettings: (settings: {
+    turnIndicator: LightSettings;
+    lowBeam: LightSettings;
+    highBeam: LightSettings;
+    brakeLight: LightSettings;
+    animation: LightSettings;
+    animationScenario: number;
+  }) => void;
+  onProfileUpdated?: (profile: UserProfile) => void;
 }
-
-const cloneLightSettings = (settings: LightSettings): LightSettings => ({
-  ...settings,
-});
-
-const clonePreset = (preset: Preset): Preset => ({
-  ...preset,
-  turnIndicator: cloneLightSettings(preset.turnIndicator),
-  lowBeam: cloneLightSettings(preset.lowBeam),
-  highBeam: cloneLightSettings(preset.highBeam),
-  brakeLight: cloneLightSettings(preset.brakeLight),
-  animation: cloneLightSettings(preset.animation),
-});
-
-const cloneMotorbike = (motorbike: MotorbikeProfile): MotorbikeProfile => ({
-  ...motorbike,
-  presets: motorbike.presets.map(clonePreset),
-});
-
-const buildFallbackProfile = (userUid: string): UserProfile => ({
-  ...FALLBACK_USER_PROFILE,
-  uid: userUid,
-  ownedAnimations: [...FALLBACK_USER_PROFILE.ownedAnimations],
-  userAnimations: [...FALLBACK_USER_PROFILE.userAnimations],
-  motorbikes: FALLBACK_USER_PROFILE.motorbikes.map(cloneMotorbike),
-  settings: { ...FALLBACK_USER_PROFILE.settings },
-  location: { ...FALLBACK_USER_PROFILE.location },
-  turnIndicator: { ...FALLBACK_USER_PROFILE.turnIndicator },
-  lowBeam: { ...FALLBACK_USER_PROFILE.lowBeam },
-  highBeam: { ...FALLBACK_USER_PROFILE.highBeam },
-  brakeLight: { ...FALLBACK_USER_PROFILE.brakeLight },
-});
 
 export function UserProfileManager({
   activeUserId,
   currentSettings,
   onLoadPreset,
+  onApplyProfileSettings,
+  onProfileUpdated,
 }: UserProfileManagerProps) {
   const firebaseConfigured = isFirebaseConfigured();
   const fallbackProfile = useMemo(
@@ -93,6 +72,7 @@ export function UserProfileManager({
 
           setUserProfile(fallbackProfile);
           setSelectedMotorbikeId(fallbackProfile.motorbikes[0]?.bikeId ?? "");
+          onProfileUpdated?.(fallbackProfile);
           return;
         }
 
@@ -100,6 +80,7 @@ export function UserProfileManager({
           if (!isMounted) return;
           setUserProfile(fallbackProfile);
           setSelectedMotorbikeId(fallbackProfile.motorbikes[0]?.bikeId ?? "");
+          onProfileUpdated?.(fallbackProfile);
           return;
         }
 
@@ -112,6 +93,7 @@ export function UserProfileManager({
         if (!ready) {
           setUserProfile(fallbackProfile);
           setSelectedMotorbikeId(fallbackProfile.motorbikes[0]?.bikeId ?? "");
+          onProfileUpdated?.(fallbackProfile);
           return;
         }
 
@@ -122,12 +104,15 @@ export function UserProfileManager({
         }
 
         if (profile) {
-          setUserProfile(profile);
-          setSelectedMotorbikeId(profile.motorbikes[0]?.bikeId ?? "");
+          const normalizedProfile = normalizeUserProfile(profile, fallbackProfile);
+          setUserProfile(normalizedProfile);
+          setSelectedMotorbikeId(normalizedProfile.motorbikes[0]?.bikeId ?? "");
+          onProfileUpdated?.(normalizedProfile);
         } else {
           await saveUserProfile(fallbackProfile, activeUserId);
           setUserProfile(fallbackProfile);
           setSelectedMotorbikeId(fallbackProfile.motorbikes[0]?.bikeId ?? "");
+          onProfileUpdated?.(fallbackProfile);
         }
       } catch (error) {
         console.error("Failed to load user profile", error);
@@ -135,6 +120,7 @@ export function UserProfileManager({
         if (isMounted) {
           setUserProfile(fallbackProfile);
           setSelectedMotorbikeId(fallbackProfile.motorbikes[0]?.bikeId ?? "");
+          onProfileUpdated?.(fallbackProfile);
         }
       } finally {
         if (isMounted) {
@@ -183,6 +169,7 @@ export function UserProfileManager({
 
       const updatedProfile = updater(prev);
       void persistProfile(updatedProfile);
+      onProfileUpdated?.(updatedProfile);
       return updatedProfile;
     });
   };
@@ -341,6 +328,47 @@ export function UserProfileManager({
     );
   }
 
+  const handleLoadProfileDefaults = () => {
+    if (!userProfile) {
+      toast.error("Profile data is not available yet");
+      return;
+    }
+
+    onApplyProfileSettings({
+      turnIndicator: cloneLightSettings(userProfile.turnIndicator),
+      lowBeam: cloneLightSettings(userProfile.lowBeam),
+      highBeam: cloneLightSettings(userProfile.highBeam),
+      brakeLight: cloneLightSettings(userProfile.brakeLight),
+      animation: cloneLightSettings(userProfile.animation ?? currentSettings.animation),
+      animationScenario: userProfile.animationScenario ?? currentSettings.animationScenario,
+    });
+
+    toast.success("Loaded your saved lighting setup");
+  };
+
+  const handleSaveProfileDefaults = () => {
+    if (!userProfile) {
+      toast.error("Profile data is not available yet");
+      return;
+    }
+
+    const updatedProfile: UserProfile = {
+      ...userProfile,
+      turnIndicator: cloneLightSettings(currentSettings.turnIndicator),
+      lowBeam: cloneLightSettings(currentSettings.lowBeam),
+      highBeam: cloneLightSettings(currentSettings.highBeam),
+      brakeLight: cloneLightSettings(currentSettings.brakeLight),
+      animation: cloneLightSettings(currentSettings.animation),
+      animationScenario: currentSettings.animationScenario,
+    };
+
+    setUserProfile(updatedProfile);
+    void persistProfile(updatedProfile);
+    onProfileUpdated?.(updatedProfile);
+
+    toast.success("Saved current lighting setup to your profile");
+  };
+
   return (
     <div className="space-y-8">
       {syncing && (
@@ -349,9 +377,33 @@ export function UserProfileManager({
         </p>
       )}
       <section className="space-y-4">
-        <div className="flex items-center gap-3">
-          <User className="w-5 h-5" />
-          <h3>User Profile</h3>
+        <div className="flex flex-wrap items-center gap-4 justify-between">
+          <div className="flex items-center gap-3">
+            <Avatar className="h-10 w-10">
+              <AvatarImage src={userProfile.profileImageUrl} alt="Profile avatar" />
+              <AvatarFallback>
+                {userProfile.firstName?.[0]?.toUpperCase()}
+                {userProfile.lastName?.[0]?.toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+            <div>
+              <h3 className="flex items-center gap-2">
+                <User className="w-4 h-4" />
+                User Profile
+              </h3>
+              <p className="text-sm text-muted-foreground">
+                {userProfile.firstName} {userProfile.lastName}
+              </p>
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={handleLoadProfileDefaults}>
+              <RefreshCw className="w-4 h-4 mr-1" /> Load Preset
+            </Button>
+            <Button size="sm" onClick={handleSaveProfileDefaults}>
+              <Save className="w-4 h-4 mr-1" /> Save Preset
+            </Button>
+          </div>
         </div>
         <div className="grid gap-4 md:grid-cols-2">
           <div className="space-y-2">
