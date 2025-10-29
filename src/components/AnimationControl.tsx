@@ -85,8 +85,15 @@ export function AnimationControl({
             const Icon = scenario.icon;
             const isSelected = selectedScenario === scenario.id;
             const isUserScenario = Boolean(scenario.sourceId);
+            const isDisabled = scenario.disabled ?? false;
+            const supportsLibrarySelection = scenario.supportsLibrarySelection ?? false;
+            const subtitle =
+              scenario.subtitle ?? (isUserScenario ? "My animation" : undefined);
 
             const handleActivateScenario = () => {
+              if (isDisabled) {
+                return;
+              }
               onScenarioChange(scenario.id);
             };
 
@@ -94,10 +101,14 @@ export function AnimationControl({
               <div
                 key={scenario.id}
                 role="button"
-                tabIndex={0}
-                aria-pressed={isSelected}
+                tabIndex={isDisabled ? -1 : 0}
+                aria-pressed={isDisabled ? false : isSelected}
+                aria-disabled={isDisabled}
                 onClick={handleActivateScenario}
                 onKeyDown={(event) => {
+                  if (isDisabled) {
+                    return;
+                  }
                   if (event.key === "Enter" || event.key === " ") {
                     event.preventDefault();
                     handleActivateScenario();
@@ -105,9 +116,11 @@ export function AnimationControl({
                 }}
                 className={`
                   relative flex flex-col gap-4 rounded-lg border-2 p-6 transition-all outline-none
-                  ${isSelected
-                    ? "border-primary bg-primary/5 scale-105 shadow-md"
-                    : "border-border hover:border-primary/50 hover:shadow-sm focus:border-primary"
+                  ${isDisabled
+                    ? "border-border/60 bg-muted/40 cursor-not-allowed"
+                    : isSelected
+                      ? "border-primary bg-primary/5 scale-105 shadow-md"
+                      : "border-border hover:border-primary/50 hover:shadow-sm focus:border-primary"
                   }
                   focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2
                 `}
@@ -119,14 +132,14 @@ export function AnimationControl({
                     <Icon className="h-6 w-6 text-white" />
                   </div>
                   <span className="font-medium">{scenario.name}</span>
-                  {isUserScenario && (
+                  {subtitle && (
                     <span className="text-xs font-medium uppercase tracking-wide text-primary">
-                      My animation
+                      {subtitle}
                     </span>
                   )}
                 </div>
 
-                {isUserScenario && (
+                {supportsLibrarySelection && (
                   <Button
                     type="button"
                     size="sm"
@@ -138,7 +151,7 @@ export function AnimationControl({
                       onOpenAnimationLibrary?.(scenario.id);
                     }}
                   >
-                    Choose animation
+                    {scenario.sourceId ? "Change animation" : "Choose animation"}
                   </Button>
                 )}
               </div>

@@ -17,6 +17,7 @@ export const clonePreset = (preset: Preset): Preset => ({
   highBeam: cloneLightSettings(preset.highBeam),
   brakeLight: cloneLightSettings(preset.brakeLight),
   animation: cloneLightSettings(preset.animation),
+  customScenarioAnimationId: preset.customScenarioAnimationId ?? null,
 });
 
 export const cloneMotorbike = (motorbike: MotorbikeProfile): MotorbikeProfile => ({
@@ -36,6 +37,7 @@ export const cloneUserProfile = (profile: UserProfile): UserProfile => ({
   highBeam: cloneLightSettings(profile.highBeam),
   brakeLight: cloneLightSettings(profile.brakeLight),
   animation: cloneLightSettings(profile.animation),
+  customScenarioAnimationId: profile.customScenarioAnimationId ?? null,
 });
 
 export const buildFallbackProfile = (userUid: string): UserProfile => ({
@@ -81,5 +83,7 @@ export const normalizeUserProfile = (
     animation: profile.animation
       ? cloneLightSettings(profile.animation)
       : base.animation,
+    customScenarioAnimationId:
+      profile.customScenarioAnimationId ?? base.customScenarioAnimationId,
   };
 };
