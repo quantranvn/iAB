@@ -6,4 +6,7 @@ export interface AnimationScenarioOption {
   icon: LucideIcon;
   gradient: string;
   sourceId?: string;
+  subtitle?: string;
+  supportsLibrarySelection?: boolean;
+  disabled?: boolean;
 }

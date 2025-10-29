@@ -27,6 +27,7 @@ interface UserProfileManagerProps {
     brakeLight: LightSettings;
     animation: LightSettings;
     animationScenario: number;
+    customScenarioAnimationId: string | null;
   };
   onLoadPreset: (preset: Preset) => void;
   onApplyProfileSettings: (settings: {
@@ -36,6 +37,7 @@ interface UserProfileManagerProps {
     brakeLight: LightSettings;
     animation: LightSettings;
     animationScenario: number;
+    customScenarioAnimationId: string | null;
   }) => void;
   onProfileUpdated?: (profile: UserProfile) => void;
 }
@@ -272,6 +274,7 @@ export function UserProfileManager({
       brakeLight: { ...currentSettings.brakeLight },
       animation: { ...currentSettings.animation },
       animationScenario: currentSettings.animationScenario,
+      customScenarioAnimationId: currentSettings.customScenarioAnimationId ?? null,
       timestamp: Date.now(),
     };
 
@@ -341,6 +344,8 @@ export function UserProfileManager({
       brakeLight: cloneLightSettings(userProfile.brakeLight),
       animation: cloneLightSettings(userProfile.animation ?? currentSettings.animation),
       animationScenario: userProfile.animationScenario ?? currentSettings.animationScenario,
+      customScenarioAnimationId:
+        userProfile.customScenarioAnimationId ?? currentSettings.customScenarioAnimationId,
     });
 
     toast.success("Loaded your saved lighting setup");
@@ -360,6 +365,7 @@ export function UserProfileManager({
       brakeLight: cloneLightSettings(currentSettings.brakeLight),
       animation: cloneLightSettings(currentSettings.animation),
       animationScenario: currentSettings.animationScenario,
+      customScenarioAnimationId: currentSettings.customScenarioAnimationId ?? null,
     };
 
     setUserProfile(updatedProfile);

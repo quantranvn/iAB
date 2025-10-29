@@ -14,6 +14,7 @@ export interface Preset {
   brakeLight: LightSettings;
   animation: LightSettings;
   animationScenario: number;
+  customScenarioAnimationId?: string | null;
   timestamp: number;
 }
 
@@ -54,6 +55,7 @@ export interface UserProfile {
   brakeLight: LightSettings;
   animation: LightSettings;
   animationScenario: number;
+  customScenarioAnimationId: string | null;
   userAnimations: string[];
   motorbikes: MotorbikeProfile[];
   settings: UserSettings;
@@ -79,6 +81,7 @@ export const FALLBACK_USER_PROFILE: UserProfile = {
   brakeLight: { red: 200, green: 0, blue: 0, intensity: 100 },
   animation: { red: 80, green: 120, blue: 255, intensity: 75 },
   animationScenario: 1,
+  customScenarioAnimationId: "aurora-veil",
   userAnimations: ["nebula-drift", "sunset-rush", "aurora-veil"],
   motorbikes: [
     {
@@ -99,6 +102,7 @@ export const FALLBACK_USER_PROFILE: UserProfile = {
           brakeLight: { red: 220, green: 0, blue: 0, intensity: 100 },
           animation: { red: 100, green: 100, blue: 255, intensity: 70 },
           animationScenario: 3,
+          customScenarioAnimationId: "aurora-veil",
           timestamp: Date.now() - 86400000,
         },
       ],
@@ -121,6 +125,7 @@ export const FALLBACK_USER_PROFILE: UserProfile = {
           brakeLight: { red: 255, green: 0, blue: 0, intensity: 100 },
           animation: { red: 255, green: 0, blue: 0, intensity: 100 },
           animationScenario: 2,
+          customScenarioAnimationId: "starlight-chase",
           timestamp: Date.now() - 172800000,
         },
       ],

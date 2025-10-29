@@ -1,5 +1,5 @@
 import type { Dispatch, SetStateAction, CSSProperties, FormEvent } from "react";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "./components/ui/sheet";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "./components/ui/dialog";
 import { LightControl } from "./components/LightControl";
@@ -19,6 +19,7 @@ import {
   ScrollText,
   LogIn,
   Loader2,
+  Bot,
 } from "lucide-react";
 import { Button } from "./components/ui/button";
 import { Input } from "./components/ui/input";
@@ -37,6 +38,7 @@ import {
   isFirebaseConfigured,
   loadUserProfile,
   setActiveUserId as persistActiveUserId,
+  saveUserProfile,
   type StoreAnimation,
 } from "./utils/firebase";
 import { FALLBACK_USER_PROFILE, type LightSettings, type Preset, type UserProfile } from "./types/userProfile";
@@ -57,6 +59,9 @@ const BASE_ANIMATION_SCENARIOS: AnimationScenarioOption[] = [
   { id: 3, name: "Ocean Wave", icon: Waves, gradient: "from-blue-400 to-cyan-500" },
   { id: 4, name: "Starlight", icon: Star, gradient: "from-indigo-400 to-pink-500" },
 ];
+
+const CUSTOM_ANIMATION_SCENARIO_ID = BASE_ANIMATION_SCENARIOS.length + 1;
+const AI_PLACEHOLDER_SCENARIO_ID = BASE_ANIMATION_SCENARIOS.length + 2;
 
 const USER_ANIMATION_GRADIENTS = [
   "from-emerald-500 via-teal-500 to-cyan-500",
@@ -123,13 +128,16 @@ const [animation, setAnimation] = useState<LightSettings>({
   intensity: 90,
 });
 
-  const [animationScenario, setAnimationScenario] = useState(1);
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
-  const [userProfileLoading, setUserProfileLoading] = useState(true);
-  const [userAnimationOptions, setUserAnimationOptions] = useState<StoreAnimation[]>(
-    FALLBACK_USER_ANIMATIONS
-  );
-  const [animationCatalog, setAnimationCatalog] = useState<StoreAnimation[]>([]);
+const [animationScenario, setAnimationScenario] = useState(1);
+const [customScenarioAnimationId, setCustomScenarioAnimationId] = useState<string | null>(
+  FALLBACK_USER_PROFILE.customScenarioAnimationId ?? null
+);
+const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+const [userProfileLoading, setUserProfileLoading] = useState(true);
+const [userAnimationOptions, setUserAnimationOptions] = useState<StoreAnimation[]>(
+  FALLBACK_USER_ANIMATIONS
+);
+const [animationCatalog, setAnimationCatalog] = useState<StoreAnimation[]>([]);
 
   const computeUserAnimations = (
     animationIds: string[],
@@ -191,6 +199,7 @@ const [animation, setAnimation] = useState<LightSettings>({
         setUserAnimationOptions(FALLBACK_USER_ANIMATIONS);
         setAnimationCatalog(FALLBACK_USER_ANIMATIONS);
         setAnimationScenario(fallbackProfile.animationScenario);
+        setCustomScenarioAnimationId(fallbackProfile.customScenarioAnimationId ?? null);
         setUserProfileLoading(false);
         return;
       }
@@ -207,6 +216,7 @@ const [animation, setAnimation] = useState<LightSettings>({
         setUserAnimationOptions(FALLBACK_USER_ANIMATIONS);
         setAnimationCatalog(FALLBACK_USER_ANIMATIONS);
         setAnimationScenario(fallbackProfile.animationScenario);
+        setCustomScenarioAnimationId(fallbackProfile.customScenarioAnimationId ?? null);
         setUserProfileLoading(false);
         return;
       }
@@ -225,6 +235,7 @@ const [animation, setAnimation] = useState<LightSettings>({
         setUserProfile(normalizedProfile);
         setAnimationCatalog(catalog);
         setAnimationScenario(normalizedProfile.animationScenario);
+        setCustomScenarioAnimationId(normalizedProfile.customScenarioAnimationId ?? null);
 
         const preferredAnimationIds =
           normalizedProfile.userAnimations.length > 0
@@ -239,6 +250,7 @@ const [animation, setAnimation] = useState<LightSettings>({
           setUserAnimationOptions(FALLBACK_USER_ANIMATIONS);
           setAnimationCatalog(FALLBACK_USER_ANIMATIONS);
           setAnimationScenario(fallbackProfile.animationScenario);
+          setCustomScenarioAnimationId(fallbackProfile.customScenarioAnimationId ?? null);
         }
       } finally {
         if (isMounted) {
@@ -309,6 +321,7 @@ const [animation, setAnimation] = useState<LightSettings>({
     brakeLight: LightSettings;
     animation: LightSettings;
     animationScenario: number;
+    customScenarioAnimationId: string | null;
   }) => {
     setTurnIndicator({ ...settings.turnIndicator });
     setLowBeam({ ...settings.lowBeam });
@@ -316,6 +329,7 @@ const [animation, setAnimation] = useState<LightSettings>({
     setBrakeLight({ ...settings.brakeLight });
     setAnimation({ ...settings.animation });
     setAnimationScenario(settings.animationScenario);
+    setCustomScenarioAnimationId(settings.customScenarioAnimationId ?? null);
   };
 
   const handleProfileUpdated = (profile: UserProfile) => {
@@ -333,49 +347,118 @@ const [animation, setAnimation] = useState<LightSettings>({
 
     setUserAnimationOptions(computeUserAnimations(preferredIds, catalogSource));
     setAnimationScenario(normalized.animationScenario);
+    setCustomScenarioAnimationId(normalized.customScenarioAnimationId ?? null);
   };
+
+  const animationLookup = useMemo(() => {
+    const map = new Map<string, StoreAnimation>();
+    [...userAnimationOptions, ...animationCatalog, ...FALLBACK_USER_ANIMATIONS].forEach((animation) => {
+      if (!map.has(animation.id)) {
+        map.set(animation.id, animation);
+      }
+    });
+    return map;
+  }, [userAnimationOptions, animationCatalog]);
+
+  const persistCustomScenarioSelection = useCallback(
+    async (profile: UserProfile) => {
+      if (!activeUserId || !isFirebaseConfigured()) {
+        return;
+      }
+
+      const ready = await initializeFirebaseIfReady();
+      if (!ready) {
+        return;
+      }
+
+      try {
+        await saveUserProfile(profile, activeUserId);
+      } catch (error) {
+        console.error("Failed to persist custom scenario selection", error);
+      }
+    },
+    [activeUserId]
+  );
 
   const handleSelectUserAnimationById = (animationId: string) => {
     const scenarioId = userAnimationIdToScenarioId.get(animationId);
 
-    if (!scenarioId) {
+    if (scenarioId) {
+      setAnimationScenario(scenarioId);
+
+      const option = animationScenarioOptions.find((candidate) => candidate.id === scenarioId);
+      if (option) {
+        toast.success(`Selected ${option.name}`);
+      } else {
+        toast.success("Animation selected");
+      }
+      return;
+    }
+
+    const animation = animationLookup.get(animationId);
+    if (!animation) {
       toast.error("Animation is not available yet. Sync your profile to refresh the list.");
       return;
     }
 
-    setAnimationScenario(scenarioId);
+    setCustomScenarioAnimationId(animationId);
+    setAnimationScenario(CUSTOM_ANIMATION_SCENARIO_ID);
 
-    const option = animationScenarioOptions.find((candidate) => candidate.id === scenarioId);
-    if (option) {
-      toast.success(`Selected ${option.name}`);
-    } else {
-      toast.success("Animation selected");
-    }
+    setUserProfile((prev) => {
+      if (!prev) {
+        return prev;
+      }
+
+      const updatedProfile: UserProfile = {
+        ...prev,
+        customScenarioAnimationId: animationId,
+      };
+      void persistCustomScenarioSelection(updatedProfile);
+      return updatedProfile;
+    });
+
+    toast.success(`Selected ${animation.name}`);
   };
 
   const userAnimationScenarioData = useMemo(() => {
-    const startId = BASE_ANIMATION_SCENARIOS.length + 1;
     const options: AnimationScenarioOption[] = [];
     const sourceToId = new Map<string, number>();
     const idToSource = new Map<number, string>();
 
-    userAnimationOptions.forEach((animation, index) => {
-      const id = startId + index;
-      sourceToId.set(animation.id, id);
-      idToSource.set(id, animation.id);
-      options.push({
-        id,
-        name: animation.name,
-        icon: Sparkles,
-        gradient:
-          animation.gradient ??
-          USER_ANIMATION_GRADIENTS[index % USER_ANIMATION_GRADIENTS.length],
-        sourceId: animation.id,
-      });
+    const customAnimation =
+      customScenarioAnimationId
+        ? animationLookup.get(customScenarioAnimationId) ?? null
+        : null;
+
+    options.push({
+      id: CUSTOM_ANIMATION_SCENARIO_ID,
+      name: customAnimation?.name ?? "Custom Scenario",
+      icon: Sparkles,
+      gradient:
+        customAnimation?.gradient ??
+        USER_ANIMATION_GRADIENTS[0],
+      sourceId: customAnimation?.id,
+      supportsLibrarySelection: true,
+      subtitle: customAnimation ? "Custom selection" : "Select from your library",
+      disabled: !customAnimation,
+    });
+
+    if (customAnimation) {
+      sourceToId.set(customAnimation.id, CUSTOM_ANIMATION_SCENARIO_ID);
+      idToSource.set(CUSTOM_ANIMATION_SCENARIO_ID, customAnimation.id);
+    }
+
+    options.push({
+      id: AI_PLACEHOLDER_SCENARIO_ID,
+      name: "AI Generated Animation",
+      icon: Bot,
+      gradient: "from-slate-700 via-purple-600 to-indigo-500",
+      subtitle: "Coming soon",
+      disabled: true,
     });
 
     return { options, sourceToId, idToSource };
-  }, [userAnimationOptions]);
+  }, [animationLookup, customScenarioAnimationId]);
 
   const animationScenarioOptions = useMemo(
     () => [...BASE_ANIMATION_SCENARIOS, ...userAnimationScenarioData.options],
@@ -390,10 +473,29 @@ const [animation, setAnimation] = useState<LightSettings>({
     [animationScenarioOptions, animationScenario]
   );
 
-  const selectedUserAnimationId = useMemo(
-    () => scenarioIdToUserAnimationId.get(animationScenario) ?? null,
-    [scenarioIdToUserAnimationId, animationScenario]
-  );
+  const selectedUserAnimationId = useMemo(() => {
+    if (animationScenario === CUSTOM_ANIMATION_SCENARIO_ID) {
+      return customScenarioAnimationId;
+    }
+
+    return scenarioIdToUserAnimationId.get(animationScenario) ?? null;
+  }, [animationScenario, customScenarioAnimationId, scenarioIdToUserAnimationId]);
+
+  useEffect(() => {
+    if (!customScenarioAnimationId) {
+      return;
+    }
+
+    if (animationLookup.has(customScenarioAnimationId)) {
+      return;
+    }
+
+    setCustomScenarioAnimationId(null);
+
+    if (animationScenario === CUSTOM_ANIMATION_SCENARIO_ID) {
+      setAnimationScenario(BASE_ANIMATION_SCENARIOS[0]?.id ?? 1);
+    }
+  }, [animationLookup, customScenarioAnimationId, animationScenario]);
 
   const profileInitials = useMemo(() => {
     const first = userProfile?.firstName?.trim().charAt(0) ?? "";
@@ -586,6 +688,7 @@ const [animation, setAnimation] = useState<LightSettings>({
     setBrakeLight({ ...preset.brakeLight });
     setAnimation({ ...preset.animation });
     setAnimationScenario(preset.animationScenario);
+    setCustomScenarioAnimationId(preset.customScenarioAnimationId ?? null);
     setPresetsDialogOpen(false);
   };
 
@@ -962,6 +1065,7 @@ const [animation, setAnimation] = useState<LightSettings>({
                 brakeLight,
                 animation,
                 animationScenario,
+                customScenarioAnimationId,
               }}
               onLoadPreset={handleLoadPreset}
               onApplyProfileSettings={handleApplyProfileSettings}
