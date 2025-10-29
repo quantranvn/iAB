@@ -868,8 +868,12 @@ const [animation, setAnimation] = useState<LightSettings>({
 
                 <SheetContent
                   side="bottom"
-                  className="max-h-[85vh] overflow-y-auto px-6 pb-6"
-                >
+                  className="
+                    max-h-[85vh] overflow-y-auto px-6 pb-6
+                    sm:inset-x-auto sm:left-1/2 sm:-translate-x-1/2
+                    sm:w-full sm:max-w-lg sm:rounded-2xl sm:border
+                  "                
+                  >
                   <SheetHeader className="pb-4">
                     <SheetTitle className="flex items-center gap-3">
                       <div
