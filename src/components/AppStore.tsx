@@ -259,7 +259,7 @@ export function AppStoreDialogContent({
   };
 
   return (
-    <DialogContent className="max-h-[85vh] overflow-hidden">
+    <DialogContent className="max-h-[85vh] overflow-y-auto">
       <DialogHeader>
         <DialogTitle className="flex items-center gap-2">
           <Store className="h-5 w-5" />
@@ -320,7 +320,7 @@ export function AppStoreDialogContent({
                         >
                           <div className="flex flex-col gap-4 sm:flex-row">
                             <div
-                              className={`relative h-20 w-full overflow-hidden rounded-xl bg-gradient-to-br ${
+                              className={`relative h-20 w-full overflow-y-auto rounded-xl bg-gradient-to-br ${
                                 animation.gradient ?? defaultGradient
                               } sm:w-32`}
                             >
@@ -444,7 +444,7 @@ export function AppStoreDialogContent({
                         >
                           <div className="flex flex-col gap-4 sm:flex-row">
                             <div
-                              className={`relative h-24 w-full overflow-hidden rounded-xl bg-gradient-to-br ${
+                              className={`relative h-24 w-full overflow-y-auto rounded-xl bg-gradient-to-br ${
                                 animation.gradient ?? defaultGradient
                               } sm:w-40`}
                             >
