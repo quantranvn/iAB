@@ -52,7 +52,8 @@ export interface UserProfile {
   lowBeam: LightSettings;
   highBeam: LightSettings;
   brakeLight: LightSettings;
-  animationScenario: string;
+  animation: LightSettings;
+  animationScenario: number;
   userAnimations: string[];
   motorbikes: MotorbikeProfile[];
   settings: UserSettings;
@@ -76,8 +77,9 @@ export const FALLBACK_USER_PROFILE: UserProfile = {
   lowBeam: { red: 255, green: 255, blue: 180, intensity: 60 },
   highBeam: { red: 255, green: 255, blue: 255, intensity: 90 },
   brakeLight: { red: 200, green: 0, blue: 0, intensity: 100 },
-  animationScenario: "welcome_1",
-  userAnimations: ["welcome_1", "spark_2", "good_light_1"],
+  animation: { red: 80, green: 120, blue: 255, intensity: 75 },
+  animationScenario: 1,
+  userAnimations: ["nebula-drift", "sunset-rush", "aurora-veil"],
   motorbikes: [
     {
       bikeId: "bike001",
