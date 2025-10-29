@@ -335,7 +335,7 @@ export function BluetoothConnection({ transport, onConnect, onDisconnect }: Blue
           onClick={requestDevice}
           disabled={isConnecting}
           size="lg"
-          className="relative w-full overflow-hidden px-5 py-3 flex flex-col items-center gap-1 text-center"
+          className="relative w-full overflow-y-auto px-5 py-3 flex flex-col items-center gap-1 text-center"
         >
           <span className="flex items-center gap-2 text-base font-semibold">
             {isConnecting ? (
