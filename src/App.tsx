@@ -868,80 +868,66 @@ const [animation, setAnimation] = useState<LightSettings>({
 
                 <SheetContent
                   side="bottom"
-                  className="
-                    mx-auto my-4 max-h-[85vh] overflow-y-auto
-                    sm:max-w-lg sm:rounded-2xl sm:border sm:shadow-lg
-                    px-6 pb-6 pt-4 bg-background
-                  "                
+                  className="px-0 pb-0 bg-transparent"
+                >
+                  <div
+                    className="
+                      mx-auto my-4 max-h-[85vh] overflow-y-auto
+                      w-full sm:max-w-lg rounded-2xl border shadow-lg
+                      px-6 pb-6 pt-4 bg-background
+                    "
                   >
-                  <SheetHeader className="pb-4">
-                    <SheetTitle className="flex items-center gap-3">
-                      <div
-                        className={`p-3 rounded-lg ${
-                          previewStyle ? "" : `bg-gradient-to-r ${button.gradient}`
-                        }`}
-                        style={previewStyle}
-                      >
-                        <Icon className="w-6 h-6 text-white" />
-                      </div>
-                      {button.title}
-                    </SheetTitle>
-                    <SheetDescription>
-                      {button.isAnimation
-                        ? "Choose an animation effect, including premium App Store purchases."
-                        : "Adjust RGB color channels and intensity level"
-                      }
-                    </SheetDescription>
-                  </SheetHeader>
-
-                  {button.isAnimation ? (
-                    <AnimationControl
-                      scenarios={animationScenarioOptions}
-                      selectedScenario={animationScenario}
-                      onScenarioChange={setAnimationScenario}
-                      currentSettings={animation}
-                      onRedChange={(value) => updateLightSetting(setAnimation, "red", value)}
-                      onGreenChange={(value) => updateLightSetting(setAnimation, "green", value)}
-                      onBlueChange={(value) => updateLightSetting(setAnimation, "blue", value)}
-                      onIntensityChange={(value) =>
-                        updateLightSetting(setAnimation, "intensity", value)
-                      }
-                      onSend={() => sendAnimationCommand(animationScenario, animation)}
-                    />
-                  ) : button.settings && button.setter ? (
-                    <LightControl
-                      lightType={button.title}
-                      red={button.settings.red}
-                      green={button.settings.green}
-                      blue={button.settings.blue}
-                      intensity={button.settings.intensity}
-                      onRedChange={(value) =>
-                        updateLightSetting(button.setter!, "red", value)
-                      }
-                      onGreenChange={(value) =>
-                        updateLightSetting(button.setter!, "green", value)
-                      }
-                      onBlueChange={(value) =>
-                        updateLightSetting(button.setter!, "blue", value)
-                      }
-                      onIntensityChange={(value) =>
-                        updateLightSetting(button.setter!, "intensity", value)
-                      }
-                      onSend={() =>
-                        sendBasicLightCommand(
-                          button.commandType!,
-                          button.settings!,
-                          button.title
-                        )
-                      }
-                    />
-                  ) : null}
+                    <SheetHeader className="pb-4">
+                      <SheetTitle className="flex items-center gap-3">
+                        <div
+                          className={`p-3 rounded-lg ${previewStyle ? "" : `bg-gradient-to-r ${button.gradient}`}`}
+                          style={previewStyle}
+                        >
+                          <Icon className="w-6 h-6 text-white" />
+                        </div>
+                        {button.title}
+                      </SheetTitle>
+                      <SheetDescription>
+                        {button.isAnimation
+                          ? "Choose an animation effect, including premium App Store purchases."
+                          : "Adjust RGB color channels and intensity level"}
+                      </SheetDescription>
+                    </SheetHeader>
+                
+                    {button.isAnimation ? (
+                      <AnimationControl
+                        scenarios={animationScenarioOptions}
+                        selectedScenario={animationScenario}
+                        onScenarioChange={setAnimationScenario}
+                        currentSettings={animation}
+                        onRedChange={(v) => updateLightSetting(setAnimation, "red", v)}
+                        onGreenChange={(v) => updateLightSetting(setAnimation, "green", v)}
+                        onBlueChange={(v) => updateLightSetting(setAnimation, "blue", v)}
+                        onIntensityChange={(v) => updateLightSetting(setAnimation, "intensity", v)}
+                        onSend={() => sendAnimationCommand(animationScenario, animation)}
+                      />
+                    ) : button.settings && button.setter ? (
+                      <LightControl
+                        lightType={button.title}
+                        red={button.settings.red}
+                        green={button.settings.green}
+                        blue={button.settings.blue}
+                        intensity={button.settings.intensity}
+                        onRedChange={(v) => updateLightSetting(button.setter!, "red", v)}
+                        onGreenChange={(v) => updateLightSetting(button.setter!, "green", v)}
+                        onBlueChange={(v) => updateLightSetting(button.setter!, "blue", v)}
+                        onIntensityChange={(v) => updateLightSetting(button.setter!, "intensity", v)}
+                        onSend={() =>
+                          sendBasicLightCommand(button.commandType!, button.settings!, button.title)
+                        }
+                      />
+                    ) : null}
+                  </div>
                 </SheetContent>
               </Sheet>
             );
           })}
         </div>
-
       </div>
 
       <Dialog open={presetsDialogOpen} onOpenChange={setPresetsDialogOpen}>
