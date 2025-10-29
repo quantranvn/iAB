@@ -3,13 +3,6 @@ import { Send, CheckCircle2 } from "lucide-react";
 import { Button } from "./ui/button";
 import { Slider } from "./ui/slider";
 import { Label } from "./ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "./ui/select";
 import { toast } from "sonner@2.0.3";
 import type { AnimationScenarioOption } from "../types/animation";
 import type { LightSettings } from "../types/userProfile";
@@ -24,6 +17,7 @@ interface AnimationControlProps {
   onBlueChange: (value: number[]) => void;
   onIntensityChange: (value: number[]) => void;
   onSend: () => void | Promise<void>;
+  onOpenAnimationLibrary?: (scenarioId: number) => void;
 }
 
 export function AnimationControl({
@@ -36,14 +30,10 @@ export function AnimationControl({
   onBlueChange,
   onIntensityChange,
   onSend,
+  onOpenAnimationLibrary,
 }: AnimationControlProps) {
   const [isSending, setIsSending] = useState(false);
   const [justSent, setJustSent] = useState(false);
-
-  const userScenarios = scenarios.filter((scenario) => scenario.sourceId);
-  const selectedUserScenario = userScenarios.find(
-    (scenario) => scenario.id === selectedScenario
-  );
 
   const selectedScenarioName =
     scenarios.find((scenario) => scenario.id === selectedScenario)?.name ??
@@ -94,76 +84,68 @@ export function AnimationControl({
           {scenarios.map((scenario) => {
             const Icon = scenario.icon;
             const isSelected = selectedScenario === scenario.id;
+            const isUserScenario = Boolean(scenario.sourceId);
+
+            const handleActivateScenario = () => {
+              onScenarioChange(scenario.id);
+            };
 
             return (
-              <button
+              <div
                 key={scenario.id}
-                onClick={() => onScenarioChange(scenario.id)}
-                className={`
-                  relative p-6 rounded-lg border-2 transition-all
-                  ${isSelected
-                    ? 'border-primary bg-primary/5 scale-105'
-                    : 'border-border hover:border-primary/50'
+                role="button"
+                tabIndex={0}
+                aria-pressed={isSelected}
+                onClick={handleActivateScenario}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    handleActivateScenario();
                   }
+                }}
+                className={`
+                  relative flex flex-col gap-4 rounded-lg border-2 p-6 transition-all outline-none
+                  ${isSelected
+                    ? "border-primary bg-primary/5 scale-105 shadow-md"
+                    : "border-border hover:border-primary/50 hover:shadow-sm focus:border-primary"
+                  }
+                  focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2
                 `}
               >
-                <div className="flex flex-col items-center gap-3">
-                  <div className={`
-                    p-3 rounded-full bg-gradient-to-r ${scenario.gradient}
-                    ${isSelected ? 'shadow-lg' : ''}
-                  `}>
-                    <Icon className="w-6 h-6 text-white" />
+                <div className="flex flex-col items-center gap-3 text-center">
+                  <div
+                    className={`p-3 rounded-full bg-gradient-to-r ${scenario.gradient} ${isSelected ? "shadow-lg" : ""}`}
+                  >
+                    <Icon className="h-6 w-6 text-white" />
                   </div>
-                  <span className="text-center font-medium">{scenario.name}</span>
-                  {scenario.sourceId && (
+                  <span className="font-medium">{scenario.name}</span>
+                  {isUserScenario && (
                     <span className="text-xs font-medium uppercase tracking-wide text-primary">
                       My animation
                     </span>
                   )}
                 </div>
-              </button>
+
+                {isUserScenario && (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="secondary"
+                    className="w-full"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      handleActivateScenario();
+                      onOpenAnimationLibrary?.(scenario.id);
+                    }}
+                  >
+                    Choose animation
+                  </Button>
+                )}
+              </div>
             );
           })}
         </div>
       </div>
-
-      {userScenarios.length > 0 && (
-        <div className="space-y-2">
-          <Label className="text-sm font-medium">Choose from My Animations</Label>
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-            <Select
-              value={selectedUserScenario ? String(selectedUserScenario.id) : undefined}
-              onValueChange={(value) => onScenarioChange(Number(value))}
-            >
-              <SelectTrigger className="w-full sm:w-64">
-                <SelectValue placeholder="Select an animation" />
-              </SelectTrigger>
-              <SelectContent>
-                {userScenarios.map((scenario) => (
-                  <SelectItem key={scenario.id} value={String(scenario.id)}>
-                    {scenario.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={() => {
-                if (!selectedUserScenario) {
-                  toast.info("Pick an animation from your library first");
-                  return;
-                }
-
-                onScenarioChange(selectedUserScenario.id);
-                toast.success(`${selectedUserScenario.name} ready to play`);
-              }}
-            >
-              Play My Animation
-            </Button>
-          </div>
-        </div>
-      )}
 
       <div className="space-y-6">
         <div className="flex flex-col items-center gap-4">
