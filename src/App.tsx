@@ -907,6 +907,7 @@ const [animation, setAnimation] = useState<LightSettings>({
                         updateLightSetting(setAnimation, "intensity", value)
                       }
                       onSend={() => sendAnimationCommand(animationScenario, animation)}
+                      onOpenAnimationLibrary={() => setAppStoreOpen(true)}
                     />
                   ) : button.settings && button.setter ? (
                     <LightControl
