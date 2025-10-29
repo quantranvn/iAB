@@ -29,6 +29,7 @@ export const cloneUserProfile = (profile: UserProfile): UserProfile => ({
   ...profile,
   ownedAnimations: [...profile.ownedAnimations],
   userAnimations: [...profile.userAnimations],
+  tokenBalance: profile.tokenBalance,
   motorbikes: profile.motorbikes.map(cloneMotorbike),
   settings: { ...profile.settings },
   location: { ...profile.location },
@@ -60,6 +61,10 @@ export const normalizeUserProfile = (
     ownedAnimations: profile.ownedAnimations
       ? [...profile.ownedAnimations]
       : base.ownedAnimations,
+    tokenBalance:
+      typeof profile.tokenBalance === "number"
+        ? profile.tokenBalance
+        : base.tokenBalance,
     userAnimations: profile.userAnimations
       ? [...profile.userAnimations]
       : base.userAnimations,
