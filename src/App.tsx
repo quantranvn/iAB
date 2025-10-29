@@ -717,21 +717,16 @@ const [animation, setAnimation] = useState<LightSettings>({
             {/* Profile */}
             <Button
               variant="outline"
-              className="rounded-xl flex items-center gap-3 px-3 py-2"
-              onClick={() => setPresetsDialogOpen(true)}
+              size="icon"
+              className="rounded-xl"
               aria-label="Profile"
               title="Profile"
+              onClick={() => setPresetsDialogOpen(true)}
             >
               <Avatar className="h-8 w-8">
                 <AvatarImage src={userProfile?.profileImageUrl} alt={profileDisplayName} />
                 <AvatarFallback>{profileInitials}</AvatarFallback>
               </Avatar>
-              <div className="flex flex-col items-start">
-                <span className="text-sm font-semibold leading-tight">
-                  {profileDisplayName}
-                </span>
-                <span className="text-xs text-muted-foreground">User profile</span>
-              </div>
             </Button>
           
             {/* Connection (dialog trigger) */}
