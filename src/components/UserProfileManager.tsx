@@ -387,10 +387,6 @@ export function UserProfileManager({
               </AvatarFallback>
             </Avatar>
             <div>
-              <h3 className="flex items-center gap-2">
-                <User className="w-4 h-4" />
-                User Profile
-              </h3>
               <p className="text-sm text-muted-foreground">
                 {userProfile.firstName} {userProfile.lastName}
               </p>
