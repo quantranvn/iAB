@@ -2407,180 +2407,190 @@ html {
     transform: translate3d(var(--tw-exit-translate-x, 0), var(--tw-exit-translate-y, 0), 0) scale3d(var(--tw-exit-scale, 1), var(--tw-exit-scale, 1), var(--tw-exit-scale, 1)) rotate(var(--tw-exit-rotate, 0));
   }
 }
-@keyframes ledDim {
-  0%,
+@keyframes ledDimRun {
+  0% {
+    opacity: var(--led-opacity-rest, 0.65);
+  }
+
+  24% {
+    opacity: var(--led-opacity-rest, 0.65);
+  }
+
+  42% {
+    opacity: var(--led-opacity-peak, 1);
+  }
+
+  58% {
+    opacity: var(--led-opacity-mid, var(--led-opacity-rest, 0.65));
+  }
+
   100% {
-    opacity: 0.9;
-    transform: scale(1);
-  }
-
-  40% {
-    opacity: 0.5;
-    transform: scale(0.97);
-  }
-
-  65% {
-    opacity: 0.7;
-    transform: scale(0.99);
+    opacity: var(--led-opacity-rest, 0.65);
   }
 }
 
 .animate-led-dim {
-  animation: ledDim 3.2s var(--default-transition-timing-function) infinite;
+  opacity: var(--led-opacity-rest, 0.65);
+  animation: ledDimRun 3s ease-in-out infinite;
 }
 
-@keyframes ledRainbowFlow {
+@keyframes ledRainbowRun {
   0% {
-    background-position: 0% 50%;
-    transform: scale(0.92);
+    opacity: var(--led-opacity-rest, 0.68);
   }
 
-  25% {
-    background-position: 50% 50%;
-    transform: scale(1);
+  30% {
+    opacity: var(--led-opacity-mid, var(--led-opacity-rest, 0.68));
   }
 
-  50% {
-    background-position: 100% 50%;
-    transform: scale(1.1);
+  48% {
+    opacity: var(--led-opacity-peak, 1);
   }
 
-  75% {
-    background-position: 50% 50%;
-    transform: scale(1);
+  76% {
+    opacity: var(--led-opacity-mid, var(--led-opacity-rest, 0.68));
   }
 
   100% {
-    background-position: 0% 50%;
-    transform: scale(0.92);
+    opacity: var(--led-opacity-rest, 0.68);
   }
 }
 
 .animate-led-rainbow-flow {
-  animation: ledRainbowFlow var(--led-animation-duration, 3s) linear infinite;
+  opacity: var(--led-opacity-rest, 0.68);
+  animation: ledRainbowRun var(--led-animation-duration, 2.6s) ease-in-out infinite;
 }
 
-@keyframes ledLightningPulse {
-  0%,
-  45%,
+@keyframes ledLightningRun {
+  0% {
+    opacity: var(--led-opacity-rest, 0.6);
+  }
+
+  10% {
+    opacity: var(--led-opacity-peak, 1);
+  }
+
+  26% {
+    opacity: var(--led-opacity-mid, var(--led-opacity-rest, 0.6));
+  }
+
+  42% {
+    opacity: var(--led-opacity-peak, 1);
+  }
+
   100% {
-    opacity: 0.55;
-    transform: scale(0.9);
-  }
-
-  12% {
-    opacity: 1;
-    transform: scale(1.25);
-  }
-
-  24% {
-    opacity: 0.85;
-    transform: scale(1.05);
-  }
-
-  32% {
-    opacity: 0.9;
-    transform: scale(1.15);
+    opacity: var(--led-opacity-rest, 0.6);
   }
 }
 
 .animate-led-lightning {
-  animation: ledLightningPulse var(--led-animation-duration, 1.3s)
+  opacity: var(--led-opacity-rest, 0.6);
+  animation: ledLightningRun var(--led-animation-duration, 1.15s)
     cubic-bezier(0.4, 0, 0.2, 1) infinite;
 }
 
-@keyframes ledWaveMotion {
-  0%,
-  100% {
-    transform: translateY(calc(var(--led-wave-offset, 0) * 2px)) scale(0.96);
+@keyframes ledWaveRun {
+  0% {
+    opacity: var(--led-opacity-rest, 0.62);
   }
 
-  50% {
-    transform: translateY(calc(var(--led-wave-offset, 0) * -6px)) scale(1.08);
+  35% {
+    opacity: var(--led-opacity-rest, 0.62);
+  }
+
+  55% {
+    opacity: var(--led-opacity-peak, 1);
+  }
+
+  70% {
+    opacity: var(--led-opacity-mid, var(--led-opacity-rest, 0.62));
+  }
+
+  100% {
+    opacity: var(--led-opacity-rest, 0.62);
   }
 }
 
 .animate-led-wave {
-  animation: ledWaveMotion var(--led-animation-duration, 3s) ease-in-out infinite;
+  opacity: var(--led-opacity-rest, 0.62);
+  animation: ledWaveRun var(--led-animation-duration, 3.1s) ease-in-out infinite;
 }
 
-@keyframes ledStarlightTwinkle {
-  0%,
+@keyframes ledStarlightRun {
+  0% {
+    opacity: var(--led-opacity-rest, 0.6);
+  }
+
+  18% {
+    opacity: var(--led-opacity-peak, 1);
+  }
+
+  36% {
+    opacity: var(--led-opacity-mid, var(--led-opacity-rest, 0.6));
+  }
+
+  54% {
+    opacity: var(--led-opacity-peak, 1);
+  }
+
   100% {
-    opacity: 0.5;
-    transform: scale(0.92);
-  }
-
-  25% {
-    opacity: 0.95;
-    transform: scale(1.08);
-  }
-
-  45% {
-    opacity: 0.7;
-    transform: scale(0.98);
-  }
-
-  70% {
-    opacity: 1;
-    transform: scale(1.12);
+    opacity: var(--led-opacity-rest, 0.6);
   }
 }
 
 .animate-led-starlight {
-  animation: ledStarlightTwinkle var(--led-animation-duration, 3.6s)
+  opacity: var(--led-opacity-rest, 0.6);
+  animation: ledStarlightRun var(--led-animation-duration, 3.6s)
     ease-in-out infinite;
 }
 
-@keyframes ledAuroraVeil {
-  0%,
+@keyframes ledAuroraRun {
+  0% {
+    opacity: var(--led-opacity-rest, 0.64);
+  }
+
+  32% {
+    opacity: var(--led-opacity-mid, var(--led-opacity-rest, 0.64));
+  }
+
+  58% {
+    opacity: var(--led-opacity-peak, 1);
+  }
+
   100% {
-    background-position: 0% 40%;
-    opacity: 0.65;
-    transform: translateY(-6%) scale(0.94);
-  }
-
-  40% {
-    background-position: 100% 60%;
-    opacity: 1;
-    transform: translateY(8%) scale(1.08);
-  }
-
-  70% {
-    background-position: 50% 50%;
-    opacity: 0.85;
-    transform: translateY(2%) scale(1);
+    opacity: var(--led-opacity-rest, 0.64);
   }
 }
 
 .animate-led-aurora {
-  animation: ledAuroraVeil var(--led-animation-duration, 4s) ease-in-out infinite;
+  opacity: var(--led-opacity-rest, 0.64);
+  animation: ledAuroraRun var(--led-animation-duration, 3.6s) ease-in-out infinite;
 }
 
-@keyframes ledStarlightChase {
-  0%,
+@keyframes ledStarlightChaseRun {
+  0% {
+    opacity: var(--led-opacity-rest, 0.55);
+  }
+
+  20% {
+    opacity: var(--led-opacity-peak, 1);
+  }
+
+  44% {
+    opacity: var(--led-opacity-mid, var(--led-opacity-rest, 0.55));
+  }
+
+  68% {
+    opacity: var(--led-opacity-rest, 0.55);
+  }
+
   100% {
-    opacity: 0.4;
-    transform: scale(0.88);
-  }
-
-  12% {
-    opacity: 1;
-    transform: scale(1.18);
-  }
-
-  24% {
-    opacity: 0.75;
-    transform: scale(1);
-  }
-
-  50% {
-    opacity: 0.45;
-    transform: scale(0.92);
+    opacity: var(--led-opacity-rest, 0.55);
   }
 }
 
 .animate-led-starlight-chase {
-  animation: ledStarlightChase var(--led-animation-duration, 2.4s)
+  opacity: var(--led-opacity-rest, 0.55);
+  animation: ledStarlightChaseRun var(--led-animation-duration, 2.4s)
     cubic-bezier(0.65, 0, 0.35, 1) infinite;
 }
