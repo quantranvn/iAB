@@ -53,11 +53,15 @@ export function LEDStripPreview({ settings, scenarioName }: LEDStripPreviewProps
   const normalizedScenario = scenarioName.trim().toLowerCase();
 
   const baseLedStyle = useMemo<CSSVarProperties>(() => {
+    const restingOpacity = Math.max(0.65, alpha);
+    const peakOpacity = Math.min(1, restingOpacity + 0.25);
     return {
       background: `radial-gradient(circle at 30% 30%, ${highlightColor} 0%, ${baseColor} 60%, rgba(0, 0, 0, 0.35) 100%)`,
       boxShadow: `0 0 18px ${glowColor}`,
       filter: `brightness(${0.85 + alpha * 0.6})`,
-      opacity: Math.max(0.65, alpha),
+      "--led-opacity-rest": restingOpacity,
+      "--led-opacity-mid": Math.min(1, (restingOpacity + peakOpacity) / 2),
+      "--led-opacity-peak": peakOpacity,
     };
   }, [alpha, baseColor, glowColor, highlightColor]);
 
@@ -76,11 +80,14 @@ export function LEDStripPreview({ settings, scenarioName }: LEDStripPreviewProps
         styleForIndex: (position) => {
           const brightness = 1.05 + ((position + 2) % 4) * 0.18;
           const blur = 16 + ((position + 1) % 4) * 6;
+          const restingOpacity = 0.72 + ((position + 2) % 4) * 0.06;
           return {
             background: `radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.95) 0%, ${highlightColor} 34%, ${baseColor} 68%, rgba(12, 16, 40, 0.75) 100%)`,
             boxShadow: `0 0 ${blur}px rgba(255, 255, 255, 0.75)`,
             filter: `brightness(${brightness})`,
-            opacity: 0.85,
+            "--led-opacity-rest": Math.min(1, restingOpacity),
+            "--led-opacity-mid": Math.min(1, restingOpacity + 0.12),
+            "--led-opacity-peak": Math.min(1, restingOpacity + 0.22),
           };
         },
       };
@@ -98,12 +105,15 @@ export function LEDStripPreview({ settings, scenarioName }: LEDStripPreviewProps
           );
           const gradient = buildGradient(colors);
           const shift = Math.sin((position / TOTAL_LEDS) * Math.PI);
+          const restingOpacity = Math.max(0.7, alpha + 0.1 + Math.abs(shift) * 0.05);
           return {
             background: `linear-gradient(120deg, ${gradient})`,
             backgroundSize: "220% 220%",
             boxShadow: `0 0 ${22 + Math.abs(shift) * 10}px rgba(125, 255, 206, 0.65)`,
             filter: `brightness(${1.05 + alpha * 0.35}) saturate(${1.05 + Math.abs(shift) * 0.12})`,
-            opacity: Math.max(0.7, alpha + 0.1),
+            "--led-opacity-rest": Math.min(1, restingOpacity),
+            "--led-opacity-mid": Math.min(1, restingOpacity + 0.1),
+            "--led-opacity-peak": Math.min(1, restingOpacity + 0.22),
           };
         },
       };
@@ -119,12 +129,15 @@ export function LEDStripPreview({ settings, scenarioName }: LEDStripPreviewProps
           const colors = RAINBOW_PALETTE.map(
             (_, index) => RAINBOW_PALETTE[(offset + index) % RAINBOW_PALETTE.length],
           );
+          const restingOpacity = Math.max(0.75, alpha + 0.2);
           return {
             background: `linear-gradient(135deg, ${buildGradient(colors)})`,
             backgroundSize: "200% 200%",
             boxShadow: `0 0 20px rgba(255, 255, 255, 0.6)`,
             filter: `brightness(${1.05 + alpha * 0.45}) saturate(1.12)`,
-            opacity: Math.max(0.75, alpha + 0.2),
+            "--led-opacity-rest": restingOpacity,
+            "--led-opacity-mid": Math.min(1, restingOpacity + 0.12),
+            "--led-opacity-peak": Math.min(1, restingOpacity + 0.24),
           };
         },
       };
@@ -138,11 +151,14 @@ export function LEDStripPreview({ settings, scenarioName }: LEDStripPreviewProps
         styleForIndex: (position) => {
           const flashBoost = 1.25 + ((position + 1) % 3) * 0.22;
           const blur = 18 + ((position + 2) % 4) * 6;
+          const restingOpacity = 0.78 + ((position + 1) % 3) * 0.04;
           return {
             background: `radial-gradient(circle at 50% 40%, rgba(255, 255, 255, 0.96) 0%, ${highlightColor} 38%, ${baseColor} 70%, rgba(0, 0, 0, 0.75) 100%)`,
             boxShadow: `0 0 ${blur}px rgba(255, 255, 255, 0.8)`,
             filter: `brightness(${flashBoost})`,
-            opacity: 0.9,
+            "--led-opacity-rest": Math.min(1, restingOpacity),
+            "--led-opacity-mid": Math.min(1, restingOpacity + 0.14),
+            "--led-opacity-peak": Math.min(1, restingOpacity + 0.26),
           };
         },
       };
@@ -156,13 +172,15 @@ export function LEDStripPreview({ settings, scenarioName }: LEDStripPreviewProps
         styleForIndex: (position) => {
           const progress = position / Math.max(1, TOTAL_LEDS - 1);
           const wave = Math.sin(progress * Math.PI * 2);
+          const restingOpacity = Math.max(0.6, alpha - 0.05 + Math.abs(wave) * 0.12);
           const style: CSSVarProperties = {
             background: `radial-gradient(circle at 50% ${40 + wave * 20}%, ${highlightColor} 0%, ${baseColor} 55%, rgba(0, 40, 80, 0.55) 100%)`,
-            boxShadow: `0 ${Math.round(wave * 4)}px 18px rgba(32, 150, 255, 0.55)`,
+            boxShadow: `0 0 18px rgba(32, 150, 255, 0.45)`,
             filter: `brightness(${0.9 + (wave + 1) * 0.2}) saturate(${1 + wave * 0.1})`,
-            opacity: Math.max(0.65, alpha - 0.05 + Math.abs(wave) * 0.2),
+            "--led-opacity-rest": restingOpacity,
+            "--led-opacity-mid": Math.min(1, restingOpacity + 0.14),
+            "--led-opacity-peak": Math.min(1, restingOpacity + 0.26),
           };
-          style["--led-wave-offset"] = wave.toFixed(3);
           return style;
         },
       };
@@ -176,11 +194,14 @@ export function LEDStripPreview({ settings, scenarioName }: LEDStripPreviewProps
         styleForIndex: (position) => {
           const shimmer = ((position + 1) % 5) / 5;
           const sparkle = 1 + shimmer * 0.7;
+          const restingOpacity = Math.min(1, 0.7 + shimmer * 0.18);
           return {
             background: `radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.96) 0%, ${highlightColor} 36%, ${baseColor} 72%, rgba(8, 12, 40, 0.75) 100%)`,
             boxShadow: `0 0 ${18 + shimmer * 18}px rgba(255, 255, 255, 0.78)`,
             filter: `brightness(${sparkle})`,
-            opacity: 0.8 + shimmer * 0.15,
+            "--led-opacity-rest": restingOpacity,
+            "--led-opacity-mid": Math.min(1, restingOpacity + 0.12),
+            "--led-opacity-peak": Math.min(1, restingOpacity + 0.24),
           };
         },
       };
@@ -188,6 +209,19 @@ export function LEDStripPreview({ settings, scenarioName }: LEDStripPreviewProps
 
     return defaultConfig;
   }, [alpha, animationDuration, baseColor, glowColor, highlightColor, normalizedScenario]);
+
+  const getNumericValue = (value: string | number | undefined): number | null => {
+    if (typeof value === "number") {
+      return Number.isFinite(value) ? value : null;
+    }
+
+    if (typeof value === "string") {
+      const parsed = parseFloat(value);
+      return Number.isFinite(parsed) ? parsed : null;
+    }
+
+    return null;
+  };
 
   let ledIndex = 0;
 
@@ -215,6 +249,22 @@ export function LEDStripPreview({ settings, scenarioName }: LEDStripPreviewProps
                   ...baseLedStyle,
                   ...styleOverrides,
                 };
+
+                const restOpacity =
+                  getNumericValue(ledStyle["--led-opacity-rest"]) ?? Math.max(0.6, alpha);
+                const peakOpacity = Math.min(
+                  1,
+                  getNumericValue(ledStyle["--led-opacity-peak"]) ?? restOpacity + 0.22,
+                );
+                const midOpacity = Math.min(
+                  1,
+                  getNumericValue(ledStyle["--led-opacity-mid"]) ?? (restOpacity + peakOpacity) / 2,
+                );
+
+                ledStyle["--led-opacity-rest"] = restOpacity;
+                ledStyle["--led-opacity-peak"] = peakOpacity;
+                ledStyle["--led-opacity-mid"] = midOpacity;
+                ledStyle.opacity = restOpacity;
                 ledStyle.animationDelay = `${delay}s`;
                 ledStyle.animationDuration = `${scenarioConfig.duration}s`;
                 ledStyle["--led-animation-duration"] = `${scenarioConfig.duration}s`;
