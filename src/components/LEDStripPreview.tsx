@@ -37,9 +37,9 @@ export function LEDStripPreview({ settings, scenarioName }: LEDStripPreviewProps
     `rgb(${clampChannel(red * (1 - amount))}, ${clampChannel(green * (1 - amount))}, ${clampChannel(
       blue * (1 - amount),
     )})`;
-  const accentColor = lightenColor(0.25);
-  const highlightColor = lightenColor(0.5);
-  const softGlowColor = lightenColor(0.12);
+  const accentColor = lightenColor(0.18);
+  const highlightColor = lightenColor(0.32);
+  const softGlowColor = lightenColor(0.08);
   const shadowColor = darkenColor(0.28);
   const deepShadowColor = darkenColor(0.45);
   const animationDuration = 2.4 - alpha;
@@ -50,9 +50,9 @@ export function LEDStripPreview({ settings, scenarioName }: LEDStripPreviewProps
       backgroundColor: baseColor,
       backgroundImage: `radial-gradient(circle at 50% 45%, ${softGlowColor}, ${baseColor} 55%, ${shadowColor})`,
       backgroundSize: "140% 140%",
-      boxShadow: `0 0 22px ${glowColor}`,
-      filter: `brightness(${0.92 + alpha * 0.55}) saturate(${1.05 + alpha * 0.25})`,
-      opacity: Math.max(0.6, alpha),
+      boxShadow: `0 0 18px ${glowColor}`,
+      filter: `brightness(${0.9 + alpha * 0.45}) saturate(${1 + alpha * 0.18})`,
+      opacity: Math.max(0.55, alpha * 0.95),
     };
   }, [alpha, baseColor, glowColor, shadowColor, softGlowColor]);
 
