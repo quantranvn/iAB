@@ -54,7 +54,7 @@ export function LEDStripPreview({ settings, scenarioName }: LEDStripPreviewProps
                     aria-hidden
                   >
                     <span
-                      className="h-6 w-6 rounded-full animate-led-pulse"
+                      className="h-6 w-6 rounded-full animate-led-dim"
                       style={{
                         background: `radial-gradient(circle at 30% 30%, ${highlightColor} 0%, ${baseColor} 60%, rgba(0, 0, 0, 0.35) 100%)`,
                         boxShadow: `0 0 18px ${glowColor}`,
