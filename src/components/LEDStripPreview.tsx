@@ -73,6 +73,20 @@ export function LEDStripPreview({ settings, scenarioName }: LEDStripPreviewProps
       },
     });
 
+    if (normalizedScenario.includes("follow")) {
+      return createConfig({
+        ledClassName: "animate-led-follow",
+        delayIncrement: 0.12,
+        duration: 2.6,
+        styleOverrides: {
+          backgroundImage: `radial-gradient(circle at 45% 40%, ${highlightColor}, ${accentColor}, ${shadowColor})`,
+          backgroundSize: "200% 200%",
+          boxShadow: `0 0 26px ${highlightColor}`,
+          filter: `brightness(${0.9 + alpha * 0.35}) saturate(${1 + alpha * 0.2})`,
+        },
+      });
+    }
+
     if (normalizedScenario.includes("chase")) {
       return createConfig({
         ledClassName: "animate-led-starlight-chase",
