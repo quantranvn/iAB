@@ -19,10 +19,13 @@ import {
   LogIn,
   Loader2,
   Bot,
+  CheckCircle2,
 } from "lucide-react";
 import { Button } from "./components/ui/button";
 import { Input } from "./components/ui/input";
 import { Label } from "./components/ui/label";
+import { Badge } from "./components/ui/badge";
+import { Textarea } from "./components/ui/textarea";
 import { TurnSignalIcon, LowBeamIcon, HighBeamIcon, BrakeLightIcon } from "./components/icons/AutomotiveIcons";
 import { BluetoothCommandGenerator } from "./utils/bluetooth-commands";
 import { CommandLog, CommandLogEntry } from "./components/CommandLog";
@@ -48,6 +51,8 @@ import { FALLBACK_USER_PROFILE, type LightSettings, type Preset, type UserProfil
 import type { AnimationScenarioOption } from "./types/animation";
 import { Avatar, AvatarFallback, AvatarImage } from "./components/ui/avatar";
 import { buildFallbackProfile, normalizeUserProfile } from "./utils/profileHelpers";
+import { LEDStripPreview } from "./components/LEDStripPreview";
+import { runPromptThroughSLM, type AiGeneratedAnimationIdea } from "./utils/aiAnimationGenerator";
 
 const BASIC_LIGHT_TYPES = {
   lowBeam: 1,
@@ -73,6 +78,12 @@ const USER_ANIMATION_GRADIENTS = [
   "from-blue-400 via-sky-500 to-indigo-500",
 ];
 
+const AI_PROMPT_SUGGESTIONS = [
+  "Neon rainstorm on a midnight ride",
+  "Calm aurora cruise through the forest",
+  "Sunset boulevard glide with warm glow",
+] as const;
+
 export default function App() {
   const [activeUserId, setActiveUserIdState] = useState(() => getActiveUserId());
   const [connectionDialogOpen, setConnectionDialogOpen] = useState(false);
@@ -96,6 +107,49 @@ export default function App() {
       setLoginUserIdInput(activeUserId);
     }
   }, [activeUserId, loginDialogOpen]);
+
+  useEffect(() => {
+    if (aiGeneratorOpen) {
+      return;
+    }
+
+    setAiGenerationError(null);
+    setAiGenerationInProgress(false);
+    setAiDraftAnimation(null);
+  }, [aiGeneratorOpen]);
+
+  useEffect(() => {
+    if (aiGeneratedAnimations.length > 0 && !selectedAiAnimationId) {
+      setSelectedAiAnimationId(aiGeneratedAnimations[0].animation.id);
+    }
+  }, [aiGeneratedAnimations, selectedAiAnimationId]);
+
+  useEffect(() => {
+    if (animationScenario !== AI_PLACEHOLDER_SCENARIO_ID) {
+      return;
+    }
+
+    const activeAiAnimation = aiGeneratedAnimations.find(
+      (entry) => entry.animation.id === selectedAiAnimationId,
+    );
+
+    if (!activeAiAnimation) {
+      return;
+    }
+
+    setAnimation((previous) => {
+      if (
+        previous.red === activeAiAnimation.settings.red &&
+        previous.green === activeAiAnimation.settings.green &&
+        previous.blue === activeAiAnimation.settings.blue &&
+        previous.intensity === activeAiAnimation.settings.intensity
+      ) {
+        return previous;
+      }
+
+      return { ...activeAiAnimation.settings };
+    });
+  }, [animationScenario, aiGeneratedAnimations, selectedAiAnimationId]);
 
 const [turnIndicator, setTurnIndicator] = useState<LightSettings>({
   red: 255,
@@ -142,6 +196,13 @@ const [userAnimationOptions, setUserAnimationOptions] = useState<StoreAnimation[
   FALLBACK_USER_ANIMATIONS
 );
 const [animationCatalog, setAnimationCatalog] = useState<StoreAnimation[]>([]);
+const [aiGeneratorOpen, setAiGeneratorOpen] = useState(false);
+const [aiPromptInput, setAiPromptInput] = useState("");
+const [aiGenerationInProgress, setAiGenerationInProgress] = useState(false);
+const [aiGenerationError, setAiGenerationError] = useState<string | null>(null);
+const [aiDraftAnimation, setAiDraftAnimation] = useState<AiGeneratedAnimationIdea | null>(null);
+const [aiGeneratedAnimations, setAiGeneratedAnimations] = useState<AiGeneratedAnimationIdea[]>([]);
+const [selectedAiAnimationId, setSelectedAiAnimationId] = useState<string | null>(null);
 
   const computeUserAnimations = (
     animationIds: string[],
@@ -356,13 +417,18 @@ const [animationCatalog, setAnimationCatalog] = useState<StoreAnimation[]>([]);
 
   const animationLookup = useMemo(() => {
     const map = new Map<string, StoreAnimation>();
-    [...userAnimationOptions, ...animationCatalog, ...FALLBACK_USER_ANIMATIONS].forEach((animation) => {
+    [
+      ...userAnimationOptions,
+      ...animationCatalog,
+      ...FALLBACK_USER_ANIMATIONS,
+      ...aiGeneratedAnimations.map((entry) => entry.animation),
+    ].forEach((animation) => {
       if (!map.has(animation.id)) {
         map.set(animation.id, animation);
       }
     });
     return map;
-  }, [userAnimationOptions, animationCatalog]);
+  }, [userAnimationOptions, animationCatalog, aiGeneratedAnimations]);
 
   const persistCustomScenarioSelection = useCallback(
     async (profile: UserProfile) => {
@@ -386,6 +452,21 @@ const [animationCatalog, setAnimationCatalog] = useState<StoreAnimation[]>([]);
 
   const handleSelectUserAnimationById = (animationId: string) => {
     const scenarioId = userAnimationIdToScenarioId.get(animationId);
+
+    if (scenarioId === AI_PLACEHOLDER_SCENARIO_ID) {
+      const aiEntry = aiGeneratedAnimations.find((entry) => entry.animation.id === animationId);
+
+      if (!aiEntry) {
+        toast.error("AI animation is not available yet. Generate it again from the AI studio.");
+        return;
+      }
+
+      setSelectedAiAnimationId(aiEntry.animation.id);
+      setAnimation({ ...aiEntry.settings });
+      setAnimationScenario(scenarioId);
+      toast.success(`Selected ${aiEntry.animation.name}`);
+      return;
+    }
 
     if (scenarioId) {
       setAnimationScenario(scenarioId);
@@ -424,6 +505,99 @@ const [animationCatalog, setAnimationCatalog] = useState<StoreAnimation[]>([]);
     toast.success(`Selected ${animation.name}`);
   };
 
+  const handleScenarioChange = useCallback(
+    (scenarioId: number) => {
+      if (scenarioId === AI_PLACEHOLDER_SCENARIO_ID) {
+        if (!selectedAiAnimationId) {
+          setAiGeneratorOpen(true);
+          return;
+        }
+
+        const aiEntry = aiGeneratedAnimations.find(
+          (entry) => entry.animation.id === selectedAiAnimationId,
+        );
+
+        if (!aiEntry) {
+          setAiGeneratorOpen(true);
+          return;
+        }
+
+        setAnimation({ ...aiEntry.settings });
+      }
+
+      setAnimationScenario(scenarioId);
+    },
+    [aiGeneratedAnimations, selectedAiAnimationId],
+  );
+
+  const handleOpenAIGenerator = useCallback((scenarioId: number) => {
+    if (scenarioId === AI_PLACEHOLDER_SCENARIO_ID) {
+      setAiGeneratorOpen(true);
+      return;
+    }
+
+    setAiGeneratorOpen(true);
+  }, []);
+
+  const handleGenerateAiAnimation = async (event?: FormEvent<HTMLFormElement>) => {
+    event?.preventDefault();
+
+    const trimmed = aiPromptInput.trim();
+    if (trimmed.length < 4) {
+      setAiGenerationError("Please add a little more detail so the SLM knows the vibe.");
+      return;
+    }
+
+    setAiGenerationError(null);
+    setAiGenerationInProgress(true);
+    setAiDraftAnimation(null);
+
+    try {
+      const idea = await runPromptThroughSLM(trimmed);
+      setAiDraftAnimation(idea);
+      setAiPromptInput(idea.prompt);
+    } catch (error) {
+      setAiGenerationError(
+        error instanceof Error
+          ? error.message
+          : "We couldn't translate that prompt. Try describing the colors or mood.",
+      );
+    } finally {
+      setAiGenerationInProgress(false);
+    }
+  };
+
+  const handleUseAiAnimation = () => {
+    if (!aiDraftAnimation) {
+      return;
+    }
+
+    setAiGeneratedAnimations((previous) => {
+      const withoutDuplicate = previous.filter(
+        (entry) => entry.animation.id !== aiDraftAnimation.animation.id,
+      );
+      return [aiDraftAnimation, ...withoutDuplicate].slice(0, 6);
+    });
+
+    setSelectedAiAnimationId(aiDraftAnimation.animation.id);
+    setAnimation({ ...aiDraftAnimation.settings });
+    setAnimationScenario(AI_PLACEHOLDER_SCENARIO_ID);
+    setAiGeneratorOpen(false);
+    setAiDraftAnimation(null);
+    setAiGenerationError(null);
+    toast.success(`Added ${aiDraftAnimation.animation.name} from the AI studio.`);
+  };
+
+  const handleApplyAiAnimation = (entry: AiGeneratedAnimationIdea) => {
+    setSelectedAiAnimationId(entry.animation.id);
+    setAnimation({ ...entry.settings });
+    setAnimationScenario(AI_PLACEHOLDER_SCENARIO_ID);
+    setAiGeneratorOpen(false);
+    setAiDraftAnimation(null);
+    setAiGenerationError(null);
+    toast.success(`Selected ${entry.animation.name}`);
+  };
+
   const userAnimationScenarioData = useMemo(() => {
     const options: AnimationScenarioOption[] = [];
     const sourceToId = new Map<string, number>();
@@ -452,17 +626,43 @@ const [animationCatalog, setAnimationCatalog] = useState<StoreAnimation[]>([]);
       idToSource.set(CUSTOM_ANIMATION_SCENARIO_ID, customAnimation.id);
     }
 
+    aiGeneratedAnimations.forEach((entry) => {
+      sourceToId.set(entry.animation.id, AI_PLACEHOLDER_SCENARIO_ID);
+    });
+
+    const activeAiAnimation = aiGeneratedAnimations.find(
+      (entry) => entry.animation.id === selectedAiAnimationId,
+    );
+
+    if (activeAiAnimation) {
+      idToSource.set(AI_PLACEHOLDER_SCENARIO_ID, activeAiAnimation.animation.id);
+    }
+
+    const palettePreview = activeAiAnimation?.palette.slice(0, 2).join(" • ") ?? "";
+    const aiSubtitle = activeAiAnimation
+      ? [activeAiAnimation.vibe, palettePreview].filter(Boolean).join(" • ")
+      : "Create with a text prompt";
+
     options.push({
       id: AI_PLACEHOLDER_SCENARIO_ID,
-      name: "AI Generated Animation",
+      name: activeAiAnimation?.animation.name ?? "AI Generated Animation",
       icon: Bot,
-      gradient: "from-slate-700 via-purple-600 to-indigo-500",
-      subtitle: "Coming soon",
-      disabled: true,
+      gradient:
+        activeAiAnimation?.animation.gradient ??
+        "from-slate-700 via-purple-600 to-indigo-500",
+      subtitle: aiSubtitle,
+      supportsAIGeneration: true,
+      actionLabel: activeAiAnimation ? "Generate another idea" : "Create with AI",
+      sourceId: activeAiAnimation?.animation.id,
     });
 
     return { options, sourceToId, idToSource };
-  }, [animationLookup, customScenarioAnimationId]);
+  }, [
+    aiGeneratedAnimations,
+    animationLookup,
+    customScenarioAnimationId,
+    selectedAiAnimationId,
+  ]);
 
   const animationScenarioOptions = useMemo(
     () => [...BASE_ANIMATION_SCENARIOS, ...userAnimationScenarioData.options],
@@ -924,6 +1124,168 @@ const [animationCatalog, setAnimationCatalog] = useState<StoreAnimation[]>([]);
             />
           </Dialog>
 
+          <Dialog open={aiGeneratorOpen} onOpenChange={setAiGeneratorOpen}>
+            <DialogContent className="max-h-[85vh] overflow-y-auto space-y-5 sm:max-w-lg">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <Bot className="h-5 w-5" />
+                  AI Animation Studio
+                </DialogTitle>
+                <DialogDescription>
+                  Describe a mood, color palette, or ride scenario. Our small language model will craft a custom light show and preview it instantly.
+                </DialogDescription>
+              </DialogHeader>
+
+              <form className="space-y-4" onSubmit={handleGenerateAiAnimation}>
+                <div className="space-y-2">
+                  <Label htmlFor="ai-prompt">Describe your animation</Label>
+                  <Textarea
+                    id="ai-prompt"
+                    value={aiPromptInput}
+                    onChange={(event) => setAiPromptInput(event.target.value)}
+                    placeholder="e.g. Neon rainstorm with electric violets"
+                    rows={3}
+                    autoFocus
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    The scooter SLM translates your words into gradients, intensity, and motion.
+                  </p>
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                  {AI_PROMPT_SUGGESTIONS.map((suggestion) => (
+                    <Button
+                      key={suggestion}
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => setAiPromptInput(suggestion)}
+                    >
+                      {suggestion}
+                    </Button>
+                  ))}
+                </div>
+
+                {aiGenerationError && (
+                  <p className="text-sm text-destructive">{aiGenerationError}</p>
+                )}
+
+                <div className="flex justify-end">
+                  <Button type="submit" className="gap-2" disabled={aiGenerationInProgress}>
+                    {aiGenerationInProgress ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Generating
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="h-4 w-4" />
+                        Generate animation
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </form>
+
+              {aiDraftAnimation && (
+                <div className="space-y-4 rounded-2xl border border-border/60 bg-muted/40 p-4">
+                  <div className="space-y-1.5">
+                    <h3 className="text-sm font-semibold">
+                      Preview: {aiDraftAnimation.animation.name}
+                    </h3>
+                    <p className="text-xs text-muted-foreground">
+                      {aiDraftAnimation.animation.description}
+                    </p>
+                  </div>
+
+                  <LEDStripPreview
+                    settings={aiDraftAnimation.settings}
+                    scenarioName={aiDraftAnimation.animation.name}
+                  />
+
+                  <div className="flex flex-wrap gap-2">
+                    {aiDraftAnimation.palette.map((colorName) => (
+                      <Badge key={colorName} variant="secondary" className="bg-background/70">
+                        {colorName}
+                      </Badge>
+                    ))}
+                    {aiDraftAnimation.keywords
+                      .filter(
+                        (keyword) =>
+                          !aiDraftAnimation.palette.some(
+                            (colorName) => colorName.toLowerCase() === keyword.toLowerCase(),
+                          ),
+                      )
+                      .slice(0, 3)
+                      .map((keyword) => {
+                        const formatted = keyword.charAt(0).toUpperCase() + keyword.slice(1);
+                        return (
+                          <Badge key={keyword} variant="outline">
+                            {formatted}
+                          </Badge>
+                        );
+                      })}
+                  </div>
+
+                  <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setAiDraftAnimation(null)}
+                    >
+                      Refine prompt
+                    </Button>
+                    <Button type="button" className="gap-2" onClick={handleUseAiAnimation}>
+                      <CheckCircle2 className="h-4 w-4" />
+                      Use this animation
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {aiGeneratedAnimations.length > 0 && (
+                <div className="space-y-3 border-t border-dashed pt-4">
+                  <h3 className="text-sm font-semibold">Recent AI animations</h3>
+                  <div className="space-y-2">
+                    {aiGeneratedAnimations.map((entry) => {
+                      const subtitle = [
+                        entry.vibe,
+                        entry.palette.slice(0, 2).join(" • "),
+                      ]
+                        .filter(Boolean)
+                        .join(" • ");
+
+                      return (
+                        <div
+                          key={entry.animation.id}
+                          className="flex items-center gap-3 rounded-xl border border-border/60 bg-muted/40 p-3"
+                        >
+                          <div
+                            className={`h-12 w-16 rounded-lg bg-gradient-to-br ${entry.animation.gradient}`}
+                          />
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-sm font-medium">{entry.animation.name}</p>
+                            <p className="truncate text-xs text-muted-foreground">{subtitle}</p>
+                          </div>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant={
+                              selectedAiAnimationId === entry.animation.id ? "default" : "secondary"
+                            }
+                            onClick={() => handleApplyAiAnimation(entry)}
+                          >
+                            {selectedAiAnimationId === entry.animation.id ? "Active" : "Use"}
+                          </Button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </DialogContent>
+          </Dialog>
+
           <ModeToggle />
         </div>
 
@@ -997,7 +1359,7 @@ const [animationCatalog, setAnimationCatalog] = useState<StoreAnimation[]>([]);
                     <AnimationControl
                       scenarios={animationScenarioOptions}
                       selectedScenario={animationScenario}
-                      onScenarioChange={setAnimationScenario}
+                      onScenarioChange={handleScenarioChange}
                       currentSettings={animation}
                       onRedChange={(value) => updateLightSetting(setAnimation, "red", value)}
                       onGreenChange={(value) => updateLightSetting(setAnimation, "green", value)}
@@ -1010,6 +1372,7 @@ const [animationCatalog, setAnimationCatalog] = useState<StoreAnimation[]>([]);
                         setAppStoreInitialTab("owned");
                         setAppStoreOpen(true);
                       }}
+                      onOpenAIGenerator={handleOpenAIGenerator}
                     />
                   ) : button.settings && button.setter ? (
                     <LightControl

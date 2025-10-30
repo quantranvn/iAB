@@ -9,4 +9,6 @@ export interface AnimationScenarioOption {
   subtitle?: string;
   supportsLibrarySelection?: boolean;
   disabled?: boolean;
+  supportsAIGeneration?: boolean;
+  actionLabel?: string;
 }
