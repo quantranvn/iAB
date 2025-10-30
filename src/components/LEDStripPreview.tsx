@@ -273,15 +273,7 @@ export function LEDStripPreview({ settings, scenarioName }: LEDStripPreviewProps
           "--led-glow-strength": `${(glowStrength + 10).toFixed(2)}px`,
           "--led-peak-brightness": Math.min(1.6, peakBrightness + 0.18).toFixed(2),
           "--led-dim-brightness": Math.max(0.5, dimBrightness + 0.05).toFixed(2),
-        },
-        perLedStyle: ({ globalIndex, total }) => {
-          if (total <= 1) {
-            return {};
-          }
-          const normalized = globalIndex / (total - 1);
-          return {
-            "--led-aurora-drift": (normalized - 0.5).toFixed(2),
-          };
+          "--led-aurora-drift": 0,
         },
       });
     }
@@ -367,14 +359,11 @@ export function LEDStripPreview({ settings, scenarioName }: LEDStripPreviewProps
           "--led-peak-brightness": Math.min(1.6, peakBrightness + 0.15).toFixed(2),
           "--led-off-saturation": Math.max(0.65, offSaturation * 0.92).toFixed(2),
         },
-        perLedStyle: ({ globalIndex, total, indexInGroup, groupSize }) => {
+        perLedStyle: ({ indexInGroup, groupSize }) => {
           const offset = indexInGroup - (groupSize - 1) / 2;
-          const normalized = total > 1 ? globalIndex / (total - 1) : 0;
-          const sway = Math.cos(normalized * Math.PI * 2) * 0.35;
-          const depth = 6 + Math.sin(normalized * Math.PI * 1.2) * 3.5;
           return {
-            "--led-wave-offset": (offset + sway).toFixed(2),
-            "--led-wave-depth": `${depth.toFixed(2)}px`,
+            "--led-wave-offset": offset.toFixed(2),
+            "--led-wave-depth": "0px",
           };
         },
       });
