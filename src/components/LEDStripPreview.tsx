@@ -40,9 +40,9 @@ export function LEDStripPreview({ settings, scenarioName }: LEDStripPreviewProps
         role="img"
         aria-label={`${scenarioName} animation preview`}
       >
-        <div className="relative z-6 flex flex-wrap items-center justify-center gap-6">
+        <div className="relative z-6 flex flex-wrap items-center justify-center gap-5">
           {LED_GROUPS.map((group) => (
-            <div key={group.id} className="flex items-center gap-6">
+            <div key={group.id} className="flex items-center gap-5">
               {Array.from({ length: group.count }).map((_, index) => {
                 const delay = ledIndex * 0.14;
                 ledIndex += 1;
