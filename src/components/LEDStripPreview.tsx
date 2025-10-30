@@ -39,7 +39,7 @@ export function LEDStripPreview({ settings, scenarioName }: LEDStripPreviewProps
     return {
       background: baseColor,
       boxShadow: `0 0 18px ${glowColor}`,
-      filter: `brightness(${0.85 + alpha * 0.55}) saturate(${0.9 + alpha * 0.2})`,
+      filter: `brightness(${0.85 + alpha * 0.6})`,
       "--led-opacity-rest": restingOpacity,
       "--led-opacity-mid": Math.min(1, (restingOpacity + peakOpacity) / 2),
       "--led-opacity-peak": peakOpacity,
@@ -59,9 +59,9 @@ export function LEDStripPreview({ settings, scenarioName }: LEDStripPreviewProps
         delayIncrement: 0.1,
         duration: 2.4,
         styleForIndex: (position) => {
-          const brightness = 0.95 + ((position + 3) % 4) * 0.12;
-          const blur = 12 + ((position + 1) % 4) * 4;
-          const restingOpacity = 0.6 + ((position + 2) % 4) * 0.08;
+          const brightness = 1.05 + ((position + 2) % 4) * 0.18;
+          const blur = 16 + ((position + 1) % 4) * 6;
+          const restingOpacity = 0.72 + ((position + 2) % 4) * 0.06;
           return {
             background: baseColor,
             boxShadow: `0 0 ${blur}px ${glowColor}`,
@@ -81,14 +81,15 @@ export function LEDStripPreview({ settings, scenarioName }: LEDStripPreviewProps
         duration: 3.6,
         styleForIndex: (position) => {
           const shift = Math.sin((position / TOTAL_LEDS) * Math.PI);
-          const restingOpacity = Math.max(0.65, alpha + 0.05 + Math.abs(shift) * 0.08);
+          const restingOpacity = Math.max(0.7, alpha + 0.1 + Math.abs(shift) * 0.05);
           return {
-            background: baseColor,
-            boxShadow: `0 0 ${18 + Math.abs(shift) * 8}px ${glowColor}`,
-            filter: `brightness(${0.95 + Math.abs(shift) * 0.35}) saturate(${0.95 + Math.abs(shift) * 0.2})`,
+            background: `linear-gradient(120deg, ${gradient})`,
+            backgroundSize: "220% 220%",
+            boxShadow: `0 0 ${22 + Math.abs(shift) * 10}px rgba(125, 255, 206, 0.65)`,
+            filter: `brightness(${1.05 + alpha * 0.35}) saturate(${1.05 + Math.abs(shift) * 0.12})`,
             "--led-opacity-rest": Math.min(1, restingOpacity),
-            "--led-opacity-mid": Math.min(1, restingOpacity + 0.16),
-            "--led-opacity-peak": Math.min(1, restingOpacity + 0.28),
+            "--led-opacity-mid": Math.min(1, restingOpacity + 0.1),
+            "--led-opacity-peak": Math.min(1, restingOpacity + 0.22),
           };
         },
       };
@@ -100,14 +101,19 @@ export function LEDStripPreview({ settings, scenarioName }: LEDStripPreviewProps
         delayIncrement: 0.08,
         duration: 2.6,
         styleForIndex: (position) => {
-          const restingOpacity = Math.max(0.7, alpha + 0.15 + ((position + 1) % 3) * 0.05);
+          const offset = position % RAINBOW_PALETTE.length;
+          const colors = RAINBOW_PALETTE.map(
+            (_, index) => RAINBOW_PALETTE[(offset + index) % RAINBOW_PALETTE.length],
+          );
+          const restingOpacity = Math.max(0.75, alpha + 0.2);
           return {
-            background: baseColor,
-            boxShadow: `0 0 ${16 + ((position + 1) % 3) * 4}px ${glowColor}`,
-            filter: `brightness(${0.9 + ((position + 1) % 3) * 0.18}) saturate(${0.98 + ((position + 1) % 3) * 0.08})`,
+            background: `linear-gradient(135deg, ${buildGradient(colors)})`,
+            backgroundSize: "200% 200%",
+            boxShadow: `0 0 20px rgba(255, 255, 255, 0.6)`,
+            filter: `brightness(${1.05 + alpha * 0.45}) saturate(1.12)`,
             "--led-opacity-rest": restingOpacity,
-            "--led-opacity-mid": Math.min(1, restingOpacity + 0.14),
-            "--led-opacity-peak": Math.min(1, restingOpacity + 0.26),
+            "--led-opacity-mid": Math.min(1, restingOpacity + 0.12),
+            "--led-opacity-peak": Math.min(1, restingOpacity + 0.24),
           };
         },
       };
@@ -119,9 +125,9 @@ export function LEDStripPreview({ settings, scenarioName }: LEDStripPreviewProps
         delayIncrement: 0.05,
         duration: 1.15,
         styleForIndex: (position) => {
-          const flashBoost = 1.05 + ((position + 1) % 3) * 0.25;
-          const blur = 14 + ((position + 2) % 4) * 5;
-          const restingOpacity = 0.66 + ((position + 1) % 3) * 0.06;
+          const flashBoost = 1.25 + ((position + 1) % 3) * 0.22;
+          const blur = 18 + ((position + 2) % 4) * 6;
+          const restingOpacity = 0.78 + ((position + 1) % 3) * 0.04;
           return {
             background: baseColor,
             boxShadow: `0 0 ${blur}px ${glowColor}`,
@@ -144,9 +150,9 @@ export function LEDStripPreview({ settings, scenarioName }: LEDStripPreviewProps
           const wave = Math.sin(progress * Math.PI * 2);
           const restingOpacity = Math.max(0.6, alpha - 0.05 + Math.abs(wave) * 0.12);
           const style: CSSVarProperties = {
-            background: baseColor,
-            boxShadow: `0 0 ${18 + Math.abs(wave) * 6}px ${glowColor}`,
-            filter: `brightness(${0.85 + (wave + 1) * 0.22}) saturate(${0.95 + Math.abs(wave) * 0.12})`,
+            background: `radial-gradient(circle at 50% ${40 + wave * 20}%, ${highlightColor} 0%, ${baseColor} 55%, rgba(0, 40, 80, 0.55) 100%)`,
+            boxShadow: `0 0 18px rgba(32, 150, 255, 0.45)`,
+            filter: `brightness(${0.9 + (wave + 1) * 0.2}) saturate(${1 + wave * 0.1})`,
             "--led-opacity-rest": restingOpacity,
             "--led-opacity-mid": Math.min(1, restingOpacity + 0.14),
             "--led-opacity-peak": Math.min(1, restingOpacity + 0.26),
@@ -163,8 +169,8 @@ export function LEDStripPreview({ settings, scenarioName }: LEDStripPreviewProps
         duration: 3.6,
         styleForIndex: (position) => {
           const shimmer = ((position + 1) % 5) / 5;
-          const sparkle = 0.95 + shimmer * 0.6;
-          const restingOpacity = Math.min(1, 0.64 + shimmer * 0.16);
+          const sparkle = 1 + shimmer * 0.7;
+          const restingOpacity = Math.min(1, 0.7 + shimmer * 0.18);
           return {
             background: baseColor,
             boxShadow: `0 0 ${14 + shimmer * 12}px ${glowColor}`,
@@ -179,6 +185,19 @@ export function LEDStripPreview({ settings, scenarioName }: LEDStripPreviewProps
 
     return defaultConfig;
   }, [alpha, animationDuration, baseColor, glowColor, normalizedScenario]);
+
+  const getNumericValue = (value: string | number | undefined): number | null => {
+    if (typeof value === "number") {
+      return Number.isFinite(value) ? value : null;
+    }
+
+    if (typeof value === "string") {
+      const parsed = parseFloat(value);
+      return Number.isFinite(parsed) ? parsed : null;
+    }
+
+    return null;
+  };
 
   const getNumericValue = (value: string | number | undefined): number | null => {
     if (typeof value === "number") {
