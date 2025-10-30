@@ -36,12 +36,12 @@ export function LEDStripPreview({ settings, scenarioName }: LEDStripPreviewProps
         ))}
       </div>
       <div
-        className="relative w-full overflow-hidden rounded-2xl border border-border/70 bg-gradient-to-b from-background/40 via-background/10 to-background/50 px-6 py-7 shadow-inner"
+        className="relative w-full overflow-hidden rounded-2xl border border-border/70 bg-gradient-to-b from-background/40 via-background/10 to-background/50 px-4 py-6 shadow-inner"
         role="img"
         aria-label={`${scenarioName} animation preview`}
       >
-        <div className="absolute inset-x-8 top-1/2 h-1.5 -translate-y-1/2 rounded-full bg-black/40 blur-sm" aria-hidden />
-        <div className="relative z-10 flex flex-wrap items-center justify-center gap-6">
+        <div className="absolute inset-x-6 top-1/2 h-1.5 -translate-y-1/2 rounded-full bg-black/40 blur-sm" aria-hidden />
+        <div className="relative z-10 flex flex-wrap items-center justify-center gap-3">
           {LED_GROUPS.map((group) => (
             <div key={group.id} className="flex items-center gap-3">
               {Array.from({ length: group.count }).map((_, index) => {
@@ -50,11 +50,11 @@ export function LEDStripPreview({ settings, scenarioName }: LEDStripPreviewProps
                 return (
                   <span
                     key={`${group.id}-${index}`}
-                    className="relative flex h-12 w-12 items-center justify-center rounded-full bg-black/60"
+                    className="relative flex h-8 w-8 items-center justify-center rounded-full bg-black/60"
                     aria-hidden
                   >
                     <span
-                      className="h-8 w-8 rounded-full animate-led-pulse"
+                      className="h-6 w-6 rounded-full animate-led-pulse"
                       style={{
                         background: `radial-gradient(circle at 30% 30%, ${highlightColor} 0%, ${baseColor} 60%, rgba(0, 0, 0, 0.35) 100%)`,
                         boxShadow: `0 0 18px ${glowColor}`,
