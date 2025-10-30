@@ -6,6 +6,7 @@ import { Label } from "./ui/label";
 import { toast } from "sonner@2.0.3";
 import type { AnimationScenarioOption } from "../types/animation";
 import type { LightSettings } from "../types/userProfile";
+import { LEDStripPreview } from "./LEDStripPreview";
 
 interface AnimationControlProps {
   scenarios: AnimationScenarioOption[];
@@ -39,10 +40,6 @@ export function AnimationControl({
     scenarios.find((scenario) => scenario.id === selectedScenario)?.name ??
     `Scenario ${selectedScenario}`;
 
-  const previewColor = `rgba(${currentSettings.red}, ${currentSettings.green}, ${currentSettings.blue}, ${Math.max(
-    currentSettings.intensity / 100,
-    0.25,
-  )})`;
   const intensityLevel = Math.round(currentSettings.intensity / 5);
 
   const handleSend = async () => {
@@ -161,13 +158,10 @@ export function AnimationControl({
       </div>
 
       <div className="space-y-6">
-        <div className="flex flex-col items-center gap-4">
-          <div
-            className="w-full h-24 rounded-lg border-2 border-border shadow-inner"
-            style={{ backgroundColor: previewColor }}
-          />
-          <p className="text-muted-foreground">Color Preview</p>
-        </div>
+        <LEDStripPreview
+          settings={currentSettings}
+          scenarioName={selectedScenarioName}
+        />
 
         <div className="space-y-6">
           <div className="space-y-3">
