@@ -2410,87 +2410,158 @@ html {
 @keyframes ledDim {
   0%,
   100% {
-    opacity: 0.25;
-    transform: scale(0.9);
+    background-color: var(--led-color-primary);
+    opacity: var(--led-off-opacity, 0.22);
+    transform: scale(var(--led-off-scale, 0.9));
+    filter: brightness(var(--led-off-brightness, 0.65))
+      saturate(var(--led-off-saturation, 0.85));
+    box-shadow: 0 0 calc(var(--led-glow-strength, 18px) * 0.25)
+      var(--led-glow-color, currentColor);
   }
 
-  30% {
-    opacity: 1;
-    transform: scale(1.08);
+  20% {
+    background-color: var(--led-color-secondary, var(--led-color-primary));
+    opacity: var(--led-mid-opacity, 0.7);
+    transform: scale(var(--led-mid-scale, 1.02));
+    filter: brightness(var(--led-base-brightness, 1))
+      saturate(var(--led-base-saturation, 1));
+    box-shadow: 0 0 calc(var(--led-glow-strength, 18px) * 0.65)
+      var(--led-glow-color, currentColor);
   }
 
-  55% {
-    opacity: 0.6;
-    transform: scale(0.96);
+  48% {
+    background-color: var(--led-color-tertiary, var(--led-color-secondary));
+    opacity: var(--led-dim-opacity, 0.6);
+    transform: scale(var(--led-dim-scale, 0.94));
+    filter: brightness(var(--led-dim-brightness, 0.78))
+      saturate(var(--led-dim-saturation, 0.92));
+    box-shadow: 0 0 calc(var(--led-glow-strength, 18px) * 0.4)
+      var(--led-glow-color, currentColor);
   }
 
-  75% {
-    opacity: 0.82;
-    transform: scale(1.02);
+  72% {
+    background-color: var(--led-color-accent, var(--led-color-primary));
+    opacity: var(--led-peak-opacity, 0.95);
+    transform: scale(var(--led-peak-scale, 1.1));
+    filter: brightness(var(--led-peak-brightness, 1.35))
+      saturate(var(--led-peak-saturation, 1.25));
+    box-shadow: 0 0 var(--led-glow-strength, 18px)
+      var(--led-glow-color, currentColor);
   }
 }
 
 .animate-led-dim {
   animation: ledDim var(--led-animation-duration, 3s)
-    cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    var(--led-animation-ease, cubic-bezier(0.4, 0, 0.6, 1)) infinite;
 }
 
 @keyframes ledFollowDim {
   0%,
   100% {
-    opacity: 0.22;
-    filter: brightness(0.78);
-    transform: scale(0.88);
+    background-color: var(--led-color-primary);
+    opacity: var(--led-off-opacity, 0.22);
+    transform: scale(var(--led-off-scale, 0.88));
+    filter: brightness(var(--led-off-brightness, 0.7))
+      saturate(var(--led-off-saturation, 0.8));
+    box-shadow: 0 0 calc(var(--led-glow-strength, 18px) * 0.25)
+      var(--led-glow-color, currentColor);
   }
 
-  28% {
-    opacity: 0.95;
-    filter: brightness(1.05);
-    transform: scale(1.08);
+  16% {
+    background-color: var(--led-color-secondary, var(--led-color-primary));
+    opacity: var(--led-mid-opacity, 0.78);
+    transform: scale(var(--led-mid-scale, 1.06));
+    filter: brightness(var(--led-follow-strength, 1))
+      saturate(var(--led-base-saturation, 1.05));
+    box-shadow: 0 0 calc(var(--led-glow-strength, 18px) * 0.55)
+      var(--led-glow-color, currentColor);
   }
 
-  46% {
-    opacity: 1;
-    filter: brightness(1.12);
-    transform: scale(1.14);
+  34% {
+    background-color: var(--led-color-accent, var(--led-color-secondary));
+    opacity: var(--led-peak-opacity, 0.98);
+    transform: scale(var(--led-peak-scale, 1.2));
+    filter: brightness(var(--led-peak-brightness, 1.45))
+      saturate(var(--led-peak-saturation, 1.35));
+    box-shadow: 0 0 var(--led-glow-strength, 18px)
+      var(--led-glow-color, currentColor);
   }
 
-  70% {
-    opacity: 0.55;
-    filter: brightness(0.9);
-    transform: scale(0.96);
+  62% {
+    background-color: var(--led-color-tertiary, var(--led-color-primary));
+    opacity: var(--led-dim-opacity, 0.55);
+    transform: scale(var(--led-dim-scale, 0.92));
+    filter: brightness(var(--led-dim-brightness, 0.82))
+      saturate(var(--led-dim-saturation, 0.92));
+    box-shadow: 0 0 calc(var(--led-glow-strength, 18px) * 0.35)
+      var(--led-glow-color, currentColor);
   }
 }
 
 .animate-led-follow {
   animation: ledFollowDim var(--led-animation-duration, 2.6s)
-    cubic-bezier(0.45, 0, 0.4, 1) infinite;
+    var(--led-animation-ease, cubic-bezier(0.45, 0, 0.4, 1)) infinite;
 }
 
 @keyframes ledRainbowFlow {
   0% {
-    background-position: 0% 50%;
-    transform: scale(0.92);
+    background-color: var(--led-color-primary);
+    opacity: var(--led-mid-opacity, 0.75);
+    transform: scale(var(--led-dim-scale, 0.94));
+    filter: brightness(var(--led-rainbow-brightness, var(--led-base-brightness, 1)))
+      saturate(var(--led-base-saturation, 1.1));
+    box-shadow: 0 0 calc(var(--led-glow-strength, 18px) * 0.45)
+      var(--led-glow-color, currentColor);
   }
 
-  25% {
-    background-position: 50% 50%;
-    transform: scale(1);
+  20% {
+    background-color: var(--led-color-secondary, var(--led-color-primary));
+    opacity: var(--led-peak-opacity, 0.95);
+    transform: scale(var(--led-peak-scale, 1.18));
+    filter: brightness(var(--led-peak-brightness, 1.5))
+      saturate(var(--led-peak-saturation, 1.5));
+    box-shadow: 0 0 var(--led-glow-strength, 18px)
+      var(--led-glow-color, currentColor);
   }
 
-  50% {
-    background-position: 100% 50%;
-    transform: scale(1.1);
+  40% {
+    background-color: var(--led-color-tertiary, var(--led-color-secondary));
+    opacity: var(--led-mid-opacity, 0.78);
+    transform: scale(var(--led-mid-scale, 1.06));
+    filter: brightness(var(--led-rainbow-mid-brightness, var(--led-base-brightness, 1)))
+      saturate(var(--led-peak-saturation, 1.25));
+    box-shadow: 0 0 calc(var(--led-glow-strength, 18px) * 0.55)
+      var(--led-glow-color, currentColor);
   }
 
-  75% {
-    background-position: 50% 50%;
-    transform: scale(1);
+  60% {
+    background-color: var(--led-color-accent, var(--led-color-primary));
+    opacity: var(--led-peak-opacity, 0.95);
+    transform: scale(var(--led-peak-scale, 1.18));
+    filter: brightness(var(--led-peak-brightness, 1.5))
+      saturate(var(--led-peak-saturation, 1.5));
+    box-shadow: 0 0 var(--led-glow-strength, 18px)
+      var(--led-glow-color, currentColor);
+  }
+
+  80% {
+    background-color: var(--led-color-tertiary, var(--led-color-secondary));
+    opacity: var(--led-mid-opacity, 0.78);
+    transform: scale(var(--led-mid-scale, 1.06));
+    filter: brightness(var(--led-dim-brightness, 0.82))
+      saturate(var(--led-base-saturation, 1.1));
+    box-shadow: 0 0 calc(var(--led-glow-strength, 18px) * 0.45)
+      var(--led-glow-color, currentColor);
   }
 
   100% {
-    background-position: 0% 50%;
-    transform: scale(0.92);
+    background-color: var(--led-color-primary);
+    opacity: var(--led-mid-opacity, 0.75);
+    transform: scale(var(--led-dim-scale, 0.94));
+    filter: brightness(var(--led-rainbow-brightness, var(--led-base-brightness, 1)))
+      saturate(var(--led-base-saturation, 1.1));
+    box-shadow: 0 0 calc(var(--led-glow-strength, 18px) * 0.45)
+      var(--led-glow-color, currentColor);
   }
 }
 
@@ -2502,39 +2573,73 @@ html {
   0%,
   45%,
   100% {
-    opacity: 0.55;
-    transform: scale(0.9);
+    background-color: var(--led-color-primary);
+    opacity: var(--led-off-opacity, 0.2);
+    transform: scale(var(--led-off-scale, 0.86));
+    filter: brightness(var(--led-off-brightness, 0.55))
+      saturate(var(--led-off-saturation, 0.75));
+    box-shadow: 0 0 calc(var(--led-glow-strength, 18px) * 0.2)
+      var(--led-glow-color, currentColor);
   }
 
   12% {
-    opacity: 1;
-    transform: scale(1.25);
+    background-color: var(--led-color-secondary, var(--led-color-primary));
+    opacity: var(--led-peak-opacity, 1);
+    transform: scale(calc(var(--led-peak-scale, 1.32) * 1.04));
+    filter: brightness(var(--led-peak-brightness, 1.65))
+      saturate(var(--led-peak-saturation, 1.65));
+    box-shadow: 0 0 calc(var(--led-glow-strength, 18px) * 1.1)
+      var(--led-glow-color, currentColor);
   }
 
   24% {
-    opacity: 0.85;
-    transform: scale(1.05);
+    background-color: var(--led-color-tertiary, var(--led-color-secondary));
+    opacity: var(--led-dim-opacity, 0.65);
+    transform: scale(calc(var(--led-peak-scale, 1.32) * 0.92));
+    filter: brightness(var(--led-dim-brightness, 0.9))
+      saturate(var(--led-dim-saturation, 1));
+    box-shadow: 0 0 calc(var(--led-glow-strength, 18px) * 0.45)
+      var(--led-glow-color, currentColor);
   }
 
   32% {
-    opacity: 0.9;
-    transform: scale(1.15);
+    background-color: var(--led-color-accent, var(--led-color-primary));
+    opacity: var(--led-mid-opacity, 0.75);
+    transform: scale(var(--led-mid-scale, 1.05));
+    filter: brightness(var(--led-base-brightness, 1))
+      saturate(var(--led-base-saturation, 1));
+    box-shadow: 0 0 calc(var(--led-glow-strength, 18px) * 0.6)
+      var(--led-glow-color, currentColor);
   }
 }
 
 .animate-led-lightning {
   animation: ledLightningPulse var(--led-animation-duration, 1.3s)
-    cubic-bezier(0.4, 0, 0.2, 1) infinite;
+    var(--led-animation-ease, cubic-bezier(0.4, 0, 0.2, 1)) infinite;
 }
 
 @keyframes ledWaveMotion {
   0%,
   100% {
-    transform: translateY(calc(var(--led-wave-offset, 0) * 2px)) scale(0.96);
+    background-color: var(--led-color-primary);
+    opacity: var(--led-mid-opacity, 0.7);
+    transform: translateY(calc(var(--led-wave-offset, 0) * 6px))
+      scale(var(--led-dim-scale, 0.94));
+    filter: brightness(var(--led-dim-brightness, 0.82))
+      saturate(var(--led-dim-saturation, 0.95));
+    box-shadow: 0 0 calc(var(--led-glow-strength, 18px) * 0.35)
+      var(--led-glow-color, currentColor);
   }
 
   50% {
-    transform: translateY(calc(var(--led-wave-offset, 0) * -6px)) scale(1.08);
+    background-color: var(--led-color-secondary, var(--led-color-primary));
+    opacity: var(--led-peak-opacity, 0.92);
+    transform: translateY(calc(var(--led-wave-offset, 0) * -10px))
+      scale(var(--led-peak-scale, 1.14));
+    filter: brightness(var(--led-peak-brightness, 1.4))
+      saturate(var(--led-peak-saturation, 1.2));
+    box-shadow: 0 0 var(--led-glow-strength, 18px)
+      var(--led-glow-color, currentColor);
   }
 }
 
@@ -2545,23 +2650,47 @@ html {
 @keyframes ledStarlightTwinkle {
   0%,
   100% {
-    opacity: 0.5;
-    transform: scale(0.92);
+    background-color: var(--led-color-primary);
+    opacity: calc(var(--led-off-opacity, 0.22) * var(--led-twinkle-strength, 1));
+    transform: scale(var(--led-off-scale, 0.88));
+    filter: brightness(
+        calc(var(--led-off-brightness, 0.65) * var(--led-twinkle-strength, 1))
+      ) saturate(var(--led-off-saturation, 0.85));
+    box-shadow: 0 0 calc(var(--led-glow-strength, 18px) * 0.3)
+      var(--led-glow-color, currentColor);
   }
 
   25% {
-    opacity: 0.95;
-    transform: scale(1.08);
+    background-color: var(--led-color-secondary, var(--led-color-primary));
+    opacity: calc(var(--led-mid-opacity, 0.75) * var(--led-twinkle-strength, 1.05));
+    transform: scale(var(--led-mid-scale, 1.02));
+    filter: brightness(
+        calc(var(--led-base-brightness, 1) * var(--led-twinkle-strength, 1.05))
+      ) saturate(var(--led-base-saturation, 1));
+    box-shadow: 0 0 calc(var(--led-glow-strength, 18px) * 0.65)
+      var(--led-glow-color, currentColor);
   }
 
   45% {
-    opacity: 0.7;
-    transform: scale(0.98);
+    background-color: var(--led-color-tertiary, var(--led-color-secondary));
+    opacity: calc(var(--led-dim-opacity, 0.6) * var(--led-twinkle-strength, 0.9));
+    transform: scale(var(--led-dim-scale, 0.94));
+    filter: brightness(
+        calc(var(--led-dim-brightness, 0.78) * var(--led-twinkle-strength, 0.95))
+      ) saturate(var(--led-dim-saturation, 0.92));
+    box-shadow: 0 0 calc(var(--led-glow-strength, 18px) * 0.4)
+      var(--led-glow-color, currentColor);
   }
 
   70% {
-    opacity: 1;
-    transform: scale(1.12);
+    background-color: var(--led-color-accent, var(--led-color-primary));
+    opacity: calc(var(--led-peak-opacity, 0.95) * var(--led-twinkle-strength, 1.1));
+    transform: scale(var(--led-peak-scale, 1.18));
+    filter: brightness(
+        calc(var(--led-peak-brightness, 1.45) * var(--led-twinkle-strength, 1.05))
+      ) saturate(var(--led-peak-saturation, 1.25));
+    box-shadow: 0 0 var(--led-glow-strength, 18px)
+      var(--led-glow-color, currentColor);
   }
 }
 
@@ -2573,21 +2702,36 @@ html {
 @keyframes ledAuroraVeil {
   0%,
   100% {
-    background-position: 0% 40%;
-    opacity: 0.65;
-    transform: translateY(-6%) scale(0.94);
+    background-color: var(--led-color-primary);
+    opacity: var(--led-mid-opacity, 0.75);
+    transform: translateY(calc(var(--led-aurora-drift, 0) * -8%))
+      scale(var(--led-dim-scale, 0.94));
+    filter: brightness(var(--led-dim-brightness, 0.78))
+      saturate(var(--led-dim-saturation, 0.92));
+    box-shadow: 0 0 calc(var(--led-glow-strength, 18px) * 0.4)
+      var(--led-glow-color, currentColor);
   }
 
   40% {
-    background-position: 100% 60%;
-    opacity: 1;
-    transform: translateY(8%) scale(1.08);
+    background-color: var(--led-color-secondary, var(--led-color-primary));
+    opacity: var(--led-peak-opacity, 0.95);
+    transform: translateY(calc(var(--led-aurora-drift, 0) * 12%))
+      scale(var(--led-peak-scale, 1.16));
+    filter: brightness(var(--led-peak-brightness, 1.45))
+      saturate(var(--led-peak-saturation, 1.25));
+    box-shadow: 0 0 var(--led-glow-strength, 18px)
+      var(--led-glow-color, currentColor);
   }
 
   70% {
-    background-position: 50% 50%;
-    opacity: 0.85;
-    transform: translateY(2%) scale(1);
+    background-color: var(--led-color-tertiary, var(--led-color-secondary));
+    opacity: var(--led-mid-opacity, 0.85);
+    transform: translateY(calc(var(--led-aurora-drift, 0) * 4%))
+      scale(var(--led-mid-scale, 1.05));
+    filter: brightness(var(--led-base-brightness, 1))
+      saturate(var(--led-base-saturation, 1));
+    box-shadow: 0 0 calc(var(--led-glow-strength, 18px) * 0.6)
+      var(--led-glow-color, currentColor);
   }
 }
 
@@ -2598,27 +2742,47 @@ html {
 @keyframes ledStarlightChase {
   0%,
   100% {
-    opacity: 0.4;
-    transform: scale(0.88);
+    background-color: var(--led-color-primary);
+    opacity: var(--led-off-opacity, 0.22);
+    transform: scale(var(--led-off-scale, 0.86));
+    filter: brightness(var(--led-off-brightness, 0.65))
+      saturate(var(--led-off-saturation, 0.85));
+    box-shadow: 0 0 calc(var(--led-glow-strength, 18px) * 0.25)
+      var(--led-glow-color, currentColor);
   }
 
   12% {
-    opacity: 1;
-    transform: scale(1.18);
+    background-color: var(--led-color-secondary, var(--led-color-primary));
+    opacity: var(--led-peak-opacity, 0.98);
+    transform: scale(var(--led-peak-scale, 1.24));
+    filter: brightness(var(--led-chase-brightness, 1.25))
+      saturate(var(--led-peak-saturation, 1.3));
+    box-shadow: 0 0 calc(var(--led-glow-strength, 18px) * var(--led-chase-glow, 1))
+      var(--led-glow-color, currentColor);
   }
 
-  24% {
-    opacity: 0.75;
-    transform: scale(1);
+  28% {
+    background-color: var(--led-color-accent, var(--led-color-primary));
+    opacity: var(--led-mid-opacity, 0.78);
+    transform: scale(var(--led-mid-scale, 1.05));
+    filter: brightness(var(--led-base-brightness, 1))
+      saturate(var(--led-base-saturation, 1));
+    box-shadow: 0 0 calc(var(--led-glow-strength, 18px) * 0.55)
+      var(--led-glow-color, currentColor);
   }
 
   50% {
-    opacity: 0.45;
-    transform: scale(0.92);
+    background-color: var(--led-color-tertiary, var(--led-color-secondary));
+    opacity: var(--led-dim-opacity, 0.6);
+    transform: scale(var(--led-dim-scale, 0.9));
+    filter: brightness(var(--led-dim-brightness, 0.75))
+      saturate(var(--led-dim-saturation, 0.9));
+    box-shadow: 0 0 calc(var(--led-glow-strength, 18px) * 0.35)
+      var(--led-glow-color, currentColor);
   }
 }
 
 .animate-led-starlight-chase {
   animation: ledStarlightChase var(--led-animation-duration, 2.4s)
-    cubic-bezier(0.65, 0, 0.35, 1) infinite;
+    var(--led-animation-ease, cubic-bezier(0.65, 0, 0.35, 1)) infinite;
 }

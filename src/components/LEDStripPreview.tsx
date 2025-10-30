@@ -16,11 +16,24 @@ const LED_GROUPS = [
 
 type CSSVarProperties = CSSProperties & Record<`--${string}`, string | number>;
 
+interface ScenarioLedContext {
+  globalIndex: number;
+  groupId: (typeof LED_GROUPS)[number]["id"];
+  groupSize: number;
+  indexInGroup: number;
+  total: number;
+}
+
+type ScenarioLedStyleGenerator = (
+  context: ScenarioLedContext,
+) => Partial<CSSVarProperties> | undefined;
+
 interface ScenarioAnimationConfig {
   ledClassName: string;
   delayIncrement: number;
   duration: number;
   styleOverrides?: Partial<CSSVarProperties>;
+  perLedStyle?: ScenarioLedStyleGenerator;
 }
 
 export function LEDStripPreview({ settings, scenarioName }: LEDStripPreviewProps) {
@@ -41,27 +54,134 @@ export function LEDStripPreview({ settings, scenarioName }: LEDStripPreviewProps
   const highlightColor = lightenColor(0.32);
   const softGlowColor = lightenColor(0.08);
   const shadowColor = darkenColor(0.28);
-  const deepShadowColor = darkenColor(0.45);
   const animationDuration = 2.4 - alpha;
   const normalizedScenario = scenarioName.trim().toLowerCase();
 
+  const animationMetrics = useMemo(
+    () => {
+      const offOpacity = Math.max(0.12, 0.22 - alpha * 0.08);
+      const dimOpacity = Math.max(0.35, alpha * 0.5);
+      const midOpacity = Math.min(0.85, 0.5 + alpha * 0.3);
+      const peakOpacity = Math.min(1, 0.72 + alpha * 0.4);
+      const glowStrength = 12 + alpha * 18;
+      const baseBrightness = 0.85 + alpha * 0.3;
+      const peakBrightness = Math.min(1.55, baseBrightness + 0.28);
+      const dimBrightness = Math.max(0.45, baseBrightness - 0.25);
+      const offBrightness = Math.max(0.35, baseBrightness - 0.38);
+      const baseSaturation = 1 + alpha * 0.12;
+      const peakSaturation = Math.min(1.6, baseSaturation + 0.35);
+      const dimSaturation = Math.max(0.75, baseSaturation - 0.22);
+      const offSaturation = Math.max(0.6, baseSaturation - 0.35);
+
+      return {
+        offOpacity,
+        dimOpacity,
+        midOpacity,
+        peakOpacity,
+        glowStrength,
+        baseBrightness,
+        peakBrightness,
+        dimBrightness,
+        offBrightness,
+        baseSaturation,
+        peakSaturation,
+        dimSaturation,
+        offSaturation,
+      };
+    },
+    [alpha],
+  );
+
   const baseLedStyle = useMemo<CSSVarProperties>(() => {
+    const {
+      offOpacity,
+      dimOpacity,
+      midOpacity,
+      peakOpacity,
+      glowStrength,
+      baseBrightness,
+      peakBrightness,
+      dimBrightness,
+      offBrightness,
+      baseSaturation,
+      peakSaturation,
+      dimSaturation,
+      offSaturation,
+    } = animationMetrics;
+
     return {
       backgroundColor: baseColor,
-      backgroundImage: `radial-gradient(circle at 50% 45%, ${softGlowColor}, ${baseColor} 55%, ${shadowColor})`,
-      backgroundSize: "140% 140%",
-      boxShadow: `0 0 18px ${glowColor}`,
-      filter: `brightness(${0.9 + alpha * 0.45}) saturate(${1 + alpha * 0.18})`,
-      opacity: Math.max(0.55, alpha * 0.95),
+      boxShadow: `0 0 ${glowStrength}px ${glowColor}`,
+      filter: `brightness(${baseBrightness.toFixed(2)}) saturate(${baseSaturation.toFixed(2)})`,
+      opacity: peakOpacity,
+      "--led-color-primary": baseColor,
+      "--led-color-secondary": accentColor,
+      "--led-color-tertiary": highlightColor,
+      "--led-color-accent": softGlowColor,
+      "--led-off-opacity": offOpacity,
+      "--led-dim-opacity": dimOpacity,
+      "--led-mid-opacity": midOpacity,
+      "--led-peak-opacity": peakOpacity,
+      "--led-off-scale": 0.84,
+      "--led-dim-scale": 0.94,
+      "--led-mid-scale": 1.02,
+      "--led-peak-scale": 1.1,
+      "--led-glow-color": glowColor,
+      "--led-glow-strength": `${glowStrength}px`,
+      "--led-off-brightness": offBrightness.toFixed(2),
+      "--led-dim-brightness": dimBrightness.toFixed(2),
+      "--led-base-brightness": baseBrightness.toFixed(2),
+      "--led-peak-brightness": peakBrightness.toFixed(2),
+      "--led-off-saturation": offSaturation.toFixed(2),
+      "--led-dim-saturation": dimSaturation.toFixed(2),
+      "--led-base-saturation": baseSaturation.toFixed(2),
+      "--led-peak-saturation": peakSaturation.toFixed(2),
     };
-  }, [alpha, baseColor, glowColor, shadowColor, softGlowColor]);
+  }, [
+    accentColor,
+    animationMetrics,
+    baseColor,
+    glowColor,
+    highlightColor,
+    softGlowColor,
+  ]);
 
   const scenarioConfig = useMemo<ScenarioAnimationConfig>(() => {
+    const {
+      offOpacity,
+      dimOpacity,
+      midOpacity,
+      peakOpacity,
+      glowStrength,
+      baseBrightness,
+      peakBrightness,
+      dimBrightness,
+      offBrightness,
+      baseSaturation,
+      peakSaturation,
+      dimSaturation,
+      offSaturation,
+    } = animationMetrics;
+
     const defaultConfig: ScenarioAnimationConfig = {
       ledClassName: "animate-led-dim",
       delayIncrement: 0.14,
       duration: Math.max(1.6, animationDuration),
-      styleOverrides: {},
+      styleOverrides: {
+        "--led-off-opacity": offOpacity,
+        "--led-dim-opacity": dimOpacity,
+        "--led-mid-opacity": midOpacity,
+        "--led-peak-opacity": peakOpacity,
+        "--led-glow-strength": `${glowStrength}px`,
+        "--led-off-brightness": offBrightness.toFixed(2),
+        "--led-dim-brightness": dimBrightness.toFixed(2),
+        "--led-base-brightness": baseBrightness.toFixed(2),
+        "--led-peak-brightness": peakBrightness.toFixed(2),
+        "--led-off-saturation": offSaturation.toFixed(2),
+        "--led-dim-saturation": dimSaturation.toFixed(2),
+        "--led-base-saturation": baseSaturation.toFixed(2),
+        "--led-peak-saturation": peakSaturation.toFixed(2),
+      },
     };
 
     const createConfig = (config: Partial<ScenarioAnimationConfig>) => ({
@@ -79,10 +199,27 @@ export function LEDStripPreview({ settings, scenarioName }: LEDStripPreviewProps
         delayIncrement: 0.12,
         duration: 2.6,
         styleOverrides: {
-          backgroundImage: `radial-gradient(circle at 45% 40%, ${highlightColor}, ${accentColor}, ${shadowColor})`,
-          backgroundSize: "200% 200%",
-          boxShadow: `0 0 26px ${highlightColor}`,
-          filter: `brightness(${0.9 + alpha * 0.35}) saturate(${1 + alpha * 0.2})`,
+          "--led-color-secondary": highlightColor,
+          "--led-color-tertiary": accentColor,
+          "--led-color-accent": lightenColor(0.42),
+          "--led-off-opacity": Math.max(0.14, offOpacity - 0.03),
+          "--led-mid-opacity": Math.min(0.92, midOpacity + 0.1),
+          "--led-peak-opacity": Math.min(1, peakOpacity + 0.08),
+          "--led-peak-scale": 1.2,
+          "--led-mid-scale": 1.06,
+          "--led-dim-scale": 0.9,
+          "--led-glow-strength": `${(glowStrength + 6).toFixed(2)}px`,
+          "--led-peak-brightness": Math.min(1.7, peakBrightness + 0.15).toFixed(2),
+          "--led-peak-saturation": Math.min(1.7, peakSaturation + 0.2).toFixed(2),
+        },
+        perLedStyle: ({ globalIndex, total }) => {
+          if (total <= 1) {
+            return {};
+          }
+          const normalized = globalIndex / (total - 1);
+          return {
+            "--led-follow-strength": (0.9 + normalized * 0.2).toFixed(2),
+          };
         },
       });
     }
@@ -93,9 +230,29 @@ export function LEDStripPreview({ settings, scenarioName }: LEDStripPreviewProps
         delayIncrement: 0.1,
         duration: 2.4,
         styleOverrides: {
-          backgroundImage: `conic-gradient(from 160deg at 50% 50%, ${highlightColor}, ${accentColor}, ${baseColor}, ${shadowColor})`,
-          backgroundSize: "220% 220%",
-          boxShadow: `0 0 28px ${highlightColor}`,
+          "--led-color-secondary": highlightColor,
+          "--led-color-tertiary": accentColor,
+          "--led-color-accent": shadowColor,
+          "--led-off-scale": 0.82,
+          "--led-dim-scale": 0.9,
+          "--led-mid-scale": 1.05,
+          "--led-peak-scale": 1.24,
+          "--led-off-opacity": Math.max(0.12, offOpacity * 0.85),
+          "--led-dim-opacity": Math.max(0.32, dimOpacity * 0.88),
+          "--led-peak-opacity": Math.min(1, peakOpacity + 0.1),
+          "--led-glow-strength": `${(glowStrength + 8).toFixed(2)}px`,
+          "--led-peak-brightness": Math.min(1.65, peakBrightness + 0.2).toFixed(2),
+          "--led-dim-brightness": Math.max(0.4, dimBrightness - 0.05).toFixed(2),
+        },
+        perLedStyle: ({ globalIndex, total }) => {
+          if (total <= 1) {
+            return {};
+          }
+          const normalized = globalIndex / (total - 1);
+          return {
+            "--led-chase-brightness": (1 + normalized * 0.4).toFixed(2),
+            "--led-chase-glow": (0.6 + normalized * 0.4).toFixed(2),
+          };
         },
       });
     }
@@ -106,9 +263,25 @@ export function LEDStripPreview({ settings, scenarioName }: LEDStripPreviewProps
         delayIncrement: 0.16,
         duration: 3.4,
         styleOverrides: {
-          backgroundImage: `linear-gradient(135deg, ${accentColor}, rgba(120, 255, 214, 0.85), rgba(90, 150, 255, 0.8))`,
-          backgroundSize: "260% 260%",
-          boxShadow: `0 0 30px ${accentColor}`,
+          "--led-color-secondary": accentColor,
+          "--led-color-tertiary": highlightColor,
+          "--led-color-accent": lightenColor(0.42),
+          "--led-mid-scale": 1.07,
+          "--led-peak-scale": 1.16,
+          "--led-dim-scale": 0.92,
+          "--led-mid-opacity": Math.min(0.92, midOpacity + 0.08),
+          "--led-glow-strength": `${(glowStrength + 10).toFixed(2)}px`,
+          "--led-peak-brightness": Math.min(1.6, peakBrightness + 0.18).toFixed(2),
+          "--led-dim-brightness": Math.max(0.5, dimBrightness + 0.05).toFixed(2),
+        },
+        perLedStyle: ({ globalIndex, total }) => {
+          if (total <= 1) {
+            return {};
+          }
+          const normalized = globalIndex / (total - 1);
+          return {
+            "--led-aurora-drift": (normalized - 0.5).toFixed(2),
+          };
         },
       });
     }
@@ -119,9 +292,30 @@ export function LEDStripPreview({ settings, scenarioName }: LEDStripPreviewProps
         delayIncrement: 0.08,
         duration: 2.8,
         styleOverrides: {
-          backgroundImage: `linear-gradient(120deg, ${highlightColor}, #ff6ec7, #7fd1ff, ${accentColor})`,
-          backgroundSize: "280% 280%",
-          boxShadow: `0 0 32px ${highlightColor}`,
+          "--led-color-primary": baseColor,
+          "--led-color-secondary": "#ff6ec7",
+          "--led-color-tertiary": "#7fd1ff",
+          "--led-color-accent": accentColor,
+          "--led-peak-scale": 1.18,
+          "--led-mid-scale": 1.06,
+          "--led-dim-scale": 0.92,
+          "--led-glow-strength": `${(glowStrength + 12).toFixed(2)}px`,
+          "--led-base-saturation": Math.min(1.6, baseSaturation + 0.15).toFixed(2),
+          "--led-peak-saturation": Math.min(1.75, peakSaturation + 0.25).toFixed(2),
+          "--led-peak-brightness": Math.min(1.65, peakBrightness + 0.22).toFixed(2),
+          "--led-rainbow-mid-brightness": Math.min(
+            1.45,
+            peakBrightness + 0.12,
+          ).toFixed(2),
+        },
+        perLedStyle: ({ globalIndex, total }) => {
+          if (total <= 0) {
+            return {};
+          }
+          const normalized = total === 1 ? 0 : globalIndex / (total - 1);
+          return {
+            "--led-rainbow-brightness": (0.9 + normalized * 0.35).toFixed(2),
+          };
         },
       });
     }
@@ -132,10 +326,20 @@ export function LEDStripPreview({ settings, scenarioName }: LEDStripPreviewProps
         delayIncrement: 0.06,
         duration: 1.8,
         styleOverrides: {
-          backgroundImage: `radial-gradient(circle at 50% 30%, ${highlightColor}, ${accentColor}, ${deepShadowColor})`,
-          backgroundSize: "200% 200%",
-          boxShadow: `0 0 34px ${highlightColor}`,
-          filter: `brightness(${1.05 + alpha * 0.65}) saturate(${1.2 + alpha * 0.3})`,
+          "--led-color-secondary": highlightColor,
+          "--led-color-tertiary": accentColor,
+          "--led-color-accent": lightenColor(0.45),
+          "--led-off-opacity": Math.max(0.08, offOpacity * 0.6),
+          "--led-dim-opacity": Math.max(0.4, dimOpacity),
+          "--led-peak-opacity": 1,
+          "--led-off-scale": 0.78,
+          "--led-dim-scale": 0.92,
+          "--led-peak-scale": 1.32,
+          "--led-glow-strength": `${(glowStrength + 16).toFixed(2)}px`,
+          "--led-peak-brightness": Math.min(1.8, peakBrightness + 0.35).toFixed(2),
+          "--led-peak-saturation": Math.min(1.85, peakSaturation + 0.4).toFixed(2),
+          "--led-off-brightness": Math.max(0.4, offBrightness - 0.05).toFixed(2),
+          "--led-off-saturation": Math.max(0.6, offSaturation - 0.05).toFixed(2),
         },
       });
     }
@@ -146,8 +350,21 @@ export function LEDStripPreview({ settings, scenarioName }: LEDStripPreviewProps
         delayIncrement: 0.12,
         duration: 3.1,
         styleOverrides: {
-          backgroundImage: `linear-gradient(160deg, ${shadowColor}, ${baseColor}, ${highlightColor})`,
-          backgroundSize: "240% 240%",
+          "--led-color-secondary": accentColor,
+          "--led-color-tertiary": softGlowColor,
+          "--led-color-accent": highlightColor,
+          "--led-peak-scale": 1.14,
+          "--led-mid-scale": 1.02,
+          "--led-dim-scale": 0.9,
+          "--led-glow-strength": `${(glowStrength + 4).toFixed(2)}px`,
+          "--led-dim-brightness": Math.max(0.5, dimBrightness).toFixed(2),
+          "--led-peak-brightness": Math.min(1.55, peakBrightness + 0.12).toFixed(2),
+        },
+        perLedStyle: ({ indexInGroup, groupSize }) => {
+          const offset = indexInGroup - (groupSize - 1) / 2;
+          return {
+            "--led-wave-offset": offset.toFixed(2),
+          };
         },
       });
     }
@@ -158,9 +375,26 @@ export function LEDStripPreview({ settings, scenarioName }: LEDStripPreviewProps
         delayIncrement: 0.18,
         duration: 3.6,
         styleOverrides: {
-          backgroundImage: `radial-gradient(circle at 20% 20%, ${highlightColor}, ${accentColor}, ${shadowColor})`,
-          backgroundSize: "200% 200%",
-          boxShadow: `0 0 30px ${highlightColor}`,
+          "--led-color-secondary": highlightColor,
+          "--led-color-tertiary": accentColor,
+          "--led-color-accent": softGlowColor,
+          "--led-off-opacity": Math.max(0.16, offOpacity + 0.02),
+          "--led-dim-opacity": Math.max(0.42, dimOpacity + 0.05),
+          "--led-peak-opacity": Math.min(1, peakOpacity + 0.08),
+          "--led-peak-scale": 1.18,
+          "--led-dim-scale": 0.92,
+          "--led-glow-strength": `${(glowStrength + 6).toFixed(2)}px`,
+          "--led-peak-brightness": Math.min(1.6, peakBrightness + 0.18).toFixed(2),
+        },
+        perLedStyle: ({ globalIndex, total }) => {
+          if (total <= 1) {
+            return {};
+          }
+          const normalized = globalIndex / (total - 1);
+          const twinkle = 0.85 + Math.sin(normalized * Math.PI * 2) * 0.15;
+          return {
+            "--led-twinkle-strength": twinkle.toFixed(2),
+          };
         },
       });
     }
@@ -168,15 +402,16 @@ export function LEDStripPreview({ settings, scenarioName }: LEDStripPreviewProps
     return defaultConfig;
   }, [
     accentColor,
-    alpha,
     animationDuration,
+    animationMetrics,
     baseColor,
-    deepShadowColor,
     highlightColor,
     normalizedScenario,
     shadowColor,
+    softGlowColor,
   ]);
 
+  const totalLedCount = LED_GROUPS.reduce((count, group) => count + group.count, 0);
   let ledIndex = 0;
 
   return (
@@ -195,8 +430,11 @@ export function LEDStripPreview({ settings, scenarioName }: LEDStripPreviewProps
           {LED_GROUPS.map((group) => (
             <div key={group.id} className="flex items-center gap-4">
               {Array.from({ length: group.count }).map((_, index) => {
-                const delay = ledIndex * scenarioConfig.delayIncrement;
+                const currentIndex = ledIndex;
+                const delay = currentIndex * scenarioConfig.delayIncrement;
                 ledIndex++;
+                const normalizedPosition =
+                  totalLedCount > 1 ? currentIndex / (totalLedCount - 1) : 0;
                 const ledStyle: CSSVarProperties = {
                   ...baseLedStyle,
                 };
@@ -206,6 +444,19 @@ export function LEDStripPreview({ settings, scenarioName }: LEDStripPreviewProps
                 ledStyle.animationDelay = `${delay}s`;
                 ledStyle.animationDuration = `${scenarioConfig.duration}s`;
                 ledStyle["--led-animation-duration"] = `${scenarioConfig.duration}s`;
+                ledStyle["--led-position"] = normalizedPosition.toFixed(2);
+                if (scenarioConfig.perLedStyle) {
+                  Object.assign(
+                    ledStyle,
+                    scenarioConfig.perLedStyle({
+                      globalIndex: currentIndex,
+                      groupId: group.id,
+                      groupSize: group.count,
+                      indexInGroup: index,
+                      total: totalLedCount,
+                    }) ?? {},
+                  );
+                }
                 return (
                   <span
                     key={`${group.id}-${index}`}
