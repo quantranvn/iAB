@@ -16,6 +16,7 @@ function lightenChannel(value: number, amount: number) {
 }
 
 export function LEDStripPreview({ settings, scenarioName }: LEDStripPreviewProps) {
+  let ledIndex = 0;
   const { red, green, blue, intensity } = settings;
   const alpha = Math.max(intensity / 100, 0.25);
   const baseColor = `rgb(${red}, ${green}, ${blue})`;
@@ -26,7 +27,7 @@ export function LEDStripPreview({ settings, scenarioName }: LEDStripPreviewProps
   const glowColor = `rgba(${red}, ${green}, ${blue}, ${Math.min(alpha + 0.2, 1)})`;
   const animationDuration = 2.4 - alpha;
 
-  let ledIndex = 0;
+  
 
   return (
     <div className="w-full space-y-3">
@@ -45,7 +46,7 @@ export function LEDStripPreview({ settings, scenarioName }: LEDStripPreviewProps
             <div key={group.id} className="flex items-center gap-4">
               {Array.from({ length: group.count }).map((_, index) => {
                 const delay = ledIndex * 0.14;
-                ledIndex += 1;
+                ledIndex ++;
                 return (
                   <span
                     key={`${group.id}-${index}`}
