@@ -2435,6 +2435,38 @@ html {
     cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
+@keyframes ledFollowDim {
+  0%,
+  100% {
+    opacity: 0.22;
+    filter: brightness(0.78);
+    transform: scale(0.88);
+  }
+
+  28% {
+    opacity: 0.95;
+    filter: brightness(1.05);
+    transform: scale(1.08);
+  }
+
+  46% {
+    opacity: 1;
+    filter: brightness(1.12);
+    transform: scale(1.14);
+  }
+
+  70% {
+    opacity: 0.55;
+    filter: brightness(0.9);
+    transform: scale(0.96);
+  }
+}
+
+.animate-led-follow {
+  animation: ledFollowDim var(--led-animation-duration, 2.6s)
+    cubic-bezier(0.45, 0, 0.4, 1) infinite;
+}
+
 @keyframes ledRainbowFlow {
   0% {
     background-position: 0% 50%;
