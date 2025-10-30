@@ -41,7 +41,7 @@ export function LEDStripPreview({ settings, scenarioName }: LEDStripPreviewProps
         aria-label={`${scenarioName} animation preview`}
       >
         <div className="absolute inset-x-3 top-1/2 h-1.5 -translate-y-1/2 rounded-full bg-black/40 blur-sm" aria-hidden />
-        <div className="relative z-6 flex flex-wrap items-center justify-center gap-6">
+        <div className="relative z-10 flex items-center justify-center gap-2 flex-nowrap">
           {LED_GROUPS.map((group) => (
             <div key={group.id} className="flex items-center gap-6">
               {Array.from({ length: group.count }).map((_, index) => {
