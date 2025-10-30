@@ -2619,32 +2619,102 @@ html {
 }
 
 @keyframes ledWaveMotion {
-  0%,
-  100% {
+  0% {
     background-color: var(--led-color-primary);
-    opacity: var(--led-mid-opacity, 0.7);
-    transform: translateY(calc(var(--led-wave-offset, 0) * 6px))
-      scale(var(--led-dim-scale, 0.94));
-    filter: brightness(var(--led-dim-brightness, 0.82))
-      saturate(var(--led-dim-saturation, 0.95));
+    opacity: var(--led-off-opacity, 0.18);
+    transform: translateY(
+        calc(var(--led-wave-offset, 0) * var(--led-wave-depth, 6px) * 0.2)
+      )
+      scale(var(--led-off-scale, 0.84));
+    filter: brightness(var(--led-off-brightness, 0.6))
+      saturate(var(--led-off-saturation, 0.75));
+    box-shadow: 0 0 calc(var(--led-glow-strength, 18px) * 0.15)
+      var(--led-glow-color, currentColor);
+  }
+
+  20% {
+    background-color: var(--led-color-secondary, var(--led-color-primary));
+    opacity: var(--led-dim-opacity, 0.4);
+    transform: translateY(
+        calc(var(--led-wave-offset, 0) * var(--led-wave-depth, 6px) * 0.5)
+      )
+      scale(var(--led-dim-scale, 0.9));
+    filter: brightness(var(--led-dim-brightness, 0.75))
+      saturate(var(--led-dim-saturation, 0.9));
     box-shadow: 0 0 calc(var(--led-glow-strength, 18px) * 0.35)
       var(--led-glow-color, currentColor);
   }
 
-  50% {
+  40% {
+    background-color: var(--led-color-tertiary, var(--led-color-secondary));
+    opacity: var(--led-mid-opacity, 0.7);
+    transform: translateY(
+        calc(var(--led-wave-offset, 0) * var(--led-wave-depth, 6px) * -0.6)
+      )
+      scale(var(--led-mid-scale, 1.02));
+    filter: brightness(var(--led-base-brightness, 1))
+      saturate(var(--led-base-saturation, 1));
+    box-shadow: 0 0 calc(var(--led-glow-strength, 18px) * 0.65)
+      var(--led-glow-color, currentColor);
+  }
+
+  55% {
     background-color: var(--led-color-secondary, var(--led-color-primary));
-    opacity: var(--led-peak-opacity, 0.92);
-    transform: translateY(calc(var(--led-wave-offset, 0) * -10px))
-      scale(var(--led-peak-scale, 1.14));
-    filter: brightness(var(--led-peak-brightness, 1.4))
+    opacity: var(--led-peak-opacity, 0.95);
+    transform: translateY(
+        calc(var(--led-wave-offset, 0) * var(--led-wave-depth, 6px) * -1)
+      )
+      scale(var(--led-peak-scale, 1.16));
+    filter: brightness(var(--led-peak-brightness, 1.45))
       saturate(var(--led-peak-saturation, 1.2));
     box-shadow: 0 0 var(--led-glow-strength, 18px)
+      var(--led-glow-color, currentColor);
+  }
+
+  70% {
+    background-color: var(--led-color-tertiary, var(--led-color-secondary));
+    opacity: var(--led-mid-opacity, 0.7);
+    transform: translateY(
+        calc(var(--led-wave-offset, 0) * var(--led-wave-depth, 6px) * -0.4)
+      )
+      scale(var(--led-mid-scale, 1.02));
+    filter: brightness(var(--led-base-brightness, 1))
+      saturate(var(--led-base-saturation, 1));
+    box-shadow: 0 0 calc(var(--led-glow-strength, 18px) * 0.55)
+      var(--led-glow-color, currentColor);
+  }
+
+  85% {
+    background-color: var(--led-color-primary);
+    opacity: var(--led-dim-opacity, 0.4);
+    transform: translateY(
+        calc(var(--led-wave-offset, 0) * var(--led-wave-depth, 6px) * 0.35)
+      )
+      scale(var(--led-dim-scale, 0.9));
+    filter: brightness(var(--led-dim-brightness, 0.75))
+      saturate(var(--led-dim-saturation, 0.9));
+    box-shadow: 0 0 calc(var(--led-glow-strength, 18px) * 0.25)
+      var(--led-glow-color, currentColor);
+  }
+
+  100% {
+    background-color: var(--led-color-primary);
+    opacity: var(--led-off-opacity, 0.18);
+    transform: translateY(
+        calc(var(--led-wave-offset, 0) * var(--led-wave-depth, 6px) * 0.15)
+      )
+      scale(var(--led-off-scale, 0.84));
+    filter: brightness(var(--led-off-brightness, 0.6))
+      saturate(var(--led-off-saturation, 0.75));
+    box-shadow: 0 0 calc(var(--led-glow-strength, 18px) * 0.12)
       var(--led-glow-color, currentColor);
   }
 }
 
 .animate-led-wave {
-  animation: ledWaveMotion var(--led-animation-duration, 3s) ease-in-out infinite;
+  animation: ledWaveMotion var(--led-animation-duration, 3s)
+      cubic-bezier(0.65, 0.05, 0.36, 1)
+      infinite;
 }
 
 @keyframes ledStarlightTwinkle {
