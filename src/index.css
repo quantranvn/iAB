@@ -2410,23 +2410,24 @@ html {
 @keyframes ledDim {
   0%,
   100% {
-    opacity: 0.9;
+    opacity: 0.35;
+    transform: scale(0.95);
+  }
+
+  45% {
+    opacity: 1;
     transform: scale(1);
   }
 
-  40% {
-    opacity: 0.5;
-    transform: scale(0.97);
-  }
-
-  65% {
-    opacity: 0.7;
-    transform: scale(0.99);
+  70% {
+    opacity: 0.55;
+    transform: scale(0.98);
   }
 }
 
 .animate-led-dim {
-  animation: ledDim 3.2s var(--default-transition-timing-function) infinite;
+  animation: ledDim var(--led-animation-duration, 3.2s)
+    var(--default-transition-timing-function) infinite;
 }
 
 @keyframes ledRainbowFlow {
