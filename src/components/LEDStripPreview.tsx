@@ -347,23 +347,34 @@ export function LEDStripPreview({ settings, scenarioName }: LEDStripPreviewProps
     if (normalizedScenario.includes("ocean") || normalizedScenario.includes("wave")) {
       return createConfig({
         ledClassName: "animate-led-wave",
-        delayIncrement: 0.12,
-        duration: 3.1,
+        delayIncrement: 0.14,
+        duration: 3.4,
         styleOverrides: {
           "--led-color-secondary": accentColor,
           "--led-color-tertiary": softGlowColor,
           "--led-color-accent": highlightColor,
-          "--led-peak-scale": 1.14,
-          "--led-mid-scale": 1.02,
+          "--led-off-opacity": Math.max(0.12, offOpacity * 0.85),
+          "--led-dim-opacity": Math.max(0.38, dimOpacity * 0.95),
+          "--led-mid-opacity": Math.min(0.88, midOpacity + 0.05),
+          "--led-peak-opacity": Math.min(1, peakOpacity + 0.06),
+          "--led-peak-scale": 1.16,
+          "--led-mid-scale": 1.04,
           "--led-dim-scale": 0.9,
-          "--led-glow-strength": `${(glowStrength + 4).toFixed(2)}px`,
+          "--led-off-scale": 0.82,
+          "--led-glow-strength": `${(glowStrength + 5).toFixed(2)}px`,
+          "--led-off-brightness": Math.max(0.42, offBrightness * 0.9).toFixed(2),
           "--led-dim-brightness": Math.max(0.5, dimBrightness).toFixed(2),
-          "--led-peak-brightness": Math.min(1.55, peakBrightness + 0.12).toFixed(2),
+          "--led-peak-brightness": Math.min(1.6, peakBrightness + 0.15).toFixed(2),
+          "--led-off-saturation": Math.max(0.65, offSaturation * 0.92).toFixed(2),
         },
-        perLedStyle: ({ indexInGroup, groupSize }) => {
+        perLedStyle: ({ globalIndex, total, indexInGroup, groupSize }) => {
           const offset = indexInGroup - (groupSize - 1) / 2;
+          const normalized = total > 1 ? globalIndex / (total - 1) : 0;
+          const sway = Math.cos(normalized * Math.PI * 2) * 0.35;
+          const depth = 6 + Math.sin(normalized * Math.PI * 1.2) * 3.5;
           return {
-            "--led-wave-offset": offset.toFixed(2),
+            "--led-wave-offset": (offset + sway).toFixed(2),
+            "--led-wave-depth": `${depth.toFixed(2)}px`,
           };
         },
       });
