@@ -14,6 +14,22 @@ const LED_GROUPS = [
   { id: "right", count: 5, label: "Right" },
 ] as const;
 
+const GROUP_OFFSETS = (() => {
+  const offsets = new Map<(typeof LED_GROUPS)[number]["id"], number>();
+  let runningTotal = 0;
+  for (const group of LED_GROUPS) {
+    offsets.set(group.id, runningTotal);
+    runningTotal += group.count;
+  }
+  return offsets;
+})();
+
+const GROUP_INDEX_MAP = (() => {
+  const indices = new Map<(typeof LED_GROUPS)[number]["id"], number>();
+  LED_GROUPS.forEach((group, index) => indices.set(group.id, index));
+  return indices;
+})();
+
 type CSSVarProperties = CSSProperties & Record<`--${string}`, string | number>;
 
 interface ScenarioLedContext {
@@ -28,13 +44,21 @@ type ScenarioLedStyleGenerator = (
   context: ScenarioLedContext,
 ) => Partial<CSSVarProperties> | undefined;
 
+type ScenarioDelayStrategy = (context: ScenarioLedContext) => number;
+
 interface ScenarioAnimationConfig {
   ledClassName: string;
   delayIncrement: number;
   duration: number;
   styleOverrides?: Partial<CSSVarProperties>;
   perLedStyle?: ScenarioLedStyleGenerator;
+  delayStrategy?: ScenarioDelayStrategy;
 }
+
+const pseudoRandom = (seed: number) => {
+  const x = Math.sin(seed * 12.9898) * 43758.5453;
+  return x - Math.floor(x);
+};
 
 export function LEDStripPreview({ settings, scenarioName }: LEDStripPreviewProps) {
   const { red, green, blue, intensity } = settings;
@@ -110,8 +134,8 @@ export function LEDStripPreview({ settings, scenarioName }: LEDStripPreviewProps
     } = animationMetrics;
 
     return {
-      backgroundColor: baseColor,
-      boxShadow: `0 0 ${glowStrength}px ${glowColor}`,
+      backgroundColor: `var(--led-color-primary, ${baseColor})`,
+      boxShadow: `0 0 var(--led-glow-strength, ${glowStrength}px) var(--led-glow-color, ${glowColor})`,
       filter: `brightness(${baseBrightness.toFixed(2)}) saturate(${baseSaturation.toFixed(2)})`,
       opacity: peakOpacity,
       "--led-color-primary": baseColor,
@@ -182,6 +206,7 @@ export function LEDStripPreview({ settings, scenarioName }: LEDStripPreviewProps
         "--led-base-saturation": baseSaturation.toFixed(2),
         "--led-peak-saturation": peakSaturation.toFixed(2),
       },
+      delayStrategy: ({ globalIndex }) => globalIndex,
     };
 
     const createConfig = (config: Partial<ScenarioAnimationConfig>) => ({
@@ -275,6 +300,13 @@ export function LEDStripPreview({ settings, scenarioName }: LEDStripPreviewProps
           "--led-dim-brightness": Math.max(0.5, dimBrightness + 0.05).toFixed(2),
           "--led-aurora-drift": 0,
         },
+        delayStrategy: ({ globalIndex, total }) => {
+          if (total <= 1) {
+            return 0;
+          }
+          const center = (total - 1) / 2;
+          return Math.abs(globalIndex - center);
+        },
       });
     }
 
@@ -284,10 +316,6 @@ export function LEDStripPreview({ settings, scenarioName }: LEDStripPreviewProps
         delayIncrement: 0.08,
         duration: 2.8,
         styleOverrides: {
-          "--led-color-primary": baseColor,
-          "--led-color-secondary": "#ff6ec7",
-          "--led-color-tertiary": "#7fd1ff",
-          "--led-color-accent": accentColor,
           "--led-peak-scale": 1.18,
           "--led-mid-scale": 1.06,
           "--led-dim-scale": 0.92,
@@ -300,12 +328,32 @@ export function LEDStripPreview({ settings, scenarioName }: LEDStripPreviewProps
             peakBrightness + 0.12,
           ).toFixed(2),
         },
+        delayStrategy: ({ groupId, groupSize, indexInGroup }) => {
+          const baseOffset = GROUP_OFFSETS.get(groupId) ?? 0;
+          const groupIndex = GROUP_INDEX_MAP.get(groupId) ?? 0;
+          const direction = groupIndex % 2 === 0 ? 1 : -1;
+          const withinGroup =
+            direction > 0 ? indexInGroup : groupSize - 1 - indexInGroup;
+          return baseOffset + withinGroup;
+        },
         perLedStyle: ({ globalIndex, total }) => {
           if (total <= 0) {
             return {};
           }
           const normalized = total === 1 ? 0 : globalIndex / (total - 1);
+          const hue = (normalized * 360) % 360;
+          const primary = `hsl(${hue}deg, 92%, 56%)`;
+          const secondary = `hsl(${(hue + 40) % 360}deg, 95%, 63%)`;
+          const tertiary = `hsl(${(hue + 80) % 360}deg, 90%, 60%)`;
+          const accent = `hsl(${(hue + 20) % 360}deg, 96%, 70%)`;
+          const glow = `hsla(${hue}deg, 92%, 60%, 0.9)`;
           return {
+            backgroundColor: primary,
+            "--led-color-primary": primary,
+            "--led-color-secondary": secondary,
+            "--led-color-tertiary": tertiary,
+            "--led-color-accent": accent,
+            "--led-glow-color": glow,
             "--led-rainbow-brightness": (0.9 + normalized * 0.35).toFixed(2),
           };
         },
@@ -333,6 +381,8 @@ export function LEDStripPreview({ settings, scenarioName }: LEDStripPreviewProps
           "--led-off-brightness": Math.max(0.4, offBrightness - 0.05).toFixed(2),
           "--led-off-saturation": Math.max(0.6, offSaturation - 0.05).toFixed(2),
         },
+        delayStrategy: ({ globalIndex, total }) =>
+          pseudoRandom(globalIndex + 1) * Math.max(total, 1),
       });
     }
 
@@ -358,6 +408,12 @@ export function LEDStripPreview({ settings, scenarioName }: LEDStripPreviewProps
           "--led-dim-brightness": Math.max(0.5, dimBrightness).toFixed(2),
           "--led-peak-brightness": Math.min(1.6, peakBrightness + 0.15).toFixed(2),
           "--led-off-saturation": Math.max(0.65, offSaturation * 0.92).toFixed(2),
+        },
+        delayStrategy: ({ groupId, groupSize, indexInGroup }) => {
+          const baseOffset = GROUP_OFFSETS.get(groupId) ?? 0;
+          const center = (groupSize - 1) / 2;
+          const distance = Math.abs(indexInGroup - center);
+          return baseOffset + distance;
         },
         perLedStyle: ({ indexInGroup, groupSize }) => {
           const offset = indexInGroup - (groupSize - 1) / 2;
@@ -386,6 +442,8 @@ export function LEDStripPreview({ settings, scenarioName }: LEDStripPreviewProps
           "--led-glow-strength": `${(glowStrength + 6).toFixed(2)}px`,
           "--led-peak-brightness": Math.min(1.6, peakBrightness + 0.18).toFixed(2),
         },
+        delayStrategy: ({ globalIndex, total }) =>
+          pseudoRandom(globalIndex + 11) * Math.max(total, 1),
         perLedStyle: ({ globalIndex, total }) => {
           if (total <= 1) {
             return {};
@@ -431,7 +489,15 @@ export function LEDStripPreview({ settings, scenarioName }: LEDStripPreviewProps
             <div key={group.id} className="flex items-center gap-4">
               {Array.from({ length: group.count }).map((_, index) => {
                 const currentIndex = ledIndex;
-                const delay = currentIndex * scenarioConfig.delayIncrement;
+                const delayPosition =
+                  scenarioConfig.delayStrategy?.({
+                    globalIndex: currentIndex,
+                    groupId: group.id,
+                    groupSize: group.count,
+                    indexInGroup: index,
+                    total: totalLedCount,
+                  }) ?? currentIndex;
+                const delay = delayPosition * scenarioConfig.delayIncrement;
                 ledIndex++;
                 const normalizedPosition =
                   totalLedCount > 1 ? currentIndex / (totalLedCount - 1) : 0;
