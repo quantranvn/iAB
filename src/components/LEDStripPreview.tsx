@@ -36,11 +36,11 @@ export function LEDStripPreview({ settings, scenarioName }: LEDStripPreviewProps
         ))}
       </div>
       <div
-        className="relative w-full overflow-hidden rounded-2xl border border-border/70 bg-gradient-to-b from-background/40 via-background/10 to-background/50 px-6 py-6 shadow-inner"
+        className="relative w-full overflow-hidden rounded-2xl border border-border/70 bg-gradient-to-b from-background/40 via-background/10 to-background/50 px-8 py-6 shadow-inner"
         role="img"
         aria-label={`${scenarioName} animation preview`}
       >
-        <div className="relative z-6 flex flex-wrap items-center justify-center gap-6">
+        <div className="relative z-6 flex flex-wrap items-center justify-center gap-4">
           {LED_GROUPS.map((group) => (
             <div key={group.id} className="flex items-center gap-6">
               {Array.from({ length: group.count }).map((_, index) => {
@@ -49,7 +49,7 @@ export function LEDStripPreview({ settings, scenarioName }: LEDStripPreviewProps
                 return (
                   <span
                     key={`${group.id}-${index}`}
-                    className="relative flex h-3 w-2 items-center justify-center rounded-full bg-black/60"
+                    className="relative flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-black/60"
                     aria-hidden
                   >
                     <span
