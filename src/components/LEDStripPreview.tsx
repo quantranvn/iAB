@@ -49,7 +49,7 @@ export function LEDStripPreview({ settings, scenarioName }: LEDStripPreviewProps
                 return (
                   <span
                     key={`${group.id}-${index}`}
-                    className="relative flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-black/60"
+                    className="relative flex h-3 w-2 shrink-0 items-center justify-center rounded-full bg-black/60"
                     aria-hidden
                   >
                     <span
