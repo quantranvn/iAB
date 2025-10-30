@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Send, CheckCircle2 } from "lucide-react";
+import { Send, CheckCircle2, Sparkles } from "lucide-react";
 import { Button } from "./ui/button";
 import { Slider } from "./ui/slider";
 import { Label } from "./ui/label";
@@ -19,6 +19,7 @@ interface AnimationControlProps {
   onIntensityChange: (value: number[]) => void;
   onSend: () => void | Promise<void>;
   onOpenAnimationLibrary?: (scenarioId: number) => void;
+  onOpenAIGenerator?: (scenarioId: number) => void;
 }
 
 export function AnimationControl({
@@ -32,6 +33,7 @@ export function AnimationControl({
   onIntensityChange,
   onSend,
   onOpenAnimationLibrary,
+  onOpenAIGenerator,
 }: AnimationControlProps) {
   const [isSending, setIsSending] = useState(false);
   const [justSent, setJustSent] = useState(false);
@@ -84,6 +86,7 @@ export function AnimationControl({
             const isUserScenario = Boolean(scenario.sourceId);
             const isDisabled = scenario.disabled ?? false;
             const supportsLibrarySelection = scenario.supportsLibrarySelection ?? false;
+            const supportsAIGeneration = scenario.supportsAIGeneration ?? false;
             const subtitle =
               scenario.subtitle ?? (isUserScenario ? "My animation" : undefined);
 
@@ -136,20 +139,39 @@ export function AnimationControl({
                   )}
                 </div>
 
-                {supportsLibrarySelection && (
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="secondary"
-                    className="w-full"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      handleActivateScenario();
-                      onOpenAnimationLibrary?.(scenario.id);
-                    }}
-                  >
-                    {scenario.sourceId ? "Change animation" : "Choose animation"}
-                  </Button>
+                {(supportsLibrarySelection || supportsAIGeneration) && (
+                  <div className="mt-auto flex flex-col gap-2">
+                    {supportsLibrarySelection && (
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="secondary"
+                        className="w-full"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          handleActivateScenario();
+                          onOpenAnimationLibrary?.(scenario.id);
+                        }}
+                      >
+                        {scenario.sourceId ? "Change animation" : "Choose animation"}
+                      </Button>
+                    )}
+
+                    {supportsAIGeneration && (
+                      <Button
+                        type="button"
+                        size="sm"
+                        className="w-full"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          onOpenAIGenerator?.(scenario.id);
+                        }}
+                      >
+                        <Sparkles className="mr-2 h-4 w-4" />
+                        {scenario.actionLabel ?? "Generate with AI"}
+                      </Button>
+                    )}
+                  </div>
                 )}
               </div>
             );
