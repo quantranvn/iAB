@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Sparkles,
   CheckCircle2,
@@ -29,6 +29,7 @@ import {
   type StoreAnimation,
 } from "../utils/firebase";
 import { FALLBACK_USER_PROFILE } from "../types/userProfile";
+import type { LightSettings } from "../types/userProfile";
 
 const animationToolkitUrl =  `${import.meta.env.BASE_URL}Animation_Toolkit.html`;
 export const FALLBACK_FEATURED_ANIMATIONS: StoreAnimation[] = [
@@ -75,15 +76,23 @@ export type AnimationLibraryTab = "owned" | "store" | "designer";
 interface AppStoreDialogContentProps {
   activeUserId: string;
   onAnimationSelect?: (animationId: string) => void;
+  onDesignerAnimationLoaded?: (selection: DesignerAnimationSelection) => void;
   selectedAnimationId?: string | null;
   initialTab?: AnimationLibraryTab;
   onTabChange?: (tab: AnimationLibraryTab) => void;
   onClose?: () => void;
 }
 
+export interface DesignerAnimationSelection {
+  animation: StoreAnimation;
+  configJson: string;
+  previewSettings: LightSettings;
+}
+
 export function AppStoreDialogContent({
   activeUserId,
   onAnimationSelect,
+  onDesignerAnimationLoaded,
   selectedAnimationId,
   initialTab = "owned",
   onTabChange,
@@ -102,6 +111,22 @@ export function AppStoreDialogContent({
   const [activeTabState, setActiveTabState] = useState<AnimationLibraryTab>(initialTab);
   const [loading, setLoading] = useState(firebaseConfigured);
   const [usingFallbackData, setUsingFallbackData] = useState(!firebaseConfigured);
+  const [designerReady, setDesignerReady] = useState(false);
+  const designerIframeRef = useRef<HTMLIFrameElement | null>(null);
+
+  useEffect(() => {
+    const iframe = designerIframeRef.current;
+    if (!iframe) {
+      return undefined;
+    }
+
+    const handleLoad = () => setDesignerReady(true);
+    iframe.addEventListener("load", handleLoad);
+
+    return () => {
+      iframe.removeEventListener("load", handleLoad);
+    };
+  }, []);
 
   useEffect(() => {
     setActiveTabState(initialTab);
@@ -230,6 +255,83 @@ export function AppStoreDialogContent({
     [libraryAnimations],
   );
 
+  const derivePreviewSettings = (config: unknown): LightSettings => {
+    const fallback: LightSettings = { red: 122, green: 0, blue: 255, intensity: 90 };
+    if (!config || typeof config !== "object") {
+      return fallback;
+    }
+
+    const configObj = config as { configs?: Array<{ props?: { color?: string } }>; globalBrightness?: number };
+    const colorHexes =
+      configObj.configs?.map((item) => item?.props?.color).filter((value): value is string => typeof value === "string") ?? [];
+
+    if (colorHexes.length === 0) {
+      return fallback;
+    }
+
+    const hexToRgb = (hex: string) => {
+      const normalized = hex.startsWith("#") ? hex.slice(1) : hex;
+      const match = normalized.length === 3
+        ? normalized.split("").map((char) => char + char).join("")
+        : normalized;
+
+      const r = parseInt(match.slice(0, 2), 16);
+      const g = parseInt(match.slice(2, 4), 16);
+      const b = parseInt(match.slice(4, 6), 16);
+      return {
+        r: Number.isFinite(r) ? r : 122,
+        g: Number.isFinite(g) ? g : 0,
+        b: Number.isFinite(b) ? b : 255,
+      };
+    };
+
+    const totals = colorHexes.reduce(
+      (accumulator, color) => {
+        const { r, g, b } = hexToRgb(color);
+        return { r: accumulator.r + r, g: accumulator.g + g, b: accumulator.b + b };
+      },
+      { r: 0, g: 0, b: 0 },
+    );
+
+    const average = {
+      red: Math.round(totals.r / colorHexes.length),
+      green: Math.round(totals.g / colorHexes.length),
+      blue: Math.round(totals.b / colorHexes.length),
+    };
+
+    const intensity = Math.round(
+      Math.min(Math.max((configObj.globalBrightness ?? 0.9) * 100, 0), 100),
+    );
+
+    return { ...average, intensity };
+  };
+
+  const getDesignerConfig = () => {
+    try {
+      if (!designerReady) {
+        toast.error("The designer is still loading. Please try again in a moment.");
+        return null;
+      }
+
+      const contentWindow = designerIframeRef.current?.contentWindow as
+        | (Window & { getConfigJsonObject?: () => unknown })
+        | null;
+
+      const config = contentWindow?.getConfigJsonObject?.();
+
+      if (!config) {
+        toast.error("Unable to read the current designer animation.");
+        return null;
+      }
+
+      return config;
+    } catch (error) {
+      console.error("Failed to read designer config", error);
+      toast.error("Something went wrong while loading the designer animation.");
+      return null;
+    }
+  };
+
   const handlePlayAnimation = (animation: StoreAnimation) => {
     onAnimationSelect?.(animation.id);
     toast.success(`Queued ${animation.name} for playback`);
@@ -237,10 +339,24 @@ export function AppStoreDialogContent({
   };
 
   const handleOpenInDesigner = (animation: StoreAnimation) => {
+    const designerConfig = getDesignerConfig();
+    if (designerConfig) {
+      const configJson = JSON.stringify(designerConfig, null, 2);
+      const previewSettings = derivePreviewSettings(designerConfig);
+      setOwnedAnimations((previous) =>
+        previous.map((item) =>
+          item.id === animation.id ? { ...item, designerConfigJson: configJson } : item,
+        ),
+      );
+      onDesignerAnimationLoaded?.({ animation, configJson, previewSettings });
+      toast.success(`Loaded ${animation.name} from the animation designer`, {
+        description: "Sending to your LED strip for a quick demo.",
+      });
+    }
+
     setDesignerAnimation(animation);
     onAnimationSelect?.(animation.id);
     setActiveTabState("designer");
-    toast.success(`Loaded ${animation.name} from the animation designer`);
   };
 
   const handlePreviewAnimation = (animation: StoreAnimation) => {
@@ -565,6 +681,7 @@ export function AppStoreDialogContent({
             <div className="space-y-6 pb-4 h-[85vh]">
               <section className="space-y-4">
                   <iframe
+                    ref={designerIframeRef}
                     title="Animation designer toolkit"
                     src={animationToolkitUrl}
                     className="h-[85vh] w-full min-h-[600px] border-0 bg-background"

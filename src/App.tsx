@@ -31,6 +31,7 @@ import { BluetoothConnectionTransport } from "./utils/bluetooth-types";
 import {
   AppStoreDialogContent,
   FALLBACK_USER_ANIMATIONS,
+  type DesignerAnimationSelection,
   type AnimationLibraryTab,
 } from "./components/AppStore";
 import { ModeToggle } from "./components/ModeToggle";
@@ -422,6 +423,11 @@ const [animationCatalog, setAnimationCatalog] = useState<StoreAnimation[]>([]);
     });
 
     toast.success(`Selected ${animation.name}`);
+  };
+
+  const handleDesignerAnimationLoaded = ({ previewSettings }: DesignerAnimationSelection) => {
+    setAnimation(previewSettings);
+    void sendAnimationCommand(CUSTOM_ANIMATION_SCENARIO_ID, previewSettings);
   };
 
   const userAnimationScenarioData = useMemo(() => {
@@ -917,6 +923,7 @@ const [animationCatalog, setAnimationCatalog] = useState<StoreAnimation[]>([]);
             <AppStoreDialogContent
               activeUserId={activeUserId}
               onAnimationSelect={handleSelectUserAnimationById}
+              onDesignerAnimationLoaded={handleDesignerAnimationLoaded}
               selectedAnimationId={selectedUserAnimationId}
               initialTab={appStoreInitialTab}
               onTabChange={setAppStoreInitialTab}
