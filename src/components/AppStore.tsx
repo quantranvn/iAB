@@ -434,14 +434,9 @@ export function AppStoreDialogContent({
           item.id === animation.id ? enhancedAnimation : item,
         ),
       );
-
-      onDesignerAnimationLoaded?.({
-        animation: enhancedAnimation,
-        configJson: serializedDesignerConfig,
-        previewSettings,
-      });
-      lastDesignerConfigRef.current = `${animation.id}:${serializedDesignerConfig}`;
-      setDesignerAnimation(enhancedAnimation);
+      onDesignerAnimationLoaded?.({ animation, configJson, previewSettings });
+      lastDesignerConfigRef.current = `${animation.id}:${configJson}`;
+      nextDesignerAnimation = enhancedAnimation;
       toast.success(`Loaded ${animation.name} from the animation designer`, {
         description: "Sending to your LED strip for a quick demo.",
       });
