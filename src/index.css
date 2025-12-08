@@ -2446,8 +2446,10 @@ html {
   display: flex;
   flex-wrap: nowrap;
   justify-content: center;
-  gap: 0.65rem;
-  padding: 0.75rem 0.5rem 0.25rem;
+  transform: scale(0.78);    
+  transform-origin: top center;
+  gap: 0.45rem;
+  padding: 0.5rem 0.25rem 0.2rem;
   overflow-x: auto;
 }
 
@@ -2458,8 +2460,8 @@ html {
 }
 
 .toolkit-led-shell {
-  width: 30px;
-  height: 48px;
+  width: 22px;
+  height: 36px;
   border-radius: 9999px;
   background: #050710;
   border: 1px solid rgba(90, 108, 225, 0.45);
@@ -2483,8 +2485,8 @@ html {
 }
 
 .toolkit-led {
-  width: 18px;
-  height: 32px;
+  width: 14px;
+  height: 24px;
   border-radius: 9999px;
   background: #050710;
   position: relative;
