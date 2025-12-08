@@ -2408,12 +2408,12 @@ html {
   }
 }
 .toolkit-strip {
-  border-radius: 1rem;
+  border-radius: 0.5rem;
   border: 1px solid rgba(90, 108, 225, 0.4);
   background: radial-gradient(circle at 30% 0%, rgba(90, 108, 225, 0.18), transparent 45%),
     linear-gradient(145deg, rgba(12, 16, 34, 0.9), rgba(6, 8, 18, 0.9));
   box-shadow: 0 12px 28px rgba(0, 0, 0, 0.35);
-  padding: 0.5rem 0.5rem 0.5rem;
+  padding: 0.2rem 0.2rem 0.2rem;
   position: relative;
   max-width: 100%;
   overflow: hidden;
@@ -2423,7 +2423,7 @@ html {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: 0.75rem;
+  font-size: 0.5rem;
   color: rgba(226, 232, 255, 0.85);
   letter-spacing: 0.02em;
   text-transform: uppercase;
@@ -2436,7 +2436,7 @@ html {
 .toolkit-strip__status {
   border-radius: 9999px;
   border: 1px solid rgba(118, 133, 255, 0.5);
-  padding: 0.2rem 0.75rem;
+  padding: 0.2rem 0.5rem;
   background: rgba(118, 133, 255, 0.12);
   color: #d9dcff;
   font-weight: 600;
@@ -2444,14 +2444,14 @@ html {
 
 .toolkit-strip__leds { 
   width: 100%; 
-  margin-top: 0.2rem; 
+  margin-top: 0.1rem; 
   display: flex; 
   flex-wrap: nowrap; 
   justify-content: space-evenly; 
-  transform: scale(0.70); 
+  transform: scale(0.6); 
   transform-origin: top center; 
-  gap: 0.2rem; 
-  padding: 0.2rem 0.2rem 0.2rem; 
+  gap: 0.1rem; 
+  padding: 0.1rem 0.1rem 0.1rem; 
   overflow-x: auto; }
 
 
@@ -2462,8 +2462,8 @@ html {
 }
 
 .toolkit-led-shell {
-  width: 22px;
-  height: 36px;
+  width: 20px;
+  height: 30px;
   border-radius: 9999px;
   background: #050710;
   border: 1px solid rgba(90, 108, 225, 0.45);
@@ -2478,7 +2478,7 @@ html {
 .toolkit-led-shell::after {
   content: "";
   position: absolute;
-  inset: 4px 3px;
+  inset: 3px 2px;
   background: radial-gradient(circle at 30% 20%, rgba(255, 255, 255, 0.6), transparent);
   border-radius: inherit;
   opacity: 0.7;
@@ -2487,8 +2487,8 @@ html {
 }
 
 .toolkit-led {
-  width: 14px;
-  height: 24px;
+  width: 10px;
+  height: 20px;
   border-radius: 9999px;
   background: #050710;
   position: relative;
