@@ -550,7 +550,7 @@ export function AppStoreDialogContent({
               <section className="space-y-4">
                 <div className="rounded-2xl border border-border/60 bg-card/80 p-4 shadow-sm backdrop-blur sm:p-6">
                   <div className="flex items-center gap-2 text-lg font-semibold">
-                    <Wand2 className="max-h-[55vh] w-5 text-primary" />
+                    <Wand2 className="h-5 w-5 text-primary" />
                     Animation designer toolkit
                   </div>
                   <p className="mt-2 text-sm text-muted-foreground">
