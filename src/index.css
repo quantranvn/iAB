@@ -2444,10 +2444,11 @@ html {
 .toolkit-strip__leds {
   margin-top: 0.75rem;
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   justify-content: center;
   gap: 0.65rem;
   padding: 0.75rem 0.5rem 0.25rem;
+  overflow-x: auto;
 }
 
 .toolkit-led-group {
