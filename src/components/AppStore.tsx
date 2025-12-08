@@ -290,31 +290,32 @@ export function AppStoreDialogContent({
         onValueChange={(value) => setActiveTabState(value as AnimationLibraryTab)}
         className="mt-4 flex flex-1 flex-col gap-4"
       >
-      <TabsList className="grid grid-cols-3 gap-2 h-auto">
-        <TabsTrigger
-          value="owned"
-          className="flex items-center justify-center gap-2 w-full"
-        >
+      <TabsList
+        className="
+          flex
+          space-x-2
+          overflow-x-auto
+          whitespace-nowrap
+          no-scrollbar
+          h-auto
+        "
+      >
+        <TabsTrigger value="owned" className="flex items-center gap-2 px-3 py-2">
           <CheckCircle2 className="h-4 w-4" />
           Owned
         </TabsTrigger>
       
-        <TabsTrigger
-          value="store"
-          className="flex items-center justify-center gap-2 w-full"
-        >
+        <TabsTrigger value="store" className="flex items-center gap-2 px-3 py-2">
           <Sparkles className="h-4 w-4" />
           Store
         </TabsTrigger>
       
-        <TabsTrigger
-          value="designer"
-          className="flex items-center justify-center gap-2 w-full"
-        >
+        <TabsTrigger value="designer" className="flex items-center gap-2 px-3 py-2">
           <Wand2 className="h-4 w-4" />
           Designer
         </TabsTrigger>
       </TabsList>
+
 
 
         <TabsContent value="owned" className="mt-0 flex-1">
