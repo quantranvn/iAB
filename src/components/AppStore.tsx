@@ -299,9 +299,15 @@ export function AppStoreDialogContent({
             <Sparkles className="h-4 w-4" />
             Store
           </TabsTrigger>
-          <TabsTrigger value="designer" className="gap-2 whitespace-nowrap">
+          <TabsTrigger
+            value="designer"
+            className="gap-2 text-xs sm:text-sm max-w-[7.5rem] sm:max-w-none truncate"
+          >
             <Wand2 className="h-4 w-4" />
-            Animation designer
+            {/* short label on very small screens */}
+            <span className="sm:hidden">Designer</span>
+            {/* full label once there is room */}
+            <span className="hidden sm:inline">Animation designer</span>
           </TabsTrigger>
         </TabsList>
 
