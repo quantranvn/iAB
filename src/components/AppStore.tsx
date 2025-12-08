@@ -8,6 +8,7 @@ import {
   Coins,
   ShoppingBag,
   ArrowRight,
+  Wand2,
 } from "lucide-react";
 import {
   DialogContent,
@@ -28,6 +29,8 @@ import {
   type StoreAnimation,
 } from "../utils/firebase";
 import { FALLBACK_USER_PROFILE } from "../types/userProfile";
+
+const animationToolkitUrl = "/Animation_Toolkit.html";
 
 export const FALLBACK_FEATURED_ANIMATIONS: StoreAnimation[] = [
   {
@@ -68,7 +71,7 @@ export const FALLBACK_USER_ANIMATIONS: StoreAnimation[] = [
   },
 ];
 
-export type AnimationLibraryTab = "owned" | "store";
+export type AnimationLibraryTab = "owned" | "store" | "designer";
 
 interface AppStoreDialogContentProps {
   activeUserId: string;
@@ -95,6 +98,7 @@ export function AppStoreDialogContent({
   const [ownedAnimations, setOwnedAnimations] = useState<StoreAnimation[]>(
     FALLBACK_USER_ANIMATIONS,
   );
+  const [designerAnimation, setDesignerAnimation] = useState<StoreAnimation | null>(null);
   const [tokenBalance, setTokenBalance] = useState<number>(fallbackTokenBalance);
   const [activeTabState, setActiveTabState] = useState<AnimationLibraryTab>(initialTab);
   const [loading, setLoading] = useState(firebaseConfigured);
@@ -218,6 +222,12 @@ export function AppStoreDialogContent({
     onClose?.();
   };
 
+  const handleOpenInDesigner = (animation: StoreAnimation) => {
+    setDesignerAnimation(animation);
+    setActiveTabState("designer");
+    toast.success(`Loaded ${animation.name} into the animation designer`);
+  };
+
   const handlePreviewAnimation = (animation: StoreAnimation) => {
     toast.info(`Preview "${animation.name}" coming soon.`);
   };
@@ -280,7 +290,7 @@ export function AppStoreDialogContent({
         onValueChange={(value) => setActiveTabState(value as AnimationLibraryTab)}
         className="mt-4 flex flex-1 flex-col gap-4"
       >
-        <TabsList className="grid grid-cols-2">
+        <TabsList className="grid grid-cols-3">
           <TabsTrigger value="owned" className="gap-2">
             <CheckCircle2 className="h-4 w-4" />
             Owned
@@ -288,6 +298,10 @@ export function AppStoreDialogContent({
           <TabsTrigger value="store" className="gap-2">
             <Sparkles className="h-4 w-4" />
             Store
+          </TabsTrigger>
+          <TabsTrigger value="designer" className="gap-2">
+            <Wand2 className="h-4 w-4" />
+            Animation designer
           </TabsTrigger>
         </TabsList>
 
@@ -340,15 +354,26 @@ export function AppStoreDialogContent({
                                 <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
                                   Synced to rider profile
                                 </span>
-                                <Button
-                                  size="sm"
-                                  className="gap-2"
-                                  variant={isActive ? "secondary" : "default"}
-                                  onClick={() => handlePlayAnimation(animation)}
-                                >
-                                  <PlayCircle className="h-4 w-4" />
-                                  {isActive ? "Now playing" : "Play on scooter"}
-                                </Button>
+                                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
+                                  <Button
+                                    size="sm"
+                                    className="gap-2"
+                                    variant={isActive ? "secondary" : "default"}
+                                    onClick={() => handlePlayAnimation(animation)}
+                                  >
+                                    <PlayCircle className="h-4 w-4" />
+                                    {isActive ? "Now playing" : "Play on scooter"}
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="gap-2"
+                                    onClick={() => handleOpenInDesigner(animation)}
+                                  >
+                                    <Wand2 className="h-4 w-4" />
+                                    Choose for designer
+                                  </Button>
+                                </div>
                               </div>
                             </div>
                           </div>
@@ -501,6 +526,51 @@ export function AppStoreDialogContent({
                       );
                     })
                   )}
+                </div>
+              </section>
+            </div>
+          </ScrollArea>
+        </TabsContent>
+
+        <TabsContent value="designer" className="mt-0 flex-1">
+          <ScrollArea className="max-h-[55vh] pr-4">
+            <div className="space-y-4 pb-4">
+              <section className="space-y-4">
+                <div className="rounded-2xl border border-border/60 bg-card/80 p-4 shadow-sm backdrop-blur sm:p-6">
+                  <div className="flex items-center gap-2 text-lg font-semibold">
+                    <Wand2 className="h-5 w-5 text-primary" />
+                    Animation designer toolkit
+                  </div>
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    Craft custom LED shows with the full animation toolkit. Designs here use the same LED strip preview as the rest
+                    of the app, so your scooter playback stays consistent.
+                  </p>
+
+                  <div className="mt-3 rounded-xl border border-dashed bg-muted/40 p-3 text-sm text-muted-foreground">
+                    {designerAnimation ? (
+                      <div className="flex flex-col gap-1">
+                        <span className="text-xs font-semibold uppercase tracking-wide text-primary">
+                          Selected from library
+                        </span>
+                        <span className="text-base font-semibold text-foreground">{designerAnimation.name}</span>
+                        <span>{designerAnimation.description}</span>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col gap-1">
+                        <span className="text-xs font-semibold uppercase tracking-wide text-primary">No animation pinned</span>
+                        <span>Choose a library animation to preload it into the designer workspace.</span>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="mt-4 overflow-hidden rounded-xl border shadow-inner">
+                    <iframe
+                      title="Animation designer toolkit"
+                      src={animationToolkitUrl}
+                      className="h-[640px] w-full border-0 bg-background"
+                      loading="lazy"
+                    />
+                  </div>
                 </div>
               </section>
             </div>

@@ -474,19 +474,14 @@ export function LEDStripPreview({ settings, scenarioName }: LEDStripPreviewProps
 
   return (
     <div className="w-full space-y-3">
-      <div className="flex items-center justify-between text-[0.625rem] uppercase tracking-[0.45em] text-muted-foreground">
-        {LED_GROUPS.map((group) => (
-          <span key={group.id}>{group.label}</span>
-        ))}
-      </div>
-      <div
-        className="relative w-full overflow-hidden rounded-2xl border border-border/70 bg-gradient-to-b from-background/40 via-background/10 to-background/50 px-8 py-6 shadow-inner"
-        role="img"
-        aria-label={`${scenarioName} animation preview`}
-      >
-        <div className="relative z-6 flex flex-wrap items-center justify-center gap-4">
+      <div className="toolkit-strip" role="img" aria-label={`${scenarioName} animation preview`}>
+        <div className="toolkit-strip__header">
+          <span className="toolkit-strip__title">Virtual strip</span>
+          <span className="toolkit-strip__status">{scenarioName}</span>
+        </div>
+        <div className="toolkit-strip__leds">
           {LED_GROUPS.map((group) => (
-            <div key={group.id} className="flex items-center gap-4">
+            <div key={group.id} className="toolkit-led-group">
               {Array.from({ length: group.count }).map((_, index) => {
                 const currentIndex = ledIndex;
                 const delayPosition =
@@ -524,24 +519,16 @@ export function LEDStripPreview({ settings, scenarioName }: LEDStripPreviewProps
                   );
                 }
                 return (
-                  <span
-                    key={`${group.id}-${index}`}
-                    className="relative flex h-3 w-2 shrink-0 items-center justify-center rounded-full bg-black/60"
-                    aria-hidden
-                  >
-                    <span
-                      className={`h-6 w-6 rounded-full ${scenarioConfig.ledClassName}`}
-                      style={ledStyle}
-                    />
+                  <span key={`${group.id}-${index}`} className="toolkit-led-shell" aria-hidden>
+                    <span className={`toolkit-led ${scenarioConfig.ledClassName}`} style={ledStyle} />
                   </span>
                 );
               })}
             </div>
           ))}
         </div>
-        <div className="absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-background via-background/10 to-transparent" aria-hidden />
       </div>
-      <p className="text-center text-sm text-muted-foreground">Demo animation preview</p>
+      <p className="text-center text-sm text-muted-foreground">Toolkit LED strip preview</p>
     </div>
   );
 }
