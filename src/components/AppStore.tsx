@@ -117,6 +117,7 @@ export function AppStoreDialogContent({
   const [usingFallbackData, setUsingFallbackData] = useState(!firebaseConfigured);
   const [designerReady, setDesignerReady] = useState(false);
   const designerIframeRef = useRef<HTMLIFrameElement | null>(null);
+  const lastDesignerConfigRef = useRef<string | null>(null);
 
   useEffect(() => {
     const iframe = designerIframeRef.current;
@@ -259,7 +260,7 @@ export function AppStoreDialogContent({
     [libraryAnimations],
   );
 
-  const derivePreviewSettings = (config: unknown): LightSettings => {
+  const derivePreviewSettings = useCallback((config: unknown): LightSettings => {
     const fallback: LightSettings = { red: 122, green: 0, blue: 255, intensity: 90 };
     if (!config || typeof config !== "object") {
       return fallback;
@@ -308,7 +309,7 @@ export function AppStoreDialogContent({
     );
 
     return { ...average, intensity };
-  };
+  }, []);
 
   const getDesignerConfig = () => {
     try {
@@ -368,8 +369,34 @@ export function AppStoreDialogContent({
     const applied = applyDesignerConfig(designerAnimation.designerConfigJson);
     if (!applied) {
       toast.error("Unable to load the selected animation into the designer preview.");
+      return;
     }
-  }, [applyDesignerConfig, designerAnimation?.designerConfigJson, designerReady]);
+
+    try {
+      const parsedConfig = JSON.parse(designerAnimation.designerConfigJson);
+      const configSignature = `${designerAnimation.id}:${designerAnimation.designerConfigJson}`;
+
+      if (lastDesignerConfigRef.current !== configSignature) {
+        lastDesignerConfigRef.current = configSignature;
+        const previewSettings = derivePreviewSettings(parsedConfig);
+        onDesignerAnimationLoaded?.({
+          animation: designerAnimation,
+          configJson: designerAnimation.designerConfigJson,
+          previewSettings,
+        });
+      }
+    } catch (error) {
+      console.error("Failed to parse designer config for playback", error);
+      toast.error("Unable to preview the designer animation on the virtual strip.");
+    }
+  }, [
+    applyDesignerConfig,
+    designerAnimation,
+    designerAnimation?.designerConfigJson,
+    designerReady,
+    derivePreviewSettings,
+    onDesignerAnimationLoaded,
+  ]);
 
   const handlePlayAnimation = (animation: StoreAnimation) => {
     onAnimationSelect?.(animation.id);
@@ -378,26 +405,50 @@ export function AppStoreDialogContent({
   };
 
   const handleOpenInDesigner = (animation: StoreAnimation) => {
-    const designerConfig = getDesignerConfig();
-    let nextDesignerAnimation: StoreAnimation = animation;
+    const currentDesignerConfig = getDesignerConfig();
+    const serializedDesignerConfig =
+      animation.designerConfigJson ??
+      (currentDesignerConfig ? JSON.stringify(currentDesignerConfig, null, 2) : null);
 
-    if (designerConfig) {
-      const configJson = JSON.stringify(designerConfig, null, 2);
-      const previewSettings = derivePreviewSettings(designerConfig);
-      const enhancedAnimation: StoreAnimation = { ...animation, designerConfigJson: configJson };
+    if (serializedDesignerConfig) {
+      let parsedConfig: unknown;
+
+      try {
+        parsedConfig = JSON.parse(serializedDesignerConfig);
+      } catch (error) {
+        console.error("Failed to parse designer config for selection", error);
+        toast.error("Unable to load this animation into the designer.");
+        setDesignerAnimation(animation);
+        onAnimationSelect?.(animation.id);
+        setActiveTabState("designer");
+        return;
+      }
+      const previewSettings = derivePreviewSettings(parsedConfig);
+      const enhancedAnimation: StoreAnimation = {
+        ...animation,
+        designerConfigJson: serializedDesignerConfig,
+      };
+
       setOwnedAnimations((previous) =>
         previous.map((item) =>
           item.id === animation.id ? enhancedAnimation : item,
         ),
       );
-      onDesignerAnimationLoaded?.({ animation, configJson, previewSettings });
-      nextDesignerAnimation = enhancedAnimation;
+
+      onDesignerAnimationLoaded?.({
+        animation: enhancedAnimation,
+        configJson: serializedDesignerConfig,
+        previewSettings,
+      });
+      lastDesignerConfigRef.current = `${animation.id}:${serializedDesignerConfig}`;
+      setDesignerAnimation(enhancedAnimation);
       toast.success(`Loaded ${animation.name} from the animation designer`, {
         description: "Sending to your LED strip for a quick demo.",
       });
+    } else {
+      setDesignerAnimation(animation);
     }
 
-    setDesignerAnimation(nextDesignerAnimation);
     onAnimationSelect?.(animation.id);
     setActiveTabState("designer");
   };
