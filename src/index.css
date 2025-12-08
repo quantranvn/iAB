@@ -2447,8 +2447,8 @@ html {
   margin-top: 0.75rem;
   display: flex;
   flex-wrap: nowrap;
-  justify-content: center;
-  transform: scale(0.78);    
+  justify-content: space-between;
+  transform: scale(0.70);    
   transform-origin: top center;
   gap: 0.45rem;
   padding: 0.5rem 0.25rem 0.2rem;
