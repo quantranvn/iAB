@@ -546,7 +546,7 @@ export function AppStoreDialogContent({
 
         <TabsContent value="designer" className="mt-0 flex-1">
           <ScrollArea className="max-h-[55vh] pr-4">
-            <div className="space-y-4 pb-4">
+            <div className="space-y-6 pb-4">  
               <section className="space-y-4">
                 <div className="rounded-2xl border border-border/60 bg-card/80 p-4 shadow-sm backdrop-blur sm:p-6">
                   <div className="flex items-center gap-2 text-lg font-semibold">
@@ -556,9 +556,6 @@ export function AppStoreDialogContent({
                   <p className="mt-2 text-sm text-muted-foreground">
                     Craft custom LED shows with the full animation toolkit.
                   </p>
-
-
-
                   <div className="mt-4 overflow-hidden rounded-xl border shadow-inner">
                     <iframe
                       title="Animation designer toolkit"
@@ -572,6 +569,7 @@ export function AppStoreDialogContent({
             </div>
           </ScrollArea>
         </TabsContent>
+        
       </Tabs>
     </DialogContent>
   );
