@@ -548,7 +548,7 @@ export function AppStoreDialogContent({
           <ScrollArea className="h-[55vh] pr-4">
             <div className="space-y-6 pb-4 h-full">
               <section className="h-full">
-                  <div className="mt-4 flex-1 overflow-hidden rounded-xl border shadow-inner">
+                  <div className="mt-4 h-[50vh] overflow-hidden rounded-xl border shadow-inner">
                     <iframe
                       title="Animation designer toolkit"
                       src={animationToolkitUrl}
