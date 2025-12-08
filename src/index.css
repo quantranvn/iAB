@@ -2443,7 +2443,7 @@ html {
 }
 
 .toolkit-strip__leds {
-  width: 90%;
+  width: 100%;
   margin-top: 0.75rem;
   display: flex;
   flex-wrap: nowrap;
