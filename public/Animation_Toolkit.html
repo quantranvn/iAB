@@ -1891,6 +1891,21 @@
     };
   }
 
+  // Communicate with parent iframe host
+  if (window.parent) {
+    window.parent.postMessage({ type: "animation-toolkit-ready" }, "*");
+  }
+
+  window.addEventListener("message", (event) => {
+    const data = event.data;
+
+    if (!data || typeof data !== "object") return;
+
+    if (data.type === "request-animation-export" && window.parent) {
+      window.parent.postMessage({ type: "animation-export", payload: getConfigJsonObject() }, "*");
+    }
+  });
+
   function exportCurrentConfigToText() {
     const obj = getConfigJsonObject();
     configJsonText.value = JSON.stringify(obj, null, 2);

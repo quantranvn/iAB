@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Sparkles,
   CheckCircle2,
@@ -75,6 +75,7 @@ export type AnimationLibraryTab = "owned" | "store" | "designer";
 interface AppStoreDialogContentProps {
   activeUserId: string;
   onAnimationSelect?: (animationId: string) => void;
+  onDesignerDemoRequest?: (animationId: string) => void;
   selectedAnimationId?: string | null;
   initialTab?: AnimationLibraryTab;
   onTabChange?: (tab: AnimationLibraryTab) => void;
@@ -84,6 +85,7 @@ interface AppStoreDialogContentProps {
 export function AppStoreDialogContent({
   activeUserId,
   onAnimationSelect,
+  onDesignerDemoRequest,
   selectedAnimationId,
   initialTab = "owned",
   onTabChange,
@@ -98,10 +100,14 @@ export function AppStoreDialogContent({
     FALLBACK_USER_ANIMATIONS,
   );
   const [designerAnimation, setDesignerAnimation] = useState<StoreAnimation | null>(null);
+  const [designerAnimationConfig, setDesignerAnimationConfig] = useState<unknown>(null);
   const [tokenBalance, setTokenBalance] = useState<number>(fallbackTokenBalance);
   const [activeTabState, setActiveTabState] = useState<AnimationLibraryTab>(initialTab);
   const [loading, setLoading] = useState(firebaseConfigured);
   const [usingFallbackData, setUsingFallbackData] = useState(!firebaseConfigured);
+  const [designerToolkitReady, setDesignerToolkitReady] = useState(false);
+  const [pendingDesignerAnimation, setPendingDesignerAnimation] = useState<StoreAnimation | null>(null);
+  const designerToolkitRef = useRef<HTMLIFrameElement | null>(null);
 
   useEffect(() => {
     setActiveTabState(initialTab);
@@ -207,6 +213,58 @@ export function AppStoreDialogContent({
     };
   }, [activeUserId, firebaseConfigured, fallbackTokenBalance]);
 
+  const requestDesignerAnimationExport = () => {
+    const frameWindow = designerToolkitRef.current?.contentWindow;
+
+    if (!frameWindow) {
+      toast.error("Animation designer is still loading. Please try again in a moment.");
+      return;
+    }
+
+    frameWindow.postMessage({ type: "request-animation-export" }, "*");
+  };
+
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      const data = event.data;
+
+      if (!data || typeof data !== "object") {
+        return;
+      }
+
+      if (data.type === "animation-toolkit-ready") {
+        setDesignerToolkitReady(true);
+        return;
+      }
+
+      if (data.type === "animation-export") {
+        setDesignerAnimationConfig(data.payload ?? null);
+
+        if (pendingDesignerAnimation) {
+          onAnimationSelect?.(pendingDesignerAnimation.id);
+          onDesignerDemoRequest?.(pendingDesignerAnimation.id);
+          toast.success(
+            `Exported current design for ${pendingDesignerAnimation.name} and queued a LED strip demo.`,
+          );
+          setDesignerAnimation(pendingDesignerAnimation);
+          setPendingDesignerAnimation(null);
+        }
+      }
+    };
+
+    window.addEventListener("message", handleMessage);
+
+    return () => {
+      window.removeEventListener("message", handleMessage);
+    };
+  }, [onAnimationSelect, onDesignerDemoRequest, pendingDesignerAnimation]);
+
+  useEffect(() => {
+    if (designerToolkitReady && pendingDesignerAnimation) {
+      requestDesignerAnimationExport();
+    }
+  }, [designerToolkitReady, pendingDesignerAnimation]);
+
   const defaultGradient = "from-purple-500 via-sky-500 to-indigo-500";
   const libraryAnimations = useMemo(() => ownedAnimations, [ownedAnimations]);
   const catalogAnimations = useMemo(() => availableAnimations, [availableAnimations]);
@@ -223,7 +281,9 @@ export function AppStoreDialogContent({
 
   const handleOpenInDesigner = (animation: StoreAnimation) => {
     setDesignerAnimation(animation);
+    setPendingDesignerAnimation(animation);
     setActiveTabState("designer");
+    requestDesignerAnimationExport();
     toast.success(`Loaded ${animation.name} into the animation designer`);
   };
 
@@ -548,10 +608,30 @@ export function AppStoreDialogContent({
           <ScrollArea className="h-[85vh] pr-4">
             <div className="space-y-6 pb-4 h-[85vh]">
               <section className="space-y-4">
+                {designerAnimation && (
+                  <div className="rounded-lg border border-border/60 bg-muted/50 p-4">
+                    <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                      <div>
+                        <p className="text-sm font-semibold">Designer loaded</p>
+                        <p className="text-xs text-muted-foreground">
+                          {designerAnimation.name} is using the latest layout from the toolkit iframe.
+                        </p>
+                      </div>
+                      <Badge variant="secondary" className="w-fit">LED strip demo queued</Badge>
+                    </div>
+                    {designerAnimationConfig && (
+                      <pre className="mt-3 max-h-48 overflow-auto rounded-md bg-background p-3 text-xs text-muted-foreground">
+                        {JSON.stringify(designerAnimationConfig, null, 2)}
+                      </pre>
+                    )}
+                  </div>
+                )}
                 <div className="mt-4 h-[85vh] overflow-hidden rounded-xl border shadow-inner">
                   <iframe
                     title="Animation designer toolkit"
                     src={animationToolkitUrl}
+                    ref={designerToolkitRef}
+                    onLoad={() => setDesignerToolkitReady(true)}
                     className="h-[85vh] w-full min-h-[600px] border-0 bg-background"
                     loading="lazy"
                   />
