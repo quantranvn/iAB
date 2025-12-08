@@ -30,7 +30,7 @@ import {
 } from "../utils/firebase";
 import { FALLBACK_USER_PROFILE } from "../types/userProfile";
 
-const animationToolkitUrl = "/Animation_Toolkit.html";
+const animationToolkitUrl = import.meta.env.BASE_URL + "/Animation_Toolkit.html";
 
 export const FALLBACK_FEATURED_ANIMATIONS: StoreAnimation[] = [
   {
