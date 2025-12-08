@@ -161,6 +161,10 @@ export function AnimationControl({
         <LEDStripPreview
           settings={currentSettings}
           scenarioName={selectedScenarioName}
+          scenarioKey={
+            scenarios.find((scenario) => scenario.id === selectedScenario)?.sourceId ??
+            selectedScenarioName
+          }
         />
 
         <div className="space-y-6">

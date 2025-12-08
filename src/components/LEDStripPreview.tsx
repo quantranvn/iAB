@@ -6,6 +6,7 @@ import type { LightSettings } from "../types/userProfile";
 interface LEDStripPreviewProps {
   settings: LightSettings;
   scenarioName: string;
+  scenarioKey?: string;
 }
 
 const LED_GROUPS = [
@@ -60,7 +61,7 @@ const pseudoRandom = (seed: number) => {
   return x - Math.floor(x);
 };
 
-export function LEDStripPreview({ settings, scenarioName }: LEDStripPreviewProps) {
+export function LEDStripPreview({ settings, scenarioName, scenarioKey }: LEDStripPreviewProps) {
   const { red, green, blue, intensity } = settings;
   const alpha = Math.max(intensity / 100, 0.25);
   const baseColor = `rgb(${red}, ${green}, ${blue})`;
@@ -79,7 +80,7 @@ export function LEDStripPreview({ settings, scenarioName }: LEDStripPreviewProps
   const softGlowColor = lightenColor(0.08);
   const shadowColor = darkenColor(0.28);
   const animationDuration = 2.4 - alpha;
-  const normalizedScenario = scenarioName.trim().toLowerCase();
+  const normalizedScenario = (scenarioKey ?? scenarioName).trim().toLowerCase();
 
   const animationMetrics = useMemo(
     () => {
