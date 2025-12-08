@@ -424,6 +424,20 @@ const [animationCatalog, setAnimationCatalog] = useState<StoreAnimation[]>([]);
     toast.success(`Selected ${animation.name}`);
   };
 
+  const handleDesignerDemo = (animationId: string) => {
+    const scenarioId =
+      userAnimationIdToScenarioId.get(animationId) ?? CUSTOM_ANIMATION_SCENARIO_ID;
+
+    if (!userAnimationIdToScenarioId.has(animationId)) {
+      handleSelectUserAnimationById(animationId);
+    } else {
+      setAnimationScenario(scenarioId);
+    }
+
+    void sendAnimationCommand(scenarioId, animation);
+    toast.success("Sending the designer animation to your LED strip for a live demo.");
+  };
+
   const userAnimationScenarioData = useMemo(() => {
     const options: AnimationScenarioOption[] = [];
     const sourceToId = new Map<string, number>();
@@ -917,6 +931,7 @@ const [animationCatalog, setAnimationCatalog] = useState<StoreAnimation[]>([]);
             <AppStoreDialogContent
               activeUserId={activeUserId}
               onAnimationSelect={handleSelectUserAnimationById}
+              onDesignerDemoRequest={handleDesignerDemo}
               selectedAnimationId={selectedUserAnimationId}
               initialTab={appStoreInitialTab}
               onTabChange={setAppStoreInitialTab}
