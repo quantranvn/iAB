@@ -2447,13 +2447,16 @@ html {
   margin-top: 0.75rem;
   display: flex;
   flex-wrap: nowrap;
-  justify-content: space-evenly;
-  transform: scale(0.7);    
+  justify-content: space-between;
+  transform: scale(0.70);
   transform-origin: top center;
   gap: 0.45rem;
-  padding: 0.2rem 0.2rem 0.2rem;
+  padding: 0;               /* remove left/right padding */
+  margin-left: -1rem;       /* extend to the very edge */
+  margin-right: -1rem;
   overflow-x: auto;
 }
+
 
 .toolkit-led-group {
   display: flex;
