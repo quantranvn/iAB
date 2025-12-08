@@ -2423,7 +2423,7 @@ html {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: 0.75rem;
+  font-size: 0.6rem;
   color: rgba(226, 232, 255, 0.85);
   letter-spacing: 0.02em;
   text-transform: uppercase;
@@ -2448,7 +2448,7 @@ html {
   display: flex; 
   flex-wrap: nowrap; 
   justify-content: space-evenly; 
-  transform: scale(0.55); 
+  transform: scale(0.50); 
   transform-origin: top center; 
   gap: 0.1rem; 
   padding: 0.1rem 0.1rem 0.1rem; 
