@@ -619,11 +619,6 @@ export function AppStoreDialogContent({
                       </div>
                       <Badge variant="secondary" className="w-fit">LED strip demo queued</Badge>
                     </div>
-                    {designerAnimationConfig && (
-                      <pre className="mt-3 max-h-48 overflow-auto rounded-md bg-background p-3 text-xs text-muted-foreground">
-                        {JSON.stringify(designerAnimationConfig, null, 2)}
-                      </pre>
-                    )}
                   </div>
                 )}
                 <div className="mt-4 h-[85vh] overflow-hidden rounded-xl border shadow-inner">
