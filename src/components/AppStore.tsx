@@ -556,7 +556,7 @@ export function AppStoreDialogContent({
                       loading="lazy"
                     />
                   </div>
-                </div>
+                
               </section>
             </div>
           </ScrollArea>
