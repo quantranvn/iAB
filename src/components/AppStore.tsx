@@ -554,26 +554,10 @@ export function AppStoreDialogContent({
                     Animation designer toolkit
                   </div>
                   <p className="mt-2 text-sm text-muted-foreground">
-                    Craft custom LED shows with the full animation toolkit. Designs here use the same LED strip preview as the rest
-                    of the app, so your scooter playback stays consistent.
+                    Craft custom LED shows with the full animation toolkit.
                   </p>
 
-                  <div className="mt-3 rounded-xl border border-dashed bg-muted/40 p-3 text-sm text-muted-foreground">
-                    {designerAnimation ? (
-                      <div className="flex flex-col gap-1">
-                        <span className="text-xs font-semibold uppercase tracking-wide text-primary">
-                          Selected from library
-                        </span>
-                        <span className="text-base font-semibold text-foreground">{designerAnimation.name}</span>
-                        <span>{designerAnimation.description}</span>
-                      </div>
-                    ) : (
-                      <div className="flex flex-col gap-1">
-                        <span className="text-xs font-semibold uppercase tracking-wide text-primary">No animation pinned</span>
-                        <span>Choose a library animation to preload it into the designer workspace.</span>
-                      </div>
-                    )}
-                  </div>
+
 
                   <div className="mt-4 overflow-hidden rounded-xl border shadow-inner">
                     <iframe
