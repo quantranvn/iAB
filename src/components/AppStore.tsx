@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Sparkles,
   CheckCircle2,
@@ -32,6 +32,10 @@ import { FALLBACK_USER_PROFILE } from "../types/userProfile";
 import type { LightSettings } from "../types/userProfile";
 
 const animationToolkitUrl =  `${import.meta.env.BASE_URL}Animation_Toolkit.html`;
+type DesignerWindowApi = Window & {
+  getConfigJsonObject?: () => unknown;
+  applyConfigFromText?: () => void;
+};
 export const FALLBACK_FEATURED_ANIMATIONS: StoreAnimation[] = [
   {
     id: "nebula-drift",
@@ -314,7 +318,7 @@ export function AppStoreDialogContent({
       }
 
       const contentWindow = designerIframeRef.current?.contentWindow as
-        | (Window & { getConfigJsonObject?: () => unknown })
+        | DesignerWindowApi
         | null;
 
       const config = contentWindow?.getConfigJsonObject?.();
@@ -332,6 +336,41 @@ export function AppStoreDialogContent({
     }
   };
 
+  const applyDesignerConfig = useCallback(
+    (configJson: string) => {
+      if (!designerReady) {
+        return false;
+      }
+
+      const iframeWindow = designerIframeRef.current?.contentWindow as DesignerWindowApi | null;
+      if (!iframeWindow?.document) {
+        return false;
+      }
+
+      const configTextArea = iframeWindow.document.getElementById("configJsonText");
+
+      if (!(configTextArea instanceof HTMLTextAreaElement)) {
+        return false;
+      }
+
+      configTextArea.value = configJson;
+      iframeWindow.applyConfigFromText?.();
+      return true;
+    },
+    [designerReady],
+  );
+
+  useEffect(() => {
+    if (!designerReady || !designerAnimation?.designerConfigJson) {
+      return;
+    }
+
+    const applied = applyDesignerConfig(designerAnimation.designerConfigJson);
+    if (!applied) {
+      toast.error("Unable to load the selected animation into the designer preview.");
+    }
+  }, [applyDesignerConfig, designerAnimation?.designerConfigJson, designerReady]);
+
   const handlePlayAnimation = (animation: StoreAnimation) => {
     onAnimationSelect?.(animation.id);
     toast.success(`Queued ${animation.name} for playback`);
@@ -340,21 +379,25 @@ export function AppStoreDialogContent({
 
   const handleOpenInDesigner = (animation: StoreAnimation) => {
     const designerConfig = getDesignerConfig();
+    let nextDesignerAnimation: StoreAnimation = animation;
+
     if (designerConfig) {
       const configJson = JSON.stringify(designerConfig, null, 2);
       const previewSettings = derivePreviewSettings(designerConfig);
+      const enhancedAnimation: StoreAnimation = { ...animation, designerConfigJson: configJson };
       setOwnedAnimations((previous) =>
         previous.map((item) =>
-          item.id === animation.id ? { ...item, designerConfigJson: configJson } : item,
+          item.id === animation.id ? enhancedAnimation : item,
         ),
       );
       onDesignerAnimationLoaded?.({ animation, configJson, previewSettings });
+      nextDesignerAnimation = enhancedAnimation;
       toast.success(`Loaded ${animation.name} from the animation designer`, {
         description: "Sending to your LED strip for a quick demo.",
       });
     }
 
-    setDesignerAnimation(animation);
+    setDesignerAnimation(nextDesignerAnimation);
     onAnimationSelect?.(animation.id);
     setActiveTabState("designer");
   };
