@@ -2455,9 +2455,8 @@ html {
   height: 32px;
   border-radius: 999px;
   background: #050710;
-  box-shadow:
-    0 0 0 1px rgba(70, 78, 120, 0.3),
-    0 0 6px rgba(0, 0, 0, 0.3) inset;
+  box-shadow: 0 0 0 1px rgba(70, 78, 120, 0.8),
+        0 0 8px rgba(0, 0, 0, 0.7) inset;
   position: relative;
   overflow: hidden;
 }
@@ -2465,10 +2464,10 @@ html {
 .toolkit-led-shell::after {
   content: "";
   position: absolute;
-  inset: 5px 4px;
-  background: radial-gradient(circle at 30% 20%,
-      rgba(255, 255, 255, 0.3),
-      transparent);
+      inset: 4px 3px;
+      background: radial-gradient(circle at 30% 20%,
+          rgba(255, 255, 255, 0.6),
+          transparent);
   border-radius: inherit;
   opacity: 0.3;
   pointer-events: none;
