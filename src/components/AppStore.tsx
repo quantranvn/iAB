@@ -290,7 +290,7 @@ export function AppStoreDialogContent({
         onValueChange={(value) => setActiveTabState(value as AnimationLibraryTab)}
         className="mt-4 flex flex-1 flex-col gap-4"
       >
-        <TabsList className="grid grid-cols-2">
+        <TabsList className="grid grid-cols-3">
           <TabsTrigger value="owned" className="gap-2">
             <CheckCircle2 className="h-4 w-4" />
             Owned
