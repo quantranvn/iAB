@@ -579,7 +579,7 @@ export function AppStoreDialogContent({
                     <iframe
                       title="Animation designer toolkit"
                       src={animationToolkitUrl}
-                      className="h-[640px] w-full border-0 bg-background"
+                      className="h-[900px] w-full border-0 bg-background"
                       loading="lazy"
                     />
                   </div>
