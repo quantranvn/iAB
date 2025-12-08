@@ -299,7 +299,7 @@ export function AppStoreDialogContent({
             <Sparkles className="h-4 w-4" />
             Store
           </TabsTrigger>
-          <TabsTrigger value="designer" className="gap-2">>
+          <TabsTrigger value="designer" className="gap-2">
             <Wand2 className="h-4 w-4" />
             Designer
           </TabsTrigger>
