@@ -528,7 +528,6 @@ export function LEDStripPreview({ settings, scenarioName }: LEDStripPreviewProps
           ))}
         </div>
       </div>
-      <p className="text-center text-sm text-muted-foreground">Toolkit LED strip preview</p>
     </div>
   );
 }
