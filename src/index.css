@@ -2463,7 +2463,7 @@ html {
 
 .toolkit-led-shell {
   width: 20px;
-  height: 20px;
+  height: 24px;
   border-radius: 9999px;
   background: #050710;
   border: 1px solid rgba(90, 108, 225, 0.45);
@@ -2487,8 +2487,8 @@ html {
 }
 
 .toolkit-led {
-  width: 8px;
-  height: 18px;
+  width: 10px;
+  height: 20px;
   border-radius: 9999px;
   background: #050710;
   position: relative;
