@@ -112,6 +112,21 @@ export function AppStoreDialogContent({
   }, [activeTabState, onTabChange]);
 
   useEffect(() => {
+    if (!selectedAnimationId) {
+      return;
+    }
+
+    const animation =
+      ownedAnimations.find((item) => item.id === selectedAnimationId) ??
+      availableAnimations.find((item) => item.id === selectedAnimationId) ??
+      null;
+
+    if (animation && animation.id !== designerAnimation?.id) {
+      setDesignerAnimation(animation);
+    }
+  }, [availableAnimations, designerAnimation?.id, ownedAnimations, selectedAnimationId]);
+
+  useEffect(() => {
     let isMounted = true;
 
     const loadData = async () => {
@@ -223,8 +238,9 @@ export function AppStoreDialogContent({
 
   const handleOpenInDesigner = (animation: StoreAnimation) => {
     setDesignerAnimation(animation);
+    onAnimationSelect?.(animation.id);
     setActiveTabState("designer");
-    toast.success(`Loaded ${animation.name} into the animation designer`);
+    toast.success(`Loaded ${animation.name} from the animation designer`);
   };
 
   const handlePreviewAnimation = (animation: StoreAnimation) => {
@@ -547,13 +563,52 @@ export function AppStoreDialogContent({
         <TabsContent value="designer" className="mt-0 flex-1">
           <ScrollArea className="h-[85vh] pr-4">
             <div className="space-y-6 pb-4 h-[85vh]">
-              <section className="space-y-2">
-                <iframe
+              <section className="space-y-4">
+                <div className="rounded-2xl border border-border/60 bg-muted/40 p-4 sm:p-6">
+                  {designerAnimation ? (
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="flex flex-1 items-center gap-4">
+                        <div
+                          className={`h-16 w-24 rounded-xl bg-gradient-to-br ${
+                            designerAnimation.gradient ?? defaultGradient
+                          }`}
+                        />
+                        <div className="space-y-1">
+                          <p className="text-xs font-semibold uppercase tracking-wide text-primary">
+                            Loaded from animation designer
+                          </p>
+                          <h4 className="text-base font-semibold">{designerAnimation.name}</h4>
+                          <p className="text-sm text-muted-foreground line-clamp-2">
+                            {designerAnimation.description}
+                          </p>
+                        </div>
+                      </div>
+                      {onAnimationSelect && (
+                        <Button
+                          size="sm"
+                          className="w-full sm:w-auto"
+                          onClick={() => onAnimationSelect(designerAnimation.id)}
+                        >
+                          Play in animation tab
+                        </Button>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="text-sm text-muted-foreground">
+                      Choose an animation from your library to load it from the designer and sync it with the animation
+                      tab preview.
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <iframe
                     title="Animation designer toolkit"
                     src={animationToolkitUrl}
                     className="h-[85vh] w-full min-h-[600px] border-0 bg-background"
                     loading="lazy"
                   />
+                </div>
               </section>
             </div>
           </ScrollArea>
