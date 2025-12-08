@@ -2448,10 +2448,10 @@ html {
   display: flex; 
   flex-wrap: nowrap; 
   justify-content: space-evenly; 
-  transform: scale(0.50); 
+  transform: scale(0.60); 
   transform-origin: top center; 
   gap: 0.1rem; 
-  padding: 0.1rem 0.1rem 0.1rem; 
+  padding: 0.05rem 0.05rem 0.05rem; 
   overflow-x: auto; }
 
 
@@ -2462,8 +2462,8 @@ html {
 }
 
 .toolkit-led-shell {
-  width: 20px;
-  height: 30px;
+  width: 22px;
+  height: 32px;
   border-radius: 9999px;
   background: #050710;
   border: 1px solid rgba(90, 108, 225, 0.45);
