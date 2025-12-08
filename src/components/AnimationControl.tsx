@@ -19,6 +19,7 @@ interface AnimationControlProps {
   onIntensityChange: (value: number[]) => void;
   onSend: () => void | Promise<void>;
   onOpenAnimationLibrary?: (scenarioId: number) => void;
+  animationConfig?: unknown;
 }
 
 export function AnimationControl({
@@ -32,6 +33,7 @@ export function AnimationControl({
   onIntensityChange,
   onSend,
   onOpenAnimationLibrary,
+  animationConfig,
 }: AnimationControlProps) {
   const [isSending, setIsSending] = useState(false);
   const [justSent, setJustSent] = useState(false);
@@ -165,6 +167,7 @@ export function AnimationControl({
             scenarios.find((scenario) => scenario.id === selectedScenario)?.sourceId ??
             selectedScenarioName
           }
+          animationConfig={animationConfig}
         />
 
         <div className="space-y-6">

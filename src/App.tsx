@@ -97,51 +97,52 @@ export default function App() {
     }
   }, [activeUserId, loginDialogOpen]);
 
-const [turnIndicator, setTurnIndicator] = useState<LightSettings>({
-  red: 255,
-  green: 179,
-  blue: 0,
-  intensity: 100,
-});
+  const [turnIndicator, setTurnIndicator] = useState<LightSettings>({
+    red: 255,
+    green: 179,
+    blue: 0,
+    intensity: 100,
+  });
 
-const [lowBeam, setLowBeam] = useState<LightSettings>({
-  red: 0,
-  green: 210,
-  blue: 80,
-  intensity: 90,
-});
+  const [lowBeam, setLowBeam] = useState<LightSettings>({
+    red: 0,
+    green: 210,
+    blue: 80,
+    intensity: 90,
+  });
 
-const [highBeam, setHighBeam] = useState<LightSettings>({
-  red: 50,
-  green: 130,
-  blue: 255,
-  intensity: 100,
-});
+  const [highBeam, setHighBeam] = useState<LightSettings>({
+    red: 50,
+    green: 130,
+    blue: 255,
+    intensity: 100,
+  });
 
-const [brakeLight, setBrakeLight] = useState<LightSettings>({
-  red: 255,
-  green: 36,
-  blue: 36,
-  intensity: 100,
-});
+  const [brakeLight, setBrakeLight] = useState<LightSettings>({
+    red: 255,
+    green: 36,
+    blue: 36,
+    intensity: 100,
+  });
 
-const [animation, setAnimation] = useState<LightSettings>({
-  red: 122,
-  green: 0,
-  blue: 255,
-  intensity: 90,
-});
+  const [animation, setAnimation] = useState<LightSettings>({
+    red: 122,
+    green: 0,
+    blue: 255,
+    intensity: 90,
+  });
 
-const [animationScenario, setAnimationScenario] = useState(1);
-const [customScenarioAnimationId, setCustomScenarioAnimationId] = useState<string | null>(
-  FALLBACK_USER_PROFILE.customScenarioAnimationId ?? null
-);
-const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
-const [userProfileLoading, setUserProfileLoading] = useState(true);
-const [userAnimationOptions, setUserAnimationOptions] = useState<StoreAnimation[]>(
-  FALLBACK_USER_ANIMATIONS
-);
-const [animationCatalog, setAnimationCatalog] = useState<StoreAnimation[]>([]);
+  const [animationScenario, setAnimationScenario] = useState(1);
+  const [customScenarioAnimationId, setCustomScenarioAnimationId] = useState<string | null>(
+    FALLBACK_USER_PROFILE.customScenarioAnimationId ?? null,
+  );
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [userProfileLoading, setUserProfileLoading] = useState(true);
+  const [userAnimationOptions, setUserAnimationOptions] = useState<StoreAnimation[]>(
+    FALLBACK_USER_ANIMATIONS,
+  );
+  const [animationCatalog, setAnimationCatalog] = useState<StoreAnimation[]>([]);
+  const [designerAnimationConfigs, setDesignerAnimationConfigs] = useState<Record<string, unknown>>({});
 
   const computeUserAnimations = (
     animationIds: string[],
@@ -356,13 +357,28 @@ const [animationCatalog, setAnimationCatalog] = useState<StoreAnimation[]>([]);
 
   const animationLookup = useMemo(() => {
     const map = new Map<string, StoreAnimation>();
+    const enhanceWithConfig = (animation: StoreAnimation) => {
+      const config = designerAnimationConfigs[animation.id];
+      if (config === undefined) {
+        return animation;
+      }
+      return { ...animation, animationConfig: config };
+    };
+
     [...userAnimationOptions, ...animationCatalog, ...FALLBACK_USER_ANIMATIONS].forEach((animation) => {
+      const enriched = enhanceWithConfig(animation);
       if (!map.has(animation.id)) {
-        map.set(animation.id, animation);
+        map.set(animation.id, enriched);
+        return;
+      }
+
+      if (enriched.animationConfig !== undefined) {
+        map.set(animation.id, enriched);
       }
     });
+
     return map;
-  }, [userAnimationOptions, animationCatalog]);
+  }, [userAnimationOptions, animationCatalog, designerAnimationConfigs]);
 
   const persistCustomScenarioSelection = useCallback(
     async (profile: UserProfile) => {
@@ -438,6 +454,20 @@ const [animationCatalog, setAnimationCatalog] = useState<StoreAnimation[]>([]);
     toast.success("Sending the designer animation to your LED strip for a live demo.");
   };
 
+  const handleDesignerAnimationConfig = useCallback((animationId: string, config: unknown) => {
+    setDesignerAnimationConfigs((previous) => ({ ...previous, [animationId]: config }));
+    setUserAnimationOptions((previous) =>
+      previous.map((animation) =>
+        animation.id === animationId ? { ...animation, animationConfig: config } : animation,
+      ),
+    );
+    setAnimationCatalog((previous) =>
+      previous.map((animation) =>
+        animation.id === animationId ? { ...animation, animationConfig: config } : animation,
+      ),
+    );
+  }, []);
+
   const userAnimationScenarioData = useMemo(() => {
     const options: AnimationScenarioOption[] = [];
     const sourceToId = new Map<string, number>();
@@ -498,6 +528,19 @@ const [animationCatalog, setAnimationCatalog] = useState<StoreAnimation[]>([]);
 
     return scenarioIdToUserAnimationId.get(animationScenario) ?? null;
   }, [animationScenario, customScenarioAnimationId, scenarioIdToUserAnimationId]);
+
+  const activeAnimationConfig = useMemo(() => {
+    if (!selectedUserAnimationId) {
+      return null;
+    }
+
+    const selected = animationLookup.get(selectedUserAnimationId);
+    if (selected?.animationConfig !== undefined) {
+      return selected.animationConfig;
+    }
+
+    return designerAnimationConfigs[selectedUserAnimationId] ?? null;
+  }, [animationLookup, designerAnimationConfigs, selectedUserAnimationId]);
 
   useEffect(() => {
     if (!customScenarioAnimationId) {
@@ -932,6 +975,7 @@ const [animationCatalog, setAnimationCatalog] = useState<StoreAnimation[]>([]);
               activeUserId={activeUserId}
               onAnimationSelect={handleSelectUserAnimationById}
               onDesignerDemoRequest={handleDesignerDemo}
+              onDesignerAnimationConfig={handleDesignerAnimationConfig}
               selectedAnimationId={selectedUserAnimationId}
               initialTab={appStoreInitialTab}
               onTabChange={setAppStoreInitialTab}
@@ -1021,6 +1065,7 @@ const [animationCatalog, setAnimationCatalog] = useState<StoreAnimation[]>([]);
                         updateLightSetting(setAnimation, "intensity", value)
                       }
                       onSend={() => sendAnimationCommand(animationScenario, animation)}
+                      animationConfig={activeAnimationConfig}
                       onOpenAnimationLibrary={() => {
                         setAppStoreInitialTab("owned");
                         setAppStoreOpen(true);

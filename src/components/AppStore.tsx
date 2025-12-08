@@ -76,6 +76,7 @@ interface AppStoreDialogContentProps {
   activeUserId: string;
   onAnimationSelect?: (animationId: string) => void;
   onDesignerDemoRequest?: (animationId: string) => void;
+  onDesignerAnimationConfig?: (animationId: string, config: unknown) => void;
   selectedAnimationId?: string | null;
   initialTab?: AnimationLibraryTab;
   onTabChange?: (tab: AnimationLibraryTab) => void;
@@ -86,6 +87,7 @@ export function AppStoreDialogContent({
   activeUserId,
   onAnimationSelect,
   onDesignerDemoRequest,
+  onDesignerAnimationConfig,
   selectedAnimationId,
   initialTab = "owned",
   onTabChange,
@@ -107,6 +109,7 @@ export function AppStoreDialogContent({
   const [usingFallbackData, setUsingFallbackData] = useState(!firebaseConfigured);
   const [designerToolkitReady, setDesignerToolkitReady] = useState(false);
   const [pendingDesignerAnimation, setPendingDesignerAnimation] = useState<StoreAnimation | null>(null);
+  const [designerSelectionMode, setDesignerSelectionMode] = useState<"designer" | "apply" | null>(null);
   const designerToolkitRef = useRef<HTMLIFrameElement | null>(null);
 
   useEffect(() => {
@@ -238,16 +241,29 @@ export function AppStoreDialogContent({
       }
 
       if (data.type === "animation-export") {
-        setDesignerAnimationConfig(data.payload ?? null);
+        const payload = data.payload ?? null;
+        setDesignerAnimationConfig(payload);
 
         if (pendingDesignerAnimation) {
-          onAnimationSelect?.(pendingDesignerAnimation.id);
-          onDesignerDemoRequest?.(pendingDesignerAnimation.id);
-          toast.success(
-            `Exported current design for ${pendingDesignerAnimation.name} and queued a LED strip demo.`,
-          );
+          if (designerSelectionMode === "designer") {
+            onAnimationSelect?.(pendingDesignerAnimation.id);
+            onDesignerDemoRequest?.(pendingDesignerAnimation.id);
+            toast.success(
+              `Exported current design for ${pendingDesignerAnimation.name} and queued a LED strip demo.`,
+            );
+          }
+
+          if (designerSelectionMode === "apply") {
+            onAnimationSelect?.(pendingDesignerAnimation.id);
+            toast.success(
+              `Applied the toolkit animation to ${pendingDesignerAnimation.name}.`,
+            );
+          }
+
+          onDesignerAnimationConfig?.(pendingDesignerAnimation.id, payload);
           setDesignerAnimation(pendingDesignerAnimation);
           setPendingDesignerAnimation(null);
+          setDesignerSelectionMode(null);
         }
       }
     };
@@ -257,7 +273,13 @@ export function AppStoreDialogContent({
     return () => {
       window.removeEventListener("message", handleMessage);
     };
-  }, [onAnimationSelect, onDesignerDemoRequest, pendingDesignerAnimation]);
+  }, [
+    designerSelectionMode,
+    onAnimationSelect,
+    onDesignerAnimationConfig,
+    onDesignerDemoRequest,
+    pendingDesignerAnimation,
+  ]);
 
   useEffect(() => {
     if (designerToolkitReady && pendingDesignerAnimation) {
@@ -282,9 +304,18 @@ export function AppStoreDialogContent({
   const handleOpenInDesigner = (animation: StoreAnimation) => {
     setDesignerAnimation(animation);
     setPendingDesignerAnimation(animation);
+    setDesignerSelectionMode("designer");
     setActiveTabState("designer");
     requestDesignerAnimationExport();
     toast.success(`Loaded ${animation.name} into the animation designer`);
+  };
+
+  const handleApplyToolkitAnimation = (animation: StoreAnimation) => {
+    setDesignerAnimation(animation);
+    setPendingDesignerAnimation(animation);
+    setDesignerSelectionMode("apply");
+    requestDesignerAnimationExport();
+    toast.info(`Fetching the latest toolkit settings for ${animation.name}...`);
   };
 
   const handlePreviewAnimation = (animation: StoreAnimation) => {
@@ -440,10 +471,19 @@ export function AppStoreDialogContent({
                                     size="sm"
                                     variant="outline"
                                     className="gap-2"
-                                    onClick={() => handleOpenInDesigner(animation)}
+                                    onClick={() => handleApplyToolkitAnimation(animation)}
                                   >
                                     <Wand2 className="h-4 w-4" />
-                                    Choose for designer
+                                    Choose for animation
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="secondary"
+                                    className="gap-2"
+                                    onClick={() => handleOpenInDesigner(animation)}
+                                  >
+                                    <Sparkles className="h-4 w-4" />
+                                    Designer demo
                                   </Button>
                                 </div>
                               </div>

@@ -2883,8 +2883,45 @@ html {
   }
 }
 
+@keyframes ledToolkit {
+  0% {
+    opacity: var(--led-off-opacity, 0.2);
+    transform: scale(var(--led-off-scale, 0.9));
+    filter: brightness(var(--led-off-brightness, 0.7)) saturate(var(--led-off-saturation, 0.8));
+  }
+
+  45% {
+    opacity: var(--led-mid-opacity, 0.7);
+    transform: scale(var(--led-mid-scale, 1.02));
+    filter: brightness(
+        calc(var(--led-base-brightness, 1.05) * var(--led-toolkit-brightness, 1))
+      )
+      saturate(var(--led-base-saturation, 1));
+  }
+
+  100% {
+    opacity: var(--led-peak-opacity, 1);
+    transform: scale(var(--led-peak-scale, 1.1));
+    filter: brightness(
+        calc(var(--led-peak-brightness, 1.35) * var(--led-toolkit-brightness, 1))
+      )
+      saturate(var(--led-peak-saturation, 1.4));
+    box-shadow: 0 0 var(--led-glow-strength, 22px)
+      var(--led-glow-color, rgba(255, 255, 255, 0.35));
+  }
+}
+
 .animate-led-aurora {
   animation: ledAuroraVeil var(--led-animation-duration, 4s) ease-in-out infinite;
+}
+
+.animate-led-toolkit {
+  animation: ledToolkit var(--led-toolkit-duration, var(--led-animation-duration, 2.4s)) ease-in-out
+    infinite;
+  animation-delay: var(--led-toolkit-delay, 0s);
+  filter: brightness(var(--led-toolkit-brightness, var(--led-base-brightness, 1)))
+    saturate(var(--led-toolkit-saturation, var(--led-base-saturation, 1)));
+  opacity: var(--led-peak-opacity, 1);
 }
 
 @keyframes ledStarlightChase {

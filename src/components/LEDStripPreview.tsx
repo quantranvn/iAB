@@ -3,10 +3,26 @@ import type { CSSProperties } from "react";
 
 import type { LightSettings } from "../types/userProfile";
 
+interface AnimationToolkitSegmentConfig {
+  start?: number;
+  length?: number;
+  animId?: string;
+  props?: Record<string, unknown>;
+}
+
+interface AnimationToolkitConfig {
+  ledCount?: number;
+  globalBrightness?: number;
+  globalSpeed?: number;
+  colorBlendMode?: string;
+  configs?: AnimationToolkitSegmentConfig[];
+}
+
 interface LEDStripPreviewProps {
   settings: LightSettings;
   scenarioName: string;
   scenarioKey?: string;
+  animationConfig?: unknown;
 }
 
 const LED_GROUPS = [
@@ -61,7 +77,14 @@ const pseudoRandom = (seed: number) => {
   return x - Math.floor(x);
 };
 
-export function LEDStripPreview({ settings, scenarioName, scenarioKey }: LEDStripPreviewProps) {
+const clampNumber = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max);
+
+export function LEDStripPreview({
+  settings,
+  scenarioName,
+  scenarioKey,
+  animationConfig,
+}: LEDStripPreviewProps) {
   const { red, green, blue, intensity } = settings;
   const alpha = Math.max(intensity / 100, 0.25);
   const baseColor = `rgb(${red}, ${green}, ${blue})`;
@@ -81,6 +104,57 @@ export function LEDStripPreview({ settings, scenarioName, scenarioKey }: LEDStri
   const shadowColor = darkenColor(0.28);
   const animationDuration = 2.4 - alpha;
   const normalizedScenario = (scenarioKey ?? scenarioName).trim().toLowerCase();
+  const totalLedCount = LED_GROUPS.reduce((count, group) => count + group.count, 0);
+
+  const parsedToolkitConfig = useMemo<AnimationToolkitConfig | null>(() => {
+    if (!animationConfig || typeof animationConfig !== "object") {
+      return null;
+    }
+
+    const config = animationConfig as Partial<AnimationToolkitConfig>;
+    const configs = Array.isArray(config.configs)
+      ? config.configs
+          .map((segment) => {
+            if (!segment || typeof segment !== "object") {
+              return null;
+            }
+
+            const start = typeof segment.start === "number" && Number.isFinite(segment.start)
+              ? Math.max(0, segment.start)
+              : 0;
+            const length = typeof segment.length === "number" && Number.isFinite(segment.length)
+              ? Math.max(1, segment.length)
+              : 1;
+            return {
+              start,
+              length,
+              animId: typeof segment.animId === "string" ? segment.animId : "custom",
+              props:
+                segment.props && typeof segment.props === "object"
+                  ? (segment.props as Record<string, unknown>)
+                  : {},
+            } satisfies AnimationToolkitSegmentConfig;
+          })
+          .filter((segment): segment is AnimationToolkitSegmentConfig => Boolean(segment))
+      : [];
+
+    return {
+      ledCount:
+        typeof config.ledCount === "number" && Number.isFinite(config.ledCount) && config.ledCount > 0
+          ? config.ledCount
+          : undefined,
+      globalBrightness:
+        typeof config.globalBrightness === "number" && Number.isFinite(config.globalBrightness)
+          ? config.globalBrightness
+          : undefined,
+      globalSpeed:
+        typeof config.globalSpeed === "number" && Number.isFinite(config.globalSpeed)
+          ? config.globalSpeed
+          : undefined,
+      colorBlendMode: typeof config.colorBlendMode === "string" ? config.colorBlendMode : undefined,
+      configs,
+    } satisfies AnimationToolkitConfig;
+  }, [animationConfig]);
 
   const animationMetrics = useMemo(
     () => {
@@ -218,6 +292,124 @@ export function LEDStripPreview({ settings, scenarioName, scenarioKey }: LEDStri
         ...(config.styleOverrides ?? {}),
       },
     });
+
+    if (parsedToolkitConfig) {
+      const toolkitLedCount = Math.max(parsedToolkitConfig.ledCount ?? totalLedCount, 1);
+      const brightnessScale = clampNumber(parsedToolkitConfig.globalBrightness ?? alpha, 0.35, 1.1);
+      const speedMultiplier = clampNumber(parsedToolkitConfig.globalSpeed ?? 1, 0.2, 2.5);
+      const delayIncrement = Math.max(0.06, 0.18 / speedMultiplier);
+      const duration = Math.max(1.2, 3.2 / speedMultiplier);
+      const segments = parsedToolkitConfig.configs ?? [];
+
+      return createConfig({
+        ledClassName: "animate-led-toolkit",
+        delayIncrement,
+        duration,
+        styleOverrides: {
+          "--led-toolkit-duration": `${duration}s`,
+          "--led-toolkit-brightness": brightnessScale.toFixed(2),
+          "--led-toolkit-saturation": (0.9 + brightnessScale * 0.3).toFixed(2),
+          "--led-peak-brightness": Math.min(1.65, peakBrightness * (0.9 + brightnessScale * 0.35)).toFixed(2),
+          "--led-peak-saturation": Math.min(1.75, peakSaturation * (0.9 + brightnessScale * 0.35)).toFixed(2),
+          "--led-glow-strength": `${(glowStrength * (0.9 + brightnessScale * 0.25)).toFixed(2)}px`,
+          "--led-off-opacity": Math.max(0.12, offOpacity * 0.9).toFixed(2),
+          "--led-dim-opacity": Math.max(0.38, dimOpacity * 0.95).toFixed(2),
+          "--led-mid-opacity": Math.min(0.92, midOpacity + 0.06).toFixed(2),
+          "--led-peak-opacity": Math.min(1, peakOpacity + 0.08).toFixed(2),
+        },
+        delayStrategy: ({ globalIndex, total }) => {
+          if (total <= 1) {
+            return 0;
+          }
+
+          const normalizedIndex = globalIndex / (total - 1);
+          const virtualIndex = Math.round(normalizedIndex * (toolkitLedCount - 1));
+
+          if (segments.length === 0) {
+            return virtualIndex;
+          }
+
+          const closest = segments.reduce(
+            (result, segment) => {
+              const start = Math.max(0, segment.start ?? 0);
+              const length = Math.max(1, segment.length ?? 1);
+              const end = start + length - 1;
+              const distance = Math.min(Math.abs(virtualIndex - start), Math.abs(virtualIndex - end));
+
+              if (distance < result.distance) {
+                return { distance, offset: start + distance };
+              }
+
+              return result;
+            },
+            { distance: Number.POSITIVE_INFINITY, offset: virtualIndex },
+          );
+
+          return closest.offset;
+        },
+        perLedStyle: ({ globalIndex, total }) => {
+          if (total <= 0) {
+            return {};
+          }
+
+          const normalizedIndex = total === 1 ? 0 : globalIndex / (total - 1);
+          const virtualIndex = Math.round(normalizedIndex * (toolkitLedCount - 1));
+
+          if (segments.length === 0) {
+            return {
+              "--led-toolkit-delay": `${virtualIndex * delayIncrement}s`,
+            };
+          }
+
+          const best = segments.reduce(
+            (state, segment) => {
+              const start = Math.max(0, segment.start ?? 0);
+              const length = Math.max(1, segment.length ?? 1);
+              const end = start + length - 1;
+              const inside = virtualIndex >= start && virtualIndex <= end;
+              const distance = inside
+                ? 0
+                : Math.min(Math.abs(virtualIndex - start), Math.abs(virtualIndex - end));
+              const phase = inside && length > 1 ? (virtualIndex - start) / (length - 1) : 0;
+              const speedProp = (segment.props as Record<string, unknown> | undefined)?.speed;
+              const localSpeed =
+                typeof speedProp === "number" && Number.isFinite(speedProp)
+                  ? clampNumber(speedProp, 0.25, 3)
+                  : 1;
+              const weight = inside ? 1 - phase * 0.2 : Math.max(0, 0.6 - distance * 0.05);
+
+              if (weight > state.weight) {
+                return { weight, start, length, phase, localSpeed, distance };
+              }
+
+              return state;
+            },
+            {
+              weight: Number.NEGATIVE_INFINITY,
+              start: 0,
+              length: 1,
+              phase: 0,
+              localSpeed: 1,
+              distance: Number.POSITIVE_INFINITY,
+            },
+          );
+
+          const brightnessLift = best.weight > 0 ? Math.max(0.08, best.weight * 0.25) : 0.05;
+          const delayOffset = best.weight > 0 ? best.start + best.phase * best.length : virtualIndex;
+
+          return {
+            "--led-toolkit-delay": `${delayOffset * delayIncrement}s`,
+            "--led-toolkit-brightness": (brightnessScale * (1 + brightnessLift)).toFixed(2),
+            "--led-peak-opacity": Math.min(
+              1,
+              peakOpacity * (0.82 + brightnessLift + brightnessScale * 0.25),
+            ).toFixed(2),
+            "--led-glow-strength": `${(glowStrength * (0.9 + brightnessLift)).toFixed(2)}px`,
+            "--led-toolkit-speed": best.localSpeed.toFixed(2),
+          };
+        },
+      });
+    }
 
     if (normalizedScenario.includes("follow")) {
       return createConfig({
@@ -466,11 +658,12 @@ export function LEDStripPreview({ settings, scenarioName, scenarioKey }: LEDStri
     baseColor,
     highlightColor,
     normalizedScenario,
+    parsedToolkitConfig,
     shadowColor,
     softGlowColor,
+    totalLedCount,
+    alpha,
   ]);
-
-  const totalLedCount = LED_GROUPS.reduce((count, group) => count + group.count, 0);
   let ledIndex = 0;
 
   return (
@@ -518,6 +711,15 @@ export function LEDStripPreview({ settings, scenarioName, scenarioKey }: LEDStri
                       total: totalLedCount,
                     }) ?? {},
                   );
+                }
+                const customDelay = ledStyle["--led-toolkit-delay"];
+                if (typeof customDelay === "string") {
+                  ledStyle.animationDelay = customDelay;
+                }
+                const customDuration = ledStyle["--led-toolkit-duration"];
+                if (typeof customDuration === "string" || typeof customDuration === "number") {
+                  ledStyle.animationDuration = String(customDuration);
+                  ledStyle["--led-animation-duration"] = String(customDuration);
                 }
                 return (
                   <span key={`${group.id}-${index}`} className="toolkit-led-shell" aria-hidden>
