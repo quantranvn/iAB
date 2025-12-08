@@ -548,16 +548,6 @@ export function AppStoreDialogContent({
           <ScrollArea className="h-[55vh] pr-4">
             <div className="space-y-6 pb-4 h-full">
               <section className="h-full">
-                <div className="flex h-full flex-col rounded-2xl border border-border/60 bg-card/80 p-4 shadow-sm backdrop-blur sm:p-6">
-                  <div className="flex items-center gap-2 text-lg font-semibold">
-                    <Wand2 className="h-5 w-5 text-primary" />
-                    Animation designer toolkit
-                  </div>       
-                  <p className="mt-2 text-sm text-muted-foreground">
-                    Craft custom LED shows with the full animation toolkit.
-                  </p>
-        
-                  {/* iframe now fills the remaining height */}
                   <div className="mt-4 flex-1 overflow-hidden rounded-xl border shadow-inner">
                     <iframe
                       title="Animation designer toolkit"
