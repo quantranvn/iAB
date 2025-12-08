@@ -2423,7 +2423,7 @@ html {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: 0.5rem;
+  font-size: 0.75rem;
   color: rgba(226, 232, 255, 0.85);
   letter-spacing: 0.02em;
   text-transform: uppercase;
@@ -2436,7 +2436,7 @@ html {
 .toolkit-strip__status {
   border-radius: 9999px;
   border: 1px solid rgba(118, 133, 255, 0.5);
-  padding: 0.2rem 0.5rem;
+  padding: 0.3rem 0.75rem;
   background: rgba(118, 133, 255, 0.12);
   color: #d9dcff;
   font-weight: 600;
@@ -2448,7 +2448,7 @@ html {
   display: flex; 
   flex-wrap: nowrap; 
   justify-content: space-evenly; 
-  transform: scale(0.6); 
+  transform: scale(0.55); 
   transform-origin: top center; 
   gap: 0.1rem; 
   padding: 0.1rem 0.1rem 0.1rem; 
@@ -2487,8 +2487,8 @@ html {
 }
 
 .toolkit-led {
-  width: 10px;
-  height: 20px;
+  width: 12px;
+  height: 22px;
   border-radius: 9999px;
   background: #050710;
   position: relative;
