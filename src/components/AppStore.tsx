@@ -545,21 +545,22 @@ export function AppStoreDialogContent({
         </TabsContent>
 
         <TabsContent value="designer" className="mt-0 flex-1">
-          <ScrollArea className="h-[55vh] pr-4">
+          <ScrollArea className="h-[85vh] pr-4">
             <div className="space-y-6 pb-4 h-full">
               <section className="space-y-4">
-                  <div className="mt-4 h-[55vh] overflow-hidden rounded-xl border shadow-inner">
-                    <iframe
-                      title="Animation designer toolkit"
-                      src={animationToolkitUrl}
-                      className="h-full w-full border-0 bg-background"
-                      loading="lazy"
-                    />
-                  </div>               
+                <div className="mt-4 h-[80vh] overflow-hidden rounded-xl border shadow-inner">
+                  <iframe
+                    title="Animation designer toolkit"
+                    src={animationToolkitUrl}
+                    className="h-full w-full border-0 bg-background"
+                    loading="lazy"
+                  />
+                </div>
               </section>
             </div>
           </ScrollArea>
         </TabsContent>
+
       
       </Tabs>
     </DialogContent>
