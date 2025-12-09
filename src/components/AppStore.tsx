@@ -474,7 +474,7 @@ export function AppStoreDialogContent({
                                     onClick={() => handleApplyToolkitAnimation(animation)}
                                   >
                                     <Wand2 className="h-4 w-4" />
-                                    Choose for animation
+                                    Import from designer
                                   </Button>
                                   <Button
                                     size="sm"
@@ -483,7 +483,7 @@ export function AppStoreDialogContent({
                                     onClick={() => handleOpenInDesigner(animation)}
                                   >
                                     <Sparkles className="h-4 w-4" />
-                                    Designer demo
+                                    Designer edit
                                   </Button>
                                 </div>
                               </div>
