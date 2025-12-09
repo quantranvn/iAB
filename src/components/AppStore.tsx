@@ -544,24 +544,23 @@ export function AppStoreDialogContent({
           </ScrollArea>
         </TabsContent>
 
-      <TabsContent value="designer" className="mt-0 flex-1">
-        {/* no fixed h- on ScrollArea */}
-        <ScrollArea className="pr-4">
-          <div className="space-y-6 pb-4">
-            <section className="space-y-4">
-              {/* make the designer tall */}
-              <div className="mt-4 min-h-[75vh] overflow-hidden rounded-xl border shadow-inner">
-                <iframe
-                  title="Animation designer toolkit"
-                  src={animationToolkitUrl}
-                  className="h-full w-full min-h-[75vh] border-0 bg-background"
-                  loading="lazy"
-                />
-              </div>
-            </section>
-          </div>
-        </ScrollArea>
-      </TabsContent>
+        <TabsContent value="designer" className="mt-0 flex-1">
+          <ScrollArea className="h-[85vh] pr-4">
+            <div className="space-y-6 pb-4 h-[85vh]">
+                <div className="mt-4 h-[85vh] overflow-hidden rounded-xl border shadow-inner">
+                  <iframe
+                    title="Animation designer toolkit"
+                    src={animationToolkitUrl}
+                    ref={designerToolkitRef}
+                    onLoad={() => setDesignerToolkitReady(true)}
+                    className="h-[85vh] w-full min-h-[600px] border-0 bg-background"
+                    loading="lazy"
+                  />
+                </div>
+              </section>
+            </div>
+          </ScrollArea>
+        </TabsContent>
        
       </Tabs>
     </DialogContent>
