@@ -548,14 +548,12 @@ export function AppStoreDialogContent({
           <ScrollArea className="h-[85vh] pr-4">
             <div className="space-y-6 pb-4 h-[85vh]">
               <section className="space-y-4">
-                  <iframe
-                    title="Animation designer toolkit"
-                    src={animationToolkitUrl}
-                    ref={designerToolkitRef}
-                    onLoad={() => setDesignerToolkitReady(true)}
-                    className="h-[85vh] w-full min-h-[600px] border-0 bg-background"
-                    loading="lazy"
-                  />
+                <iframe
+                  title="Animation designer toolkit"
+                  src={animationToolkitUrl}
+                  className="h-full w-full min-h-[600px] border-0 bg-background"
+                  loading="lazy"
+                />
               </section>
             </div>
           </ScrollArea>
