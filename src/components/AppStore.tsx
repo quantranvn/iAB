@@ -547,6 +547,20 @@ export function AppStoreDialogContent({
         <TabsContent value="designer" className="mt-0 flex-1">
           <ScrollArea className="h-[85vh] pr-4">
             <div className="space-y-6 pb-4 h-[85vh]">
+              <section className="space-y-4">
+                {designerAnimation && (
+                  <div className="rounded-lg border border-border/60 bg-muted/50 p-4">
+                    <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                      <div>
+                        <p className="text-sm font-semibold">Designer loaded</p>
+                        <p className="text-xs text-muted-foreground">
+                          {designerAnimation.name} is using the latest layout from the toolkit iframe.
+                        </p>
+                      </div>
+                      <Badge variant="secondary" className="w-fit">LED strip demo queued</Badge>
+                    </div>
+                  </div>
+                )}
                 <div className="mt-4 h-[85vh] overflow-hidden rounded-xl border shadow-inner">
                   <iframe
                     title="Animation designer toolkit"
@@ -561,6 +575,7 @@ export function AppStoreDialogContent({
             </div>
           </ScrollArea>
         </TabsContent>
+
        
       </Tabs>
     </DialogContent>
