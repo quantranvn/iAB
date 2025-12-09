@@ -976,6 +976,7 @@ export default function App() {
               onAnimationSelect={handleSelectUserAnimationById}
               onDesignerDemoRequest={handleDesignerDemo}
               onDesignerAnimationConfig={handleDesignerAnimationConfig}
+              designerAnimationConfigs={designerAnimationConfigs}
               selectedAnimationId={selectedUserAnimationId}
               initialTab={appStoreInitialTab}
               onTabChange={setAppStoreInitialTab}
