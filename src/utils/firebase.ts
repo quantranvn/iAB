@@ -42,7 +42,16 @@ type FirebaseNamespace = FirebaseCompat & {
   };
 };
 
-const firebaseConfig = {
+type FirebaseConfig = {
+  apiKey: string | undefined;
+  authDomain?: string | undefined;
+  projectId: string | undefined;
+  storageBucket?: string | undefined;
+  messagingSenderId?: string | undefined;
+  appId: string | undefined;
+};
+
+const rawFirebaseConfig: FirebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
   projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
@@ -51,7 +60,29 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID,
 };
 
-const firebaseConfigValid = Object.values(firebaseConfig).every((value) => Boolean(value));
+const requiredFirebaseKeys: (keyof FirebaseConfig)[] = ["apiKey", "projectId", "appId"];
+const firebaseConfigValid = requiredFirebaseKeys.every(
+  (key) => Boolean(rawFirebaseConfig[key]?.toString().trim())
+);
+
+const logMissingFirebaseConfig = () => {
+  if (firebaseConfigValid) {
+    return;
+  }
+
+  const missingKeys = requiredFirebaseKeys.filter(
+    (key) => !rawFirebaseConfig[key]?.toString().trim()
+  );
+
+  console.warn(
+    "Firebase configuration is incomplete. Missing required environment variables:",
+    missingKeys.join(", ")
+  );
+};
+
+const firebaseConfig = Object.fromEntries(
+  Object.entries(rawFirebaseConfig).filter(([, value]) => Boolean(value))
+) as Record<string, string>;
 const ACTIVE_USER_STORAGE_KEY = "iab-active-user-id";
 const firebaseCompatVersion = "10.12.4";
 
@@ -123,6 +154,7 @@ const loadFirebaseCompat = async (): Promise<FirebaseNamespace | null> => {
 
 const ensureFirebase = async () => {
   if (!firebaseConfigValid) {
+    logMissingFirebaseConfig();
     return null;
   }
 
@@ -149,6 +181,7 @@ const ensureFirebase = async () => {
 
 export const initializeFirebaseIfReady = async () => {
   if (!firebaseConfigValid) {
+    logMissingFirebaseConfig();
     return false;
   }
 
