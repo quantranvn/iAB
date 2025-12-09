@@ -301,7 +301,7 @@ export function AppStoreDialogContent({
           </TabsTrigger>
           <TabsTrigger value="designer" className="gap-2 whitespace-nowrap">
             <Wand2 className="h-4 w-4" />
-            Animation designer
+            Designer
           </TabsTrigger>
         </TabsList>
 
