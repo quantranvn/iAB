@@ -626,28 +626,6 @@ export function LEDStripPreview({ settings, scenarioName, scenarioId }: LEDStrip
           ))}
         </div>
       </div>
-
-      <div className="space-y-2 rounded-xl border bg-muted/30 p-3 shadow-inner">
-        <div className="flex items-center justify-between text-sm font-medium">
-          <span>Animation toolkit strip</span>
-          <span className="text-xs text-muted-foreground">
-            {toolkitLoaded ? "Synced" : "Loading..."}
-          </span>
-        </div>
-        <div className="overflow-hidden rounded-lg border bg-black/80">
-          <iframe
-            ref={toolkitIframeRef}
-            src="/Animation_Toolkit.html"
-            title="Animation toolkit strip"
-            className="h-[240px] w-full border-0"
-            style={{ transform: "scale(0.9)", transformOrigin: "top center", pointerEvents: "none" }}
-            loading="lazy"
-          />
-        </div>
-        <p className="text-center text-xs text-muted-foreground">
-          Live preview powered by Animation_Toolkit.html
-        </p>
-      </div>
     </div>
   );
 }
