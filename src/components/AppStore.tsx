@@ -309,19 +309,7 @@ export function AppStoreDialogContent({
       return;
     }
 
-    const clonedConfig = JSON.parse(JSON.stringify(resolvedConfig));
-
-    if (
-      typeof (frameWindow as typeof window & { applyExternalConfig?: (config: unknown) => unknown })
-        .applyExternalConfig === "function"
-    ) {
-      (frameWindow as typeof window & { applyExternalConfig?: (config: unknown) => unknown }).applyExternalConfig(
-        clonedConfig,
-      );
-      return;
-    }
-
-    frameWindow.postMessage({ type: "APPLY_CONFIG", payload: clonedConfig }, "*");
+    frameWindow.postMessage({ type: "APPLY_CONFIG", payload: resolvedConfig }, "*");
   }, [
     designerAnimation,
     designerAnimationConfig,
