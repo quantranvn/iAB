@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Sparkles,
   CheckCircle2,
@@ -101,6 +101,7 @@ export function AppStoreDialogContent({
   );
   const [designerAnimation, setDesignerAnimation] = useState<StoreAnimation | null>(null);
   const [designerAnimationConfig, setDesignerAnimationConfig] = useState<unknown>(null);
+  const [toolkitConfig, setToolkitConfig] = useState<unknown>(null);
   const [tokenBalance, setTokenBalance] = useState<number>(fallbackTokenBalance);
   const [activeTabState, setActiveTabState] = useState<AnimationLibraryTab>(initialTab);
   const [loading, setLoading] = useState(firebaseConfigured);
@@ -108,6 +109,55 @@ export function AppStoreDialogContent({
   const [designerToolkitReady, setDesignerToolkitReady] = useState(false);
   const [pendingDesignerAnimation, setPendingDesignerAnimation] = useState<StoreAnimation | null>(null);
   const designerToolkitRef = useRef<HTMLIFrameElement | null>(null);
+
+  const syncToolkitConfig = useCallback(() => {
+    const win = designerToolkitRef.current?.contentWindow;
+
+    if (win && typeof win.getConfigJsonObject === "function") {
+      try {
+        setToolkitConfig(win.getConfigJsonObject());
+      } catch (error) {
+        console.error("Failed to sync animation toolkit config", error);
+      }
+    }
+  }, []);
+
+  const handleManualSync = useCallback(() => {
+    syncToolkitConfig();
+  }, [syncToolkitConfig]);
+
+  useEffect(() => {
+    const iframe = designerToolkitRef.current;
+
+    if (!iframe) {
+      return;
+    }
+
+    const handleLoad = () => {
+      setDesignerToolkitReady(true);
+      syncToolkitConfig();
+    };
+
+    iframe.addEventListener("load", handleLoad);
+
+    return () => {
+      iframe.removeEventListener("load", handleLoad);
+    };
+  }, [syncToolkitConfig]);
+
+  useEffect(() => {
+    if (!designerToolkitReady) {
+      return undefined;
+    }
+
+    const intervalId = window.setInterval(() => {
+      syncToolkitConfig();
+    }, 500);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [designerToolkitReady, syncToolkitConfig]);
 
   useEffect(() => {
     setActiveTabState(initialTab);
@@ -621,12 +671,35 @@ export function AppStoreDialogContent({
                     </div>
                   </div>
                 )}
+                <div className="flex flex-col gap-2 rounded-lg border border-border/60 bg-muted/30 p-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="text-sm font-semibold">Toolkit sync</p>
+                    <p className="text-xs text-muted-foreground">
+                      {toolkitConfig
+                        ? "Virtual LED strip is mirroring the animation toolkit configuration."
+                        : "Waiting for the animation toolkit to share its current layout."}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline" className="bg-background text-xs font-medium">
+                      {designerToolkitReady ? "Toolkit ready" : "Loading toolkit"}
+                    </Badge>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-8 px-3"
+                      onClick={handleManualSync}
+                      disabled={!designerToolkitReady}
+                    >
+                      Sync
+                    </Button>
+                  </div>
+                </div>
                 <div className="mt-4 h-[85vh] overflow-hidden rounded-xl border shadow-inner">
                   <iframe
                     title="Animation designer toolkit"
                     src={animationToolkitUrl}
                     ref={designerToolkitRef}
-                    onLoad={() => setDesignerToolkitReady(true)}
                     className="h-[85vh] w-full min-h-[600px] border-0 bg-background"
                     loading="lazy"
                   />
