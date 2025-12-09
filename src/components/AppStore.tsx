@@ -77,6 +77,7 @@ interface AppStoreDialogContentProps {
   onAnimationSelect?: (animationId: string) => void;
   onDesignerDemoRequest?: (animationId: string) => void;
   onDesignerAnimationConfig?: (animationId: string, config: unknown) => void;
+  designerAnimationConfigs?: Record<string, unknown>;
   selectedAnimationId?: string | null;
   initialTab?: AnimationLibraryTab;
   onTabChange?: (tab: AnimationLibraryTab) => void;
@@ -88,6 +89,7 @@ export function AppStoreDialogContent({
   onAnimationSelect,
   onDesignerDemoRequest,
   onDesignerAnimationConfig,
+  designerAnimationConfigs,
   selectedAnimationId,
   initialTab = "owned",
   onTabChange,
@@ -110,6 +112,7 @@ export function AppStoreDialogContent({
   const [designerToolkitReady, setDesignerToolkitReady] = useState(false);
   const [pendingDesignerAnimation, setPendingDesignerAnimation] = useState<StoreAnimation | null>(null);
   const [designerSelectionMode, setDesignerSelectionMode] = useState<"designer" | "apply" | null>(null);
+  const [designerAnimationConfigId, setDesignerAnimationConfigId] = useState<string | null>(null);
   const designerToolkitRef = useRef<HTMLIFrameElement | null>(null);
 
   useEffect(() => {
@@ -243,6 +246,7 @@ export function AppStoreDialogContent({
       if (data.type === "animation-export") {
         const payload = data.payload ?? null;
         setDesignerAnimationConfig(payload);
+        setDesignerAnimationConfigId(pendingDesignerAnimation?.id ?? null);
 
         if (pendingDesignerAnimation) {
           if (designerSelectionMode === "designer") {
@@ -286,6 +290,45 @@ export function AppStoreDialogContent({
       requestDesignerAnimationExport();
     }
   }, [designerToolkitReady, pendingDesignerAnimation]);
+
+  useEffect(() => {
+    if (!designerToolkitReady || !designerAnimation) {
+      return;
+    }
+
+    const frameWindow = designerToolkitRef.current?.contentWindow;
+    if (!frameWindow) {
+      return;
+    }
+
+    const resolvedConfig =
+      (designerAnimationConfigs && designerAnimationConfigs[designerAnimation.id]) ??
+      (designerAnimationConfigId === designerAnimation.id ? designerAnimationConfig : null);
+
+    if (!resolvedConfig || typeof resolvedConfig !== "object") {
+      return;
+    }
+
+    const clonedConfig = JSON.parse(JSON.stringify(resolvedConfig));
+
+    if (
+      typeof (frameWindow as typeof window & { applyExternalConfig?: (config: unknown) => unknown })
+        .applyExternalConfig === "function"
+    ) {
+      (frameWindow as typeof window & { applyExternalConfig?: (config: unknown) => unknown }).applyExternalConfig(
+        clonedConfig,
+      );
+      return;
+    }
+
+    frameWindow.postMessage({ type: "APPLY_CONFIG", payload: clonedConfig }, "*");
+  }, [
+    designerAnimation,
+    designerAnimationConfig,
+    designerAnimationConfigId,
+    designerAnimationConfigs,
+    designerToolkitReady,
+  ]);
 
   const defaultGradient = "from-purple-500 via-sky-500 to-indigo-500";
   const libraryAnimations = useMemo(() => ownedAnimations, [ownedAnimations]);

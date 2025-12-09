@@ -1896,6 +1896,14 @@
     window.parent.postMessage({ type: "animation-toolkit-ready" }, "*");
   }
 
+  window.applyExternalConfig = function(configObj) {
+    const result = applyConfigObject(configObj);
+    if (!result.ok) {
+      console.warn("Failed to apply external config:", result.error);
+    }
+    return result.ok;
+  };
+
   window.addEventListener("message", (event) => {
     const data = event.data;
 
@@ -1903,6 +1911,11 @@
 
     if (data.type === "request-animation-export" && window.parent) {
       window.parent.postMessage({ type: "animation-export", payload: getConfigJsonObject() }, "*");
+      return;
+    }
+
+    if (data.type === "APPLY_CONFIG" || data.type === "apply-config") {
+      applyConfigObject(data.payload ?? {});
     }
   });
 
@@ -1912,21 +1925,7 @@
     modalError.textContent = "";
   }
 
-  function applyConfigFromText() {
-    modalError.textContent = "";
-    const text = configJsonText.value.trim();
-    if (!text) {
-      modalError.textContent = "Textarea is empty – paste JSON first.";
-      return;
-    }
-    let data;
-    try {
-      data = JSON.parse(text);
-    } catch (e) {
-      modalError.textContent = "Invalid JSON: " + e.message;
-      return;
-    }
-
+  function applyConfigObject(data) {
     let ledCount = NUM_LEDS;
     let newBrightness = brightness;
     let newSpeed = globalSpeed;
@@ -1942,13 +1941,11 @@
       if (data.colorBlendMode !== undefined) newBlend = data.colorBlendMode;
       if (Array.isArray(data.configs)) newConfigs = data.configs;
     } else {
-      modalError.textContent = "JSON root should be an object or array.";
-      return;
+      return { ok: false, error: "JSON root should be an object or array." };
     }
 
     if (!Array.isArray(newConfigs)) {
-      modalError.textContent = "Missing 'configs' array.";
-      return;
+      return { ok: false, error: "Missing 'configs' array." };
     }
 
     ledCount = clamp(parseInt(ledCount, 10) || 16, 4, 64);
@@ -1977,6 +1974,30 @@
       const props = c.props && typeof c.props === "object" ? c.props : {};
       addConfig({ start, length, animId, props });
     });
+
+    return { ok: true };
+  }
+
+  function applyConfigFromText() {
+    modalError.textContent = "";
+    const text = configJsonText.value.trim();
+    if (!text) {
+      modalError.textContent = "Textarea is empty – paste JSON first.";
+      return;
+    }
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch (e) {
+      modalError.textContent = "Invalid JSON: " + e.message;
+      return;
+    }
+
+    const result = applyConfigObject(data);
+    if (!result.ok) {
+      modalError.textContent = result.error;
+      return;
+    }
 
     modalError.textContent = "Config applied.";
   }
