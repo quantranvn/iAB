@@ -6,6 +6,7 @@ import type { LightSettings } from "../types/userProfile";
 interface LEDStripPreviewProps {
   settings: LightSettings;
   scenarioName: string;
+  toolkitLedColors?: string[];
 }
 
 const LED_GROUPS = [
@@ -60,7 +61,7 @@ const pseudoRandom = (seed: number) => {
   return x - Math.floor(x);
 };
 
-export function LEDStripPreview({ settings, scenarioName }: LEDStripPreviewProps) {
+export function LEDStripPreview({ settings, scenarioName, toolkitLedColors }: LEDStripPreviewProps) {
   const { red, green, blue, intensity } = settings;
   const alpha = Math.max(intensity / 100, 0.25);
   const baseColor = `rgb(${red}, ${green}, ${blue})`;
@@ -80,6 +81,7 @@ export function LEDStripPreview({ settings, scenarioName }: LEDStripPreviewProps
   const shadowColor = darkenColor(0.28);
   const animationDuration = 2.4 - alpha;
   const normalizedScenario = scenarioName.trim().toLowerCase();
+  const liveToolkitColors = toolkitLedColors?.length ? toolkitLedColors : null;
 
   const animationMetrics = useMemo(
     () => {
@@ -502,9 +504,17 @@ export function LEDStripPreview({ settings, scenarioName }: LEDStripPreviewProps
                 if (scenarioConfig.styleOverrides) {
                   Object.assign(ledStyle, scenarioConfig.styleOverrides);
                 }
-                ledStyle.animationDelay = `${delay}s`;
-                ledStyle.animationDuration = `${scenarioConfig.duration}s`;
-                ledStyle["--led-animation-duration"] = `${scenarioConfig.duration}s`;
+                const overrideColor = liveToolkitColors?.[currentIndex % liveToolkitColors.length];
+                if (!overrideColor) {
+                  ledStyle.animationDelay = `${delay}s`;
+                  ledStyle.animationDuration = `${scenarioConfig.duration}s`;
+                  ledStyle["--led-animation-duration"] = `${scenarioConfig.duration}s`;
+                } else {
+                  ledStyle.backgroundColor = overrideColor;
+                  ledStyle.boxShadow = `0 0 10px ${overrideColor}, 0 0 0 1px rgba(70, 78, 120, 0.85)`;
+                  ledStyle.opacity = 1;
+                  ledStyle.filter = "brightness(1) saturate(1)";
+                }
                 ledStyle["--led-position"] = normalizedPosition.toFixed(2);
                 if (scenarioConfig.perLedStyle) {
                   Object.assign(
@@ -520,7 +530,10 @@ export function LEDStripPreview({ settings, scenarioName }: LEDStripPreviewProps
                 }
                 return (
                   <span key={`${group.id}-${index}`} className="toolkit-led-shell" aria-hidden>
-                    <span className={`toolkit-led ${scenarioConfig.ledClassName}`} style={ledStyle} />
+                    <span
+                      className={`toolkit-led ${overrideColor ? "" : scenarioConfig.ledClassName}`.trim()}
+                      style={ledStyle}
+                    />
                   </span>
                 );
               })}

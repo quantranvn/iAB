@@ -7,6 +7,7 @@ import { toast } from "sonner@2.0.3";
 import type { AnimationScenarioOption } from "../types/animation";
 import type { LightSettings } from "../types/userProfile";
 import { LEDStripPreview } from "./LEDStripPreview";
+import { useAnimationToolkitSync } from "../utils/useAnimationToolkitSync";
 
 interface AnimationControlProps {
   scenarios: AnimationScenarioOption[];
@@ -39,6 +40,11 @@ export function AnimationControl({
   const selectedScenarioName =
     scenarios.find((scenario) => scenario.id === selectedScenario)?.name ??
     `Scenario ${selectedScenario}`;
+
+  const { ledColors: toolkitLedColors } = useAnimationToolkitSync(
+    selectedScenarioName,
+    currentSettings,
+  );
 
   const intensityLevel = Math.round(currentSettings.intensity / 5);
 
@@ -161,6 +167,7 @@ export function AnimationControl({
         <LEDStripPreview
           settings={currentSettings}
           scenarioName={selectedScenarioName}
+          toolkitLedColors={toolkitLedColors}
         />
 
         <div className="space-y-6">
