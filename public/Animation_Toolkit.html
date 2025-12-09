@@ -1,0 +1,1295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>LED Animation Mixer (Direction + Mirror + Phase + JSON)</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+        sans-serif;
+    }
+    body {
+      background: #050710;
+      color: #f5f5f5;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+    .app {
+      background: radial-gradient(circle at top, #20253a, #050710 65%);
+      border-radius: 16px;
+      padding: 18px 18px 14px;
+      max-width: 960px;
+      width: 100%;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.55);
+      border: 1px solid rgba(90, 108, 225, 0.4);
+      position: relative;
+    }
+    h1 {
+      font-size: 18px;
+      margin-bottom: 4px;
+    }
+    .subtitle {
+      font-size: 11px;
+      color: #a3a8cc;
+      margin-bottom: 12px;
+    }
+    .top-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    .top-controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      font-size: 11px;
+    }
+    label {
+      color: #c5c9ff;
+    }
+    input[type="range"],
+    input[type="number"],
+    select {
+      font-size: 11px;
+      padding: 3px 8px;
+      border-radius: 999px;
+      border: 1px solid #3a4163;
+      background: rgba(5, 7, 18, 0.9);
+      color: #f5f5f5;
+      outline: none;
+      min-width: 70px;
+    }
+    input[type="range"] { padding: 0; }
+    input:focus, select:focus {
+      border-color: #7685ff;
+      box-shadow: 0 0 0 1px rgba(118, 133, 255, 0.4);
+    }
+    .range-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .range-row span {
+      font-size: 10px;
+      min-width: 32px;
+      text-align: right;
+      color: #9ea4cf;
+    }
+    button {
+      border-radius: 999px;
+      border: 1px solid #3a4163;
+      background: linear-gradient(135deg, #1a1d30, #111323);
+      color: #f5f5f5;
+      font-size: 11px;
+      padding: 5px 11px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    button.secondary {
+      background: rgba(6, 8, 18, 0.9);
+    }
+    button.small {
+      font-size: 10px;
+      padding: 4px 9px;
+    }
+    button:active { transform: translateY(1px); }
+    button:focus-visible {
+      outline: 2px solid #7685ff;
+      outline-offset: 1px;
+    }
+    .led-strip-container {
+      margin-top: 6px;
+      margin-bottom: 10px;
+      padding: 10px 8px 6px;
+      border-radius: 14px;
+      border: 1px solid rgba(90, 108, 225, 0.6);
+      background: radial-gradient(circle at top, #242844, #050710 70%);
+    }
+    .led-strip-label {
+      font-size: 10px;
+      color: #9da3cf;
+      margin-bottom: 8px;
+      display: flex;
+      justify-content: space-between;
+    }
+    .led-strip {
+      display: flex;
+      gap: 6px;
+      justify-content: center;
+      align-items: center;
+      padding: 4px;
+    }
+    .led {
+      width: 18px;
+      height: 32px;
+      border-radius: 999px;
+      background: #050710;
+      box-shadow: 0 0 0 1px rgba(70, 78, 120, 0.8),
+        0 0 8px rgba(0, 0, 0, 0.7) inset;
+      position: relative;
+    }
+    .led::after {
+      content: "";
+      position: absolute;
+      inset: 4px 3px;
+      background: radial-gradient(circle at 30% 20%,
+          rgba(255, 255, 255, 0.6),
+          transparent);
+      border-radius: inherit;
+      opacity: 0.6;
+      pointer-events: none;
+      mix-blend-mode: screen;
+    }
+    .configs-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 6px;
+      margin-top: 4px;
+      font-size: 11px;
+      color: #a6abd3;
+    }
+    .configs-toolbar {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+    .configs-list {
+      border-radius: 10px;
+      background: rgba(5, 7, 18, 0.8);
+      border: 1px solid rgba(60, 68, 120, 0.9);
+      padding: 6px 6px 4px;
+      max-height: 280px;
+      overflow-y: auto;
+    }
+    .config-row {
+      display: grid;
+      grid-template-columns: 1.5fr 0.9fr 0.9fr auto;
+      gap: 6px;
+      align-items: center;
+      margin-bottom: 5px;
+      padding: 4px 4px;
+      border-radius: 8px;
+      background: linear-gradient(135deg,
+          rgba(18, 20, 36, 0.95),
+          rgba(10, 12, 22, 0.95));
+    }
+    .config-row span.label {
+      font-size: 10px;
+    }
+    .config-row button.remove {
+      padding: 3px 7px;
+      font-size: 10px;
+      border-radius: 999px;
+      border: 1px solid #593a4a;
+      background: linear-gradient(135deg, #341622, #221018);
+      color: #ffb9c9;
+    }
+    .config-row small {
+      font-size: 9px;
+      color: #868dc0;
+      grid-column: 1 / -1;
+      margin-top: 1px;
+    }
+    .config-props {
+      grid-column: 1 / -1;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 2px;
+      font-size: 10px;
+    }
+    .config-prop-item {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .config-prop-item label {
+      font-size: 10px;
+      color: #c5c9ff;
+    }
+    .config-prop-item input[type="color"] {
+      padding: 0;
+      border-radius: 5px;
+      border: 1px solid #3a4163;
+      width: 26px;
+      height: 16px;
+      background: transparent;
+    }
+    .config-prop-item input[type="number"] {
+      max-width: 60px;
+      padding: 2px 5px;
+    }
+    .config-prop-item input[type="checkbox"] {
+      width: 14px;
+      height: 14px;
+      accent-color: #7685ff;
+    }
+    .footer {
+      margin-top: 6px;
+      font-size: 10px;
+      color: #858cc0;
+      display: flex;
+      justify-content: space-between;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .footer strong {
+      color: #cdd2ff;
+      font-weight: 500;
+    }
+
+    /* Modal for JSON export/import */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 20;
+    }
+    .modal {
+      background: #070918;
+      border-radius: 14px;
+      border: 1px solid rgba(120, 132, 255, 0.7);
+      max-width: 640px;
+      width: 100%;
+      padding: 14px 14px 10px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.7);
+    }
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 6px;
+    }
+    .modal-header h2 {
+      font-size: 14px;
+    }
+    .modal-header button {
+      padding: 3px 8px;
+      font-size: 11px;
+    }
+    .modal-subtitle {
+      font-size: 11px;
+      color: #a4aad8;
+      margin-bottom: 6px;
+    }
+    .modal-textarea {
+      width: 100%;
+      min-height: 200px;
+      resize: vertical;
+      border-radius: 8px;
+      border: 1px solid #3a4163;
+      background: #050716;
+      color: #f5f5f5;
+      padding: 8px;
+      font-size: 11px;
+      font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo,
+        Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      outline: none;
+      margin-bottom: 6px;
+    }
+    .modal-textarea:focus {
+      border-color: #7685ff;
+      box-shadow: 0 0 0 1px rgba(118, 133, 255, 0.4);
+    }
+    .modal-footer {
+      display: flex;
+      justify-content: space-between;
+      gap: 6px;
+      align-items: center;
+      font-size: 10px;
+      color: #8c92c6;
+    }
+    .modal-buttons {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+    .modal-error {
+      color: #ff93af;
+      font-size: 10px;
+      min-height: 14px;
+    }
+    .hidden {
+      display: none;
+    }
+
+    @media (max-width: 640px) {
+      .app { padding: 14px 12px 10px; }
+      .config-row { grid-template-columns: 1.4fr 0.8fr 0.8fr auto; }
+      .led { width: 14px; height: 26px; }
+      .modal { max-width: 95vw; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <h1>LED Animation Mixer</h1>
+    <div class="subtitle">
+      16 virtual LEDs – each segment has its own animation, color, speed, <strong>start direction</strong>, <strong>mirror</strong>, and <strong>phase</strong>. Overlaps mix colors. Export/import JSON.
+    </div>
+
+    <div class="top-row">
+      <div class="top-controls">
+        <div class="control-group">
+          <label for="brightnessRange">Brightness</label>
+          <div class="range-row">
+            <input id="brightnessRange" type="range" min="0.1" max="1" step="0.05" value="0.9" />
+            <span id="brightnessValue">90%</span>
+          </div>
+        </div>
+        <div class="control-group">
+          <label for="speedRange">Global speed</label>
+          <div class="range-row">
+            <input id="speedRange" type="range" min="0.2" max="2.5" step="0.05" value="1" />
+            <span id="speedValue">1.00×</span>
+          </div>
+        </div>
+        <div class="control-group">
+          <label for="ledCountInput">LED count</label>
+          <input id="ledCountInput" type="number" min="4" max="64" value="16" />
+        </div>
+      </div>
+      <div class="top-controls">
+        <button id="toggleBtn"><span id="toggleText">Pause</span></button>
+        <button id="clearBtn" class="secondary">Clear configs</button>
+      </div>
+    </div>
+
+    <div class="led-strip-container">
+      <div class="led-strip-label">
+        <span>Virtual strip</span>
+        <span id="configCountLabel">0 configs</span>
+      </div>
+      <div id="ledStrip" class="led-strip"></div>
+    </div>
+
+    <div class="configs-header">
+      <span>Configs (segments & animations, each with its own params)</span>
+      <div class="configs-toolbar">
+        <button id="configJsonBtn" class="small secondary">Config JSON</button>
+        <button id="addConfigBtn" class="small">+ Add config</button>
+      </div>
+    </div>
+
+    <div id="configsList" class="configs-list"></div>
+
+    <div class="footer">
+      <div><strong>Overlap:</strong> per-LED colors are added &amp; clamped.</div>
+      <div>Config structure is MCU-friendly (JSON → struct array).</div>
+    </div>
+  </div>
+
+  <!-- Modal for JSON export/import -->
+  <div id="configModalOverlay" class="modal-overlay hidden">
+    <div class="modal">
+      <div class="modal-header">
+        <h2>Export / Import Config JSON</h2>
+        <button id="closeModalBtn" class="secondary small">Close</button>
+      </div>
+      <div class="modal-subtitle">
+        Click "Export from current" to dump your setup as JSON. You can edit or paste JSON here, then click "Apply JSON" to load it.
+      </div>
+      <textarea id="configJsonText" class="modal-textarea" spellcheck="false"></textarea>
+      <div class="modal-footer">
+        <div class="modal-buttons">
+          <button id="exportJsonBtn" class="small">Export from current</button>
+          <button id="applyJsonBtn" class="small secondary">Apply JSON</button>
+        </div>
+        <div id="modalError" class="modal-error"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let NUM_LEDS = 16;
+    let leds = [];
+    let frameColors = [];
+    let brightness = 0.9;
+    let globalSpeed = 1.0;
+    let running = true;
+    let lastTimestamp = 0;
+
+    const ledStripEl = document.getElementById("ledStrip");
+    const brightnessRange = document.getElementById("brightnessRange");
+    const brightnessValue = document.getElementById("brightnessValue");
+    const speedRange = document.getElementById("speedRange");
+    const speedValue = document.getElementById("speedValue");
+    const ledCountInput = document.getElementById("ledCountInput");
+    const toggleBtn = document.getElementById("toggleBtn");
+    const toggleText = document.getElementById("toggleText");
+    const clearBtn = document.getElementById("clearBtn");
+    const addConfigBtn = document.getElementById("addConfigBtn");
+    const configsListEl = document.getElementById("configsList");
+    const configCountLabel = document.getElementById("configCountLabel");
+
+    const configJsonBtn = document.getElementById("configJsonBtn");
+    const configModalOverlay = document.getElementById("configModalOverlay");
+    const closeModalBtn = document.getElementById("closeModalBtn");
+    const configJsonText = document.getElementById("configJsonText");
+    const exportJsonBtn = document.getElementById("exportJsonBtn");
+    const applyJsonBtn = document.getElementById("applyJsonBtn");
+    const modalError = document.getElementById("modalError");
+
+    let configs = [];
+    let configIdCounter = 1;
+
+    function clamp(v, min, max) {
+      return v < min ? min : v > max ? max : v;
+    }
+
+    function hsvToRgb(h, s, v) {
+      let r, g, b;
+      let i = Math.floor(h * 6);
+      let f = h * 6 - i;
+      let p = v * (1 - s);
+      let q = v * (1 - f * s);
+      let t = v * (1 - (1 - f) * s);
+      switch (i % 6) {
+        case 0: r = v; g = t; b = p; break;
+        case 1: r = q; g = v; b = p; break;
+        case 2: r = p; g = v; b = t; break;
+        case 3: r = p; g = q; b = v; break;
+        case 4: r = t; g = p; b = v; break;
+        case 5: r = v; g = p; b = q; break;
+      }
+      return {
+        r: Math.round(r * 255),
+        g: Math.round(g * 255),
+        b: Math.round(b * 255),
+      };
+    }
+
+    function hexToRgb(hex) {
+      if (!hex || typeof hex !== "string") return { r: 255, g: 255, b: 255 };
+      let h = hex.trim();
+      if (h[0] === "#") h = h.slice(1);
+      if (h.length === 3) {
+        h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2];
+      }
+      if (h.length !== 6) return { r: 255, g: 255, b: 255 };
+      const r = parseInt(h.slice(0, 2), 16);
+      const g = parseInt(h.slice(2, 4), 16);
+      const b = parseInt(h.slice(4, 6), 16);
+      return { r: isNaN(r) ? 255 : r, g: isNaN(g) ? 255 : g, b: isNaN(b) ? 255 : b };
+    }
+
+    function rand01(seed) {
+      const x = Math.sin(seed * 127.1) * 43758.5453;
+      return x - Math.floor(x);
+    }
+
+    function createStrip() {
+      ledStripEl.innerHTML = "";
+      leds = [];
+      frameColors = [];
+      for (let i = 0; i < NUM_LEDS; i++) {
+        const div = document.createElement("div");
+        div.className = "led";
+        ledStripEl.appendChild(div);
+        leds.push(div);
+        frameColors.push({ r: 0, g: 0, b: 0 });
+      }
+    }
+
+    function clearFrame() {
+      for (let i = 0; i < NUM_LEDS; i++) {
+        frameColors[i].r = 0;
+        frameColors[i].g = 0;
+        frameColors[i].b = 0;
+      }
+    }
+
+    function addColorAt(index, color) {
+      if (index < 0 || index >= NUM_LEDS) return;
+      const target = frameColors[index];
+      target.r = clamp(target.r + color.r, 0, 255);
+      target.g = clamp(target.g + color.g, 0, 255);
+      target.b = clamp(target.b + color.b, 0, 255);
+    }
+
+    function renderStrip() {
+      for (let i = 0; i < NUM_LEDS; i++) {
+        const c = frameColors[i];
+        const r = Math.round(c.r * brightness);
+        const g = Math.round(c.g * brightness);
+        const b = Math.round(c.b * brightness);
+        leds[i].style.backgroundColor = `rgb(${r}, ${g}, ${b})`;
+        leds[i].style.boxShadow =
+          `0 0 6px rgba(${r},${g},${b},0.9), 0 0 0 1px rgba(70, 78, 120, 0.85)`;
+      }
+    }
+
+    // Helper: effective local index with direction + mirror
+    function getEffectiveIndex(localIndex, segLength, conf) {
+      const props = conf.props || {};
+      let idx = localIndex;
+
+      // Direction: start at left (normal) or right (reverse)
+      const dir = props.direction || "left";
+      if (dir === "right") {
+        idx = segLength - 1 - idx;
+      }
+
+      // Mirror around center if enabled
+      const mirror = !!props.mirror;
+      if (mirror && segLength > 1) {
+        const last = segLength - 1;
+        idx = Math.min(idx, last - idx);
+      }
+
+      return idx;
+    }
+
+    // Animations with per-config props
+    // Each fn: (tMs, localIndex, segLength, conf) -> {r,g,b}
+    const ANIMATIONS = [
+      {
+        id: "rainbow",
+        name: "Rainbow cycle",
+        props: [
+          { id: "direction", label: "Start from", type: "select", options: [
+            { value: "left", label: "Left" },
+            { value: "right", label: "Right" }
+          ], default: "left" },
+          { id: "mirror", label: "Mirror", type: "checkbox", default: false },
+          { id: "phaseMs", label: "Phase (ms)", type: "number", min: -5000, max: 5000, step: 50, default: 0 },
+          { id: "speed", label: "Speed", type: "number", min: 0.2, max: 3, step: 0.1, default: 1 }
+        ],
+        fn: (t, i, len, conf) => {
+          const props = conf.props || {};
+          const idx = getEffectiveIndex(i, len, conf);
+          const tShift = t + (props.phaseMs ?? 0);
+          const localSpeed = ((props.speed ?? 1) * globalSpeed);
+          const pos = (idx / Math.max(1, len - 1)) + tShift * 0.00015 * localSpeed;
+          const hue = pos % 1;
+          return hsvToRgb(hue, 1, 1);
+        },
+      },
+      {
+        id: "smoothFade",
+        name: "Smooth color fade",
+        props: [
+          { id: "direction", label: "Start from", type: "select", options: [
+            { value: "left", label: "Left" },
+            { value: "right", label: "Right" }
+          ], default: "left" },
+          { id: "mirror", label: "Mirror", type: "checkbox", default: false },
+          { id: "phaseMs", label: "Phase (ms)", type: "number", min: -5000, max: 5000, step: 50, default: 0 },
+          { id: "speed", label: "Speed", type: "number", min: 0.2, max: 3, step: 0.1, default: 1 }
+        ],
+        fn: (t, i, len, conf) => {
+          const props = conf.props || {};
+          const tShift = t + (props.phaseMs ?? 0);
+          const localSpeed = ((props.speed ?? 1) * globalSpeed);
+          const hue = (tShift * 0.0002 * localSpeed) % 1;
+          return hsvToRgb(hue, 0.9, 1);
+        },
+      },
+      {
+        id: "theater",
+        name: "Theater chase",
+        props: [
+          { id: "direction", label: "Start from", type: "select", options: [
+            { value: "left", label: "Left" },
+            { value: "right", label: "Right" }
+          ], default: "left" },
+          { id: "mirror", label: "Mirror", type: "checkbox", default: false },
+          { id: "phaseMs", label: "Phase (ms)", type: "number", min: -5000, max: 5000, step: 50, default: 0 },
+          { id: "speed", label: "Speed", type: "number", min: 0.2, max: 3, step: 0.1, default: 1 }
+        ],
+        fn: (t, i, len, conf) => {
+          const props = conf.props || {};
+          const idx = getEffectiveIndex(i, len, conf);
+          const tShift = t + (props.phaseMs ?? 0);
+          const localSpeed = ((props.speed ?? 1) * globalSpeed);
+          const step = Math.floor(tShift * 0.00035 * localSpeed);
+          if ((idx + step) % 3 === 0) return { r: 255, g: 255, b: 255 };
+          return { r: 0, g: 0, b: 0 };
+        },
+      },
+      {
+        id: "larson",
+        name: "Larson scanner",
+        props: [
+          { id: "direction", label: "Start from", type: "select", options: [
+            { value: "left", label: "Left" },
+            { value: "right", label: "Right" }
+          ], default: "left" },
+          { id: "mirror", label: "Mirror", type: "checkbox", default: false },
+          { id: "phaseMs", label: "Phase (ms)", type: "number", min: -5000, max: 5000, step: 50, default: 0 },
+          { id: "speed", label: "Speed", type: "number", min: 0.2, max: 3, step: 0.1, default: 1 }
+        ],
+        fn: (t, i, len, conf) => {
+          const props = conf.props || {};
+          const idx = getEffectiveIndex(i, len, conf);
+          const tShift = t + (props.phaseMs ?? 0);
+          const localSpeed = ((props.speed ?? 1) * globalSpeed);
+          const period = 2200 / localSpeed;
+          const phase = ((tShift % period) / period) * 2 * Math.PI;
+          const pos = (Math.sin(phase) * 0.5 + 0.5) * Math.max(0, len - 1);
+          const dist = Math.abs(idx - pos);
+          let intensity = Math.max(0, 1.4 - dist);
+          intensity = intensity * intensity;
+          return {
+            r: Math.round(255 * intensity),
+            g: Math.round(40 * intensity),
+            b: Math.round(40 * intensity),
+          };
+        },
+      },
+      {
+        id: "breathing",
+        name: "Breathing (color)",
+        props: [
+          { id: "direction", label: "Start from", type: "select", options: [
+            { value: "left", label: "Left" },
+            { value: "right", label: "Right" }
+          ], default: "left" },
+          { id: "mirror", label: "Mirror", type: "checkbox", default: false },
+          { id: "phaseMs", label: "Phase (ms)", type: "number", min: -5000, max: 5000, step: 50, default: 0 },
+          { id: "color", label: "Color", type: "color", default: "#00ffff" },
+          { id: "speed", label: "Speed", type: "number", min: 0.2, max: 3, step: 0.1, default: 1 }
+        ],
+        fn: (t, i, len, conf) => {
+          const props = conf.props || {};
+          const base = hexToRgb(props.color || "#00ffff");
+          const tShift = t + (props.phaseMs ?? 0);
+          const localSpeed = ((props.speed ?? 1) * globalSpeed);
+          const period = 3000 / localSpeed;
+          const phase = ((tShift % period) / period) * 2 * Math.PI;
+          let v = (Math.sin(phase - Math.PI / 2) + 1) / 2;
+          v = v * 0.9 + 0.1;
+          return {
+            r: Math.round(base.r * v),
+            g: Math.round(base.g * v),
+            b: Math.round(base.b * v),
+          };
+        },
+      },
+      {
+        id: "police",
+        name: "Police red/blue",
+        props: [
+          { id: "direction", label: "Start from", type: "select", options: [
+            { value: "left", label: "Left" },
+            { value: "right", label: "Right" }
+          ], default: "left" },
+          { id: "mirror", label: "Mirror", type: "checkbox", default: false },
+          { id: "phaseMs", label: "Phase (ms)", type: "number", min: -5000, max: 5000, step: 50, default: 0 },
+          { id: "speed", label: "Speed", type: "number", min: 0.2, max: 3, step: 0.1, default: 1 }
+        ],
+        fn: (t, i, len, conf) => {
+          const props = conf.props || {};
+          const tShift = t + (props.phaseMs ?? 0);
+          const localSpeed = ((props.speed ?? 1) * globalSpeed);
+          const half = Math.floor(len / 2);
+          const period = 800 / localSpeed;
+          const phase = (tShift % period) / period;
+          const leftOn = phase < 0.5;
+          if (i < half) return leftOn ? { r: 255, g: 0, b: 0 } : { r: 0, g: 0, b: 0 };
+          return !leftOn ? { r: 0, g: 0, b: 255 } : { r: 0, g: 0, b: 0 };
+        },
+      },
+      {
+        id: "strobe",
+        name: "Strobe white",
+        props: [
+          { id: "direction", label: "Start from", type: "select", options: [
+            { value: "left", label: "Left" },
+            { value: "right", label: "Right" }
+          ], default: "left" },
+          { id: "mirror", label: "Mirror", type: "checkbox", default: false },
+          { id: "phaseMs", label: "Phase (ms)", type: "number", min: -5000, max: 5000, step: 50, default: 0 },
+          { id: "speed", label: "Speed", type: "number", min: 0.2, max: 3, step: 0.1, default: 1 }
+        ],
+        fn: (t, i, len, conf) => {
+          const props = conf.props || {};
+          const tShift = t + (props.phaseMs ?? 0);
+          const localSpeed = ((props.speed ?? 1) * globalSpeed);
+          const period = 260 / localSpeed;
+          const phase = (tShift % period) / period;
+          if (phase < 0.12) return { r: 255, g: 255, b: 255 };
+          return { r: 0, g: 0, b: 0 };
+        },
+      },
+      {
+        id: "running",
+        name: "Running lights (color)",
+        props: [
+          { id: "direction", label: "Start from", type: "select", options: [
+            { value: "left", label: "Left" },
+            { value: "right", label: "Right" }
+          ], default: "left" },
+          { id: "mirror", label: "Mirror", type: "checkbox", default: false },
+          { id: "phaseMs", label: "Phase (ms)", type: "number", min: -5000, max: 5000, step: 50, default: 0 },
+          { id: "color", label: "Color", type: "color", default: "#ff0000" },
+          { id: "speed", label: "Speed", type: "number", min: 0.2, max: 3, step: 0.1, default: 1 }
+        ],
+        fn: (t, i, len, conf) => {
+          const props = conf.props || {};
+          const base = hexToRgb(props.color || "#ff0000");
+          const idx = getEffectiveIndex(i, len, conf);
+          const tShift = t + (props.phaseMs ?? 0);
+          const localSpeed = ((props.speed ?? 1) * globalSpeed);
+          const phase = (idx / Math.max(1, len) * 2 * Math.PI) +
+            tShift * 0.012 * localSpeed;
+          const v = (Math.sin(phase) + 1) / 2;
+          return {
+            r: Math.round(base.r * v),
+            g: Math.round(base.g * v),
+            b: Math.round(base.b * v),
+          };
+        },
+      },
+      {
+        id: "water",
+        name: "Water ripple",
+        props: [
+          { id: "direction", label: "Start from", type: "select", options: [
+            { value: "left", label: "Left" },
+            { value: "right", label: "Right" }
+          ], default: "left" },
+          { id: "mirror", label: "Mirror", type: "checkbox", default: false },
+          { id: "phaseMs", label: "Phase (ms)", type: "number", min: -5000, max: 5000, step: 50, default: 0 },
+          { id: "speed", label: "Speed", type: "number", min: 0.2, max: 3, step: 0.1, default: 1 }
+        ],
+        fn: (t, i, len, conf) => {
+          const props = conf.props || {};
+          const idx = getEffectiveIndex(i, len, conf);
+          const tShift = t + (props.phaseMs ?? 0);
+          const localSpeed = ((props.speed ?? 1) * globalSpeed);
+          const center = (len - 1) / 2;
+          const dist = Math.abs(idx - center);
+          const period = 2000 / localSpeed;
+          const wavePhase = ((tShift % period) / period) * 2 * Math.PI;
+          const ripple = Math.sin(wavePhase - dist * 0.55) * Math.exp(-dist * 0.2);
+          let intensity = clamp((ripple + 1) / 2, 0, 1) * 0.9 + 0.1;
+          return hsvToRgb(0.58, 0.7, intensity);
+        },
+      },
+      {
+        id: "plasma",
+        name: "Plasma colors",
+        props: [
+          { id: "direction", label: "Start from", type: "select", options: [
+            { value: "left", label: "Left" },
+            { value: "right", label: "Right" }
+          ], default: "left" },
+          { id: "mirror", label: "Mirror", type: "checkbox", default: false },
+          { id: "phaseMs", label: "Phase (ms)", type: "number", min: -5000, max: 5000, step: 50, default: 0 },
+          { id: "speed", label: "Speed", type: "number", min: 0.2, max: 3, step: 0.1, default: 1 }
+        ],
+        fn: (t, i, len, conf) => {
+          const props = conf.props || {};
+          const idx = getEffectiveIndex(i, len, conf);
+          const tShift = t + (props.phaseMs ?? 0);
+          const localSpeed = ((props.speed ?? 1) * globalSpeed);
+          const x = idx / Math.max(1, len);
+          const tf = tShift * 0.001 * localSpeed;
+          const v = Math.sin(6 * x + tf) +
+            Math.sin(4 * x - tf * 1.3) +
+            Math.cos(5 * x + tf * 0.7);
+          const normalized = (v + 3) / 6;
+          const hue = (normalized + tf * 0.08) % 1;
+          return hsvToRgb(hue, 1, 1);
+        },
+      },
+      {
+        id: "twinkle",
+        name: "Twinkle (color)",
+        props: [
+          { id: "direction", label: "Start from", type: "select", options: [
+            { value: "left", label: "Left" },
+            { value: "right", label: "Right" }
+          ], default: "left" },
+          { id: "mirror", label: "Mirror", type: "checkbox", default: false },
+          { id: "phaseMs", label: "Phase (ms)", type: "number", min: -5000, max: 5000, step: 50, default: 0 },
+          { id: "color", label: "Color", type: "color", default: "#ffffff" },
+          { id: "speed", label: "Speed", type: "number", min: 0.2, max: 3, step: 0.1, default: 1 }
+        ],
+        fn: (t, i, len, conf) => {
+          const props = conf.props || {};
+          const base = hexToRgb(props.color || "#ffffff");
+          const tShift = t + (props.phaseMs ?? 0);
+          const localSpeed = ((props.speed ?? 1) * globalSpeed);
+          const frame = Math.floor(tShift / (120 / localSpeed));
+          const idx = getEffectiveIndex(i, len, conf);
+          const r = rand01(idx * 9283 + frame * 173);
+          if (r > 0.85) {
+            const strength = (r - 0.85) / 0.15;
+            const v = 0.3 + strength * 0.7;
+            return {
+              r: Math.round(base.r * v),
+              g: Math.round(base.g * v),
+              b: Math.round(base.b * v),
+            };
+          }
+          return { r: 0, g: 0, b: 0 };
+        },
+      },
+      {
+        id: "beat",
+        name: "Beat pulse (color)",
+        props: [
+          { id: "direction", label: "Start from", type: "select", options: [
+            { value: "left", label: "Left" },
+            { value: "right", label: "Right" }
+          ], default: "left" },
+          { id: "mirror", label: "Mirror", type: "checkbox", default: false },
+          { id: "phaseMs", label: "Phase (ms)", type: "number", min: -5000, max: 5000, step: 50, default: 0 },
+          { id: "color", label: "Color", type: "color", default: "#ff0080" },
+          { id: "speed", label: "Speed", type: "number", min: 0.2, max: 3, step: 0.1, default: 1 }
+        ],
+        fn: (t, i, len, conf) => {
+          const props = conf.props || {};
+          const base = hexToRgb(props.color || "#ff0080");
+          const tShift = t + (props.phaseMs ?? 0);
+          const localSpeed = ((props.speed ?? 1) * globalSpeed);
+          const period = 900 / localSpeed;
+          const beatPhase = (tShift % period) / period;
+          let v;
+          if (beatPhase < 0.2) v = beatPhase / 0.2;
+          else v = Math.exp(-(beatPhase - 0.2) * 4.5);
+          v = clamp(v, 0.05, 1);
+          return {
+            r: Math.round(base.r * v),
+            g: Math.round(base.g * v),
+            b: Math.round(base.b * v),
+          };
+        },
+      },
+    ];
+
+    function findAnimation(animId) {
+      return ANIMATIONS.find(a => a.id === animId) || ANIMATIONS[0];
+    }
+
+    function updateConfigCountLabel() {
+      configCountLabel.textContent = `${configs.length} config${configs.length === 1 ? "" : "s"}`;
+    }
+
+    function buildPropInput(conf, anim, propDef, container) {
+      if (!conf.props) conf.props = {};
+      if (conf.props[propDef.id] === undefined && propDef.default !== undefined) {
+        conf.props[propDef.id] = propDef.default;
+      }
+
+      const wrapper = document.createElement("div");
+      wrapper.className = "config-prop-item";
+
+      const label = document.createElement("label");
+      label.textContent = propDef.label;
+      wrapper.appendChild(label);
+
+      if (propDef.type === "color") {
+        const input = document.createElement("input");
+        input.type = "color";
+        input.value = conf.props[propDef.id] || propDef.default || "#ffffff";
+        input.addEventListener("input", () => {
+          conf.props[propDef.id] = input.value;
+        });
+        wrapper.appendChild(input);
+
+      } else if (propDef.type === "number") {
+        const input = document.createElement("input");
+        input.type = "number";
+        input.min = propDef.min ?? "0";
+        input.max = propDef.max ?? "10";
+        input.step = propDef.step ?? "0.1";
+        input.value = conf.props[propDef.id] ?? propDef.default ?? 1;
+        input.addEventListener("change", () => {
+          let v = parseFloat(input.value);
+          if (isNaN(v)) v = propDef.default ?? 1;
+          if (propDef.min !== undefined) v = Math.max(propDef.min, v);
+          if (propDef.max !== undefined) v = Math.min(propDef.max, v);
+          conf.props[propDef.id] = v;
+          input.value = v;
+        });
+        wrapper.appendChild(input);
+
+      } else if (propDef.type === "checkbox") {
+        const input = document.createElement("input");
+        input.type = "checkbox";
+        input.checked = !!conf.props[propDef.id];
+        input.addEventListener("change", () => {
+          conf.props[propDef.id] = input.checked;
+        });
+        wrapper.appendChild(input);
+
+      } else if (propDef.type === "select") {
+        const select = document.createElement("select");
+        (propDef.options || []).forEach(opt => {
+          const o = document.createElement("option");
+          o.value = opt.value;
+          o.textContent = opt.label;
+          select.appendChild(o);
+        });
+        select.value = conf.props[propDef.id] || propDef.default || (propDef.options?.[0]?.value ?? "");
+        select.addEventListener("change", () => {
+          conf.props[propDef.id] = select.value;
+        });
+        wrapper.appendChild(select);
+      }
+
+      container.appendChild(wrapper);
+    }
+
+    function createConfigRow(config) {
+      const row = document.createElement("div");
+      row.className = "config-row";
+      row.dataset.configId = config.id;
+
+      const animSelect = document.createElement("select");
+      ANIMATIONS.forEach(anim => {
+        const opt = document.createElement("option");
+        opt.value = anim.id;
+        opt.textContent = anim.name;
+        animSelect.appendChild(opt);
+      });
+      animSelect.value = config.animId;
+
+      const startInput = document.createElement("input");
+      startInput.type = "number";
+      startInput.min = "0";
+      startInput.max = String(NUM_LEDS - 1);
+      startInput.value = config.start;
+
+      const lenInput = document.createElement("input");
+      lenInput.type = "number";
+      lenInput.min = "1";
+      lenInput.max = String(NUM_LEDS);
+      lenInput.value = config.length;
+
+      const removeBtn = document.createElement("button");
+      removeBtn.className = "remove";
+      removeBtn.textContent = "✕";
+
+      const animLabel = document.createElement("span");
+      animLabel.className = "label";
+      animLabel.textContent = "Anim";
+
+      const startLabel = document.createElement("span");
+      startLabel.className = "label";
+      startLabel.textContent = "Start";
+
+      const lenLabel = document.createElement("span");
+      lenLabel.className = "label";
+      lenLabel.textContent = "Len";
+
+      const wrapper1 = document.createElement("div");
+      wrapper1.appendChild(animLabel);
+      wrapper1.appendChild(animSelect);
+
+      const wrapper2 = document.createElement("div");
+      wrapper2.appendChild(startLabel);
+      wrapper2.appendChild(startInput);
+
+      const wrapper3 = document.createElement("div");
+      wrapper3.appendChild(lenLabel);
+      wrapper3.appendChild(lenInput);
+
+      row.appendChild(wrapper1);
+      row.appendChild(wrapper2);
+      row.appendChild(wrapper3);
+      row.appendChild(removeBtn);
+
+      const propsContainer = document.createElement("div");
+      propsContainer.className = "config-props";
+      row.appendChild(propsContainer);
+
+      const hint = document.createElement("small");
+      hint.textContent = "Overlaps with other configs will mix colors.";
+      row.appendChild(hint);
+
+      function renderPropsUI() {
+        propsContainer.innerHTML = "";
+        const anim = findAnimation(config.animId);
+        if (!anim.props || anim.props.length === 0) return;
+        anim.props.forEach(propDef => buildPropInput(config, anim, propDef, propsContainer));
+      }
+
+      renderPropsUI();
+
+      animSelect.addEventListener("change", () => {
+        config.animId = animSelect.value;
+        renderPropsUI();
+      });
+
+      startInput.addEventListener("change", () => {
+        let v = parseInt(startInput.value, 10);
+        if (isNaN(v)) v = 0;
+        v = clamp(v, 0, NUM_LEDS - 1);
+        config.start = v;
+        startInput.value = v;
+        if (config.start + config.length > NUM_LEDS) {
+          config.length = Math.max(1, NUM_LEDS - config.start);
+          lenInput.value = config.length;
+        }
+      });
+
+      lenInput.addEventListener("change", () => {
+        let v = parseInt(lenInput.value, 10);
+        if (isNaN(v)) v = 1;
+        v = clamp(v, 1, NUM_LEDS - config.start);
+        config.length = v;
+        lenInput.value = v;
+      });
+
+      removeBtn.addEventListener("click", () => {
+        configs = configs.filter(c => c.id !== config.id);
+        row.remove();
+        updateConfigCountLabel();
+      });
+
+      return row;
+    }
+
+    function addConfig(defaults = {}) {
+      const conf = {
+        id: configIdCounter++,
+        start: defaults.start ?? 0,
+        length: defaults.length ?? Math.max(2, Math.floor(NUM_LEDS / 4)),
+        animId: defaults.animId ?? ANIMATIONS[configs.length % ANIMATIONS.length].id,
+        props: defaults.props ? { ...defaults.props } : {}
+      };
+      configs.push(conf);
+      const row = createConfigRow(conf);
+      configsListEl.appendChild(row);
+      updateConfigCountLabel();
+    }
+
+    function clearConfigs() {
+      configs = [];
+      configsListEl.innerHTML = "";
+      updateConfigCountLabel();
+    }
+
+    // JSON export/import helpers
+    function openConfigModal() {
+      modalError.textContent = "";
+      configModalOverlay.classList.remove("hidden");
+    }
+
+    function closeConfigModal() {
+      configModalOverlay.classList.add("hidden");
+    }
+
+    function getConfigJsonObject() {
+      return {
+        ledCount: NUM_LEDS,
+        globalBrightness: brightness,
+        globalSpeed: globalSpeed,
+        configs: configs.map(c => ({
+          start: c.start,
+          length: c.length,
+          animId: c.animId,
+          props: c.props || {}
+        })),
+      };
+    }
+
+    function exportCurrentConfigToText() {
+      const obj = getConfigJsonObject();
+      configJsonText.value = JSON.stringify(obj, null, 2);
+      modalError.textContent = "";
+    }
+
+    function applyConfigFromText() {
+      modalError.textContent = "";
+      const text = configJsonText.value.trim();
+      if (!text) {
+        modalError.textContent = "Textarea is empty – paste JSON first.";
+        return;
+      }
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch (e) {
+        modalError.textContent = "Invalid JSON: " + e.message;
+        return;
+      }
+
+      let ledCount = NUM_LEDS;
+      let newBrightness = brightness;
+      let newSpeed = globalSpeed;
+      let newConfigs = [];
+
+      if (Array.isArray(data)) {
+        newConfigs = data;
+      } else if (data && typeof data === "object") {
+        if (data.ledCount !== undefined) ledCount = data.ledCount;
+        if (data.globalBrightness !== undefined) newBrightness = data.globalBrightness;
+        if (data.globalSpeed !== undefined) newSpeed = data.globalSpeed;
+        if (Array.isArray(data.configs)) newConfigs = data.configs;
+      } else {
+        modalError.textContent = "JSON root should be an object or array.";
+        return;
+      }
+
+      if (!Array.isArray(newConfigs)) {
+        modalError.textContent = "Missing 'configs' array.";
+        return;
+      }
+
+      ledCount = clamp(parseInt(ledCount, 10) || 16, 4, 64);
+      NUM_LEDS = ledCount;
+      brightness = clamp(parseFloat(newBrightness) || 0.9, 0.1, 1);
+      globalSpeed = clamp(parseFloat(newSpeed) || 1, 0.2, 2.5);
+
+      ledCountInput.value = NUM_LEDS;
+      brightnessRange.value = brightness;
+      speedRange.value = globalSpeed;
+      brightnessValue.textContent = `${Math.round(brightness * 100)}%`;
+      speedValue.textContent = `${globalSpeed.toFixed(2)}×`;
+
+      createStrip();
+
+      clearConfigs();
+      newConfigs.forEach(c => {
+        if (!c) return;
+        const start = clamp(parseInt(c.start, 10) || 0, 0, NUM_LEDS - 1);
+        const length = clamp(parseInt(c.length, 10) || 1, 1, NUM_LEDS - start);
+        const animId = typeof c.animId === "string" ? c.animId : ANIMATIONS[0].id;
+        const props = c.props && typeof c.props === "object" ? c.props : {};
+        addConfig({ start, length, animId, props });
+      });
+
+      modalError.textContent = "Config applied.";
+    }
+
+    // Controls bindings
+    brightnessRange.addEventListener("input", () => {
+      brightness = parseFloat(brightnessRange.value);
+      brightnessValue.textContent = `${Math.round(brightness * 100)}%`;
+    });
+
+    speedRange.addEventListener("input", () => {
+      globalSpeed = parseFloat(speedRange.value);
+      speedValue.textContent = `${globalSpeed.toFixed(2)}×`;
+    });
+
+    ledCountInput.addEventListener("change", () => {
+      let v = parseInt(ledCountInput.value, 10);
+      if (isNaN(v)) v = 16;
+      v = clamp(v, 4, 64);
+      NUM_LEDS = v;
+      ledCountInput.value = v;
+      createStrip();
+      configs.forEach(c => {
+        if (c.start >= NUM_LEDS) c.start = Math.max(0, NUM_LEDS - 1);
+        if (c.start + c.length > NUM_LEDS) {
+          c.length = Math.max(1, NUM_LEDS - c.start);
+        }
+      });
+      const old = [...configs];
+      clearConfigs();
+      old.forEach(c => addConfig(c));
+    });
+
+    toggleBtn.addEventListener("click", () => {
+      running = !running;
+      toggleText.textContent = running ? "Pause" : "Resume";
+    });
+
+    clearBtn.addEventListener("click", () => {
+      clearConfigs();
+    });
+
+    addConfigBtn.addEventListener("click", () => {
+      addConfig();
+    });
+
+    configJsonBtn.addEventListener("click", () => {
+      openConfigModal();
+      exportCurrentConfigToText();
+    });
+
+    closeModalBtn.addEventListener("click", () => {
+      closeConfigModal();
+    });
+
+    exportJsonBtn.addEventListener("click", () => {
+      exportCurrentConfigToText();
+    });
+
+    applyJsonBtn.addEventListener("click", () => {
+      applyConfigFromText();
+    });
+
+    configModalOverlay.addEventListener("click", (e) => {
+      if (e.target === configModalOverlay) {
+        closeConfigModal();
+      }
+    });
+
+    function loop(timestamp) {
+      if (!lastTimestamp) lastTimestamp = timestamp;
+      lastTimestamp = timestamp;
+
+      if (running) {
+        clearFrame();
+        for (const conf of configs) {
+          const anim = findAnimation(conf.animId);
+          const start = conf.start;
+          const len = conf.length;
+          for (let local = 0; local < len; local++) {
+            const globalIndex = start + local;
+            if (globalIndex < 0 || globalIndex >= NUM_LEDS) continue;
+            const color = anim.fn(timestamp, local, len, conf);
+            addColorAt(globalIndex, color);
+          }
+        }
+        renderStrip();
+      }
+      requestAnimationFrame(loop);
+    }
+
+    createStrip();
+    brightnessValue.textContent = `${Math.round(brightness * 100)}%`;
+    speedValue.textContent = `${globalSpeed.toFixed(2)}×`;
+
+    // Default configs so it does something
+    addConfig({
+      start: 0,
+      length: 8,
+      animId: "rainbow",
+      props: { direction: "left", mirror: false, phaseMs: 0, speed: 1 }
+    });
+    addConfig({
+      start: 4,
+      length: 8,
+      animId: "water",
+      props: { direction: "right", mirror: true, phaseMs: 0, speed: 1.2 }
+    });
+    addConfig({
+      start: 8,
+      length: 8,
+      animId: "twinkle",
+      props: { direction: "left", mirror: false, phaseMs: 300, color: "#ffffff", speed: 1 }
+    });
+
+    requestAnimationFrame(loop);
+  </script>
+</body>
+</html>
