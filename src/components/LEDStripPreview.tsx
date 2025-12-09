@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties } from "react";
 
 import type { LightSettings } from "../types/userProfile";
@@ -6,6 +6,7 @@ import type { LightSettings } from "../types/userProfile";
 interface LEDStripPreviewProps {
   settings: LightSettings;
   scenarioName: string;
+  scenarioId?: number;
 }
 
 const LED_GROUPS = [
@@ -60,7 +61,18 @@ const pseudoRandom = (seed: number) => {
   return x - Math.floor(x);
 };
 
-export function LEDStripPreview({ settings, scenarioName }: LEDStripPreviewProps) {
+const SCENARIO_TOOLKIT_MAPPING: Record<number, string> = {
+  1: "rainbow",
+  2: "strobe",
+  3: "water",
+  4: "twinkle",
+};
+
+const DEFAULT_TOOLKIT_ANIMATION = "smoothFade";
+
+export function LEDStripPreview({ settings, scenarioName, scenarioId }: LEDStripPreviewProps) {
+  const [toolkitLoaded, setToolkitLoaded] = useState(false);
+  const toolkitIframeRef = useRef<HTMLIFrameElement | null>(null);
   const { red, green, blue, intensity } = settings;
   const alpha = Math.max(intensity / 100, 0.25);
   const baseColor = `rgb(${red}, ${green}, ${blue})`;
@@ -80,6 +92,92 @@ export function LEDStripPreview({ settings, scenarioName }: LEDStripPreviewProps
   const shadowColor = darkenColor(0.28);
   const animationDuration = 2.4 - alpha;
   const normalizedScenario = scenarioName.trim().toLowerCase();
+
+  const toolkitAnimationId = useMemo(() => {
+    if (scenarioId && SCENARIO_TOOLKIT_MAPPING[scenarioId]) {
+      return SCENARIO_TOOLKIT_MAPPING[scenarioId];
+    }
+
+    if (normalizedScenario.includes("rainbow")) return "rainbow";
+    if (normalizedScenario.includes("lightning")) return "strobe";
+    if (normalizedScenario.includes("wave") || normalizedScenario.includes("ocean")) return "water";
+    if (normalizedScenario.includes("star")) return "twinkle";
+
+    return DEFAULT_TOOLKIT_ANIMATION;
+  }, [normalizedScenario, scenarioId]);
+
+  const toolkitColorHex = useMemo(() => {
+    const toHex = (value: number) => value.toString(16).padStart(2, "0");
+    return `#${toHex(red)}${toHex(green)}${toHex(blue)}`;
+  }, [blue, green, red]);
+
+  const syncToolkitStrip = useCallback(() => {
+    const iframe = toolkitIframeRef.current;
+    const iframeWindow = iframe?.contentWindow as (Window & Record<string, any>) | null;
+
+    if (!iframeWindow || !toolkitLoaded) {
+      return;
+    }
+
+    const { clearConfigs, addConfig } = iframeWindow;
+    if (typeof clearConfigs !== "function" || typeof addConfig !== "function") {
+      return;
+    }
+
+    const normalizedBrightness = Math.max(0.05, Math.min(1, intensity / 100));
+    iframeWindow.NUM_LEDS = iframeWindow.NUM_LEDS || 16;
+    iframeWindow.brightness = normalizedBrightness;
+    iframeWindow.globalSpeed = 1;
+    iframeWindow.running = true;
+
+    if (iframeWindow.brightnessRange) {
+      iframeWindow.brightnessRange.value = normalizedBrightness;
+    }
+    if (iframeWindow.brightnessValue) {
+      iframeWindow.brightnessValue.textContent = `${Math.round(normalizedBrightness * 100)}%`;
+    }
+    if (iframeWindow.toggleText) {
+      iframeWindow.toggleText.textContent = "Pause";
+    }
+
+    clearConfigs();
+    const length = Math.max(1, Math.min(iframeWindow.NUM_LEDS ?? 16, 32));
+
+    addConfig({
+      start: 0,
+      length,
+      animId: toolkitAnimationId,
+      props: {
+        direction: "left",
+        mirror: false,
+        color: toolkitColorHex,
+        speed: 1,
+        phaseMs: 0,
+      },
+    });
+  }, [intensity, toolkitAnimationId, toolkitColorHex, toolkitLoaded]);
+
+  useEffect(() => {
+    const iframe = toolkitIframeRef.current;
+
+    if (!iframe) {
+      return;
+    }
+
+    const handleLoad = () => {
+      setToolkitLoaded(true);
+    };
+
+    iframe.addEventListener("load", handleLoad);
+
+    return () => {
+      iframe.removeEventListener("load", handleLoad);
+    };
+  }, []);
+
+  useEffect(() => {
+    syncToolkitStrip();
+  }, [syncToolkitStrip]);
 
   const animationMetrics = useMemo(
     () => {
@@ -528,7 +626,28 @@ export function LEDStripPreview({ settings, scenarioName }: LEDStripPreviewProps
           ))}
         </div>
       </div>
-      <p className="text-center text-sm text-muted-foreground">Toolkit LED strip preview</p>
+
+      <div className="space-y-2 rounded-xl border bg-muted/30 p-3 shadow-inner">
+        <div className="flex items-center justify-between text-sm font-medium">
+          <span>Animation toolkit strip</span>
+          <span className="text-xs text-muted-foreground">
+            {toolkitLoaded ? "Synced" : "Loading..."}
+          </span>
+        </div>
+        <div className="overflow-hidden rounded-lg border bg-black/80">
+          <iframe
+            ref={toolkitIframeRef}
+            src="/Animation_Toolkit.html"
+            title="Animation toolkit strip"
+            className="h-[240px] w-full border-0"
+            style={{ transform: "scale(0.9)", transformOrigin: "top center", pointerEvents: "none" }}
+            loading="lazy"
+          />
+        </div>
+        <p className="text-center text-xs text-muted-foreground">
+          Live preview powered by Animation_Toolkit.html
+        </p>
+      </div>
     </div>
   );
 }
