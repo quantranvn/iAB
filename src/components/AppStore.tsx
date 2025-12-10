@@ -76,7 +76,7 @@ export const FALLBACK_USER_ANIMATIONS: StoreAnimation[] = [
   },
   {
     id: "animation-toolkit-slot",
-    name: "Animation Toolkit slot",
+    name: "Animation Designer",
     description: "Save your custom animation here from the Animation Toolkit.",
     gradient: "from-indigo-600 via-sky-500 to-emerald-500",
     toolkitAnimId: "animationToolkit",
