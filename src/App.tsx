@@ -485,6 +485,16 @@ const [animationCatalog, setAnimationCatalog] = useState<StoreAnimation[]>([]);
     return scenarioIdToUserAnimationId.get(animationScenario) ?? null;
   }, [animationScenario, customScenarioAnimationId, scenarioIdToUserAnimationId]);
 
+  const selectedUserAnimation = useMemo(() => {
+    if (!selectedUserAnimationId) {
+      return null;
+    }
+
+    return animationLookup.get(selectedUserAnimationId) ?? null;
+  }, [animationLookup, selectedUserAnimationId]);
+
+  const selectedToolkitAnimId = selectedUserAnimation?.toolkitAnimId ?? null;
+
   useEffect(() => {
     if (!customScenarioAnimationId) {
       return;
@@ -1005,6 +1015,7 @@ const [animationCatalog, setAnimationCatalog] = useState<StoreAnimation[]>([]);
                       onIntensityChange={(value) =>
                         updateLightSetting(setAnimation, "intensity", value)
                       }
+                      selectedToolkitAnimId={selectedToolkitAnimId}
                       onSend={() => sendAnimationCommand(animationScenario, animation)}
                       onOpenAnimationLibrary={() => {
                         setAppStoreInitialTab("owned");

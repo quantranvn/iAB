@@ -7,6 +7,7 @@ interface LEDStripPreviewProps {
   settings: LightSettings;
   scenarioName: string;
   scenarioId?: number;
+  toolkitAnimId?: string;
 }
 
 const LED_GROUPS = [
@@ -70,7 +71,12 @@ const SCENARIO_TOOLKIT_MAPPING: Record<number, string> = {
 
 const DEFAULT_TOOLKIT_ANIMATION = "smoothFade";
 
-export function LEDStripPreview({ settings, scenarioName, scenarioId }: LEDStripPreviewProps) {
+export function LEDStripPreview({
+  settings,
+  scenarioName,
+  scenarioId,
+  toolkitAnimId,
+}: LEDStripPreviewProps) {
   const [toolkitLoaded, setToolkitLoaded] = useState(false);
   const toolkitIframeRef = useRef<HTMLIFrameElement | null>(null);
   const { red, green, blue, intensity } = settings;
@@ -94,6 +100,10 @@ export function LEDStripPreview({ settings, scenarioName, scenarioId }: LEDStrip
   const normalizedScenario = scenarioName.trim().toLowerCase();
 
   const toolkitAnimationId = useMemo(() => {
+    if (toolkitAnimId) {
+      return toolkitAnimId;
+    }
+
     if (scenarioId && SCENARIO_TOOLKIT_MAPPING[scenarioId]) {
       return SCENARIO_TOOLKIT_MAPPING[scenarioId];
     }
@@ -104,7 +114,7 @@ export function LEDStripPreview({ settings, scenarioName, scenarioId }: LEDStrip
     if (normalizedScenario.includes("star")) return "twinkle";
 
     return DEFAULT_TOOLKIT_ANIMATION;
-  }, [normalizedScenario, scenarioId]);
+  }, [normalizedScenario, scenarioId, toolkitAnimId]);
 
   const toolkitColorHex = useMemo(() => {
     const toHex = (value: number) => value.toString(16).padStart(2, "0");

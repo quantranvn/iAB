@@ -39,6 +39,7 @@ export const FALLBACK_FEATURED_ANIMATIONS: StoreAnimation[] = [
     description: "Cosmic hues sweeping across your scooter with a gentle breathing glow.",
     price: 320,
     gradient: "from-purple-500 via-fuchsia-500 to-cyan-400",
+    toolkitAnimId: "nebulaDrift",
   },
   {
     id: "sunset-rush",
@@ -46,6 +47,7 @@ export const FALLBACK_FEATURED_ANIMATIONS: StoreAnimation[] = [
     description: "Vibrant oranges melt into soft magentas to mimic a city sunset skyline.",
     price: 275,
     gradient: "from-orange-500 via-rose-500 to-purple-500",
+    toolkitAnimId: "sunsetRush",
   },
   {
     id: "glacier-trace",
@@ -53,6 +55,7 @@ export const FALLBACK_FEATURED_ANIMATIONS: StoreAnimation[] = [
     description: "Crystalline blues ripple outward with a frosted shimmer animation.",
     price: 290,
     gradient: "from-cyan-500 via-blue-500 to-indigo-500",
+    toolkitAnimId: "glacierTrace",
   },
 ];
 
@@ -62,12 +65,14 @@ export const FALLBACK_USER_ANIMATIONS: StoreAnimation[] = [
     name: "Aurora Veil",
     description: "Ribboned greens and violets cascading in smooth waves.",
     gradient: "from-emerald-500 via-lime-400 to-teal-500",
+    toolkitAnimId: "auroraVeil",
   },
   {
     id: "starlight-chase",
     name: "Starlight Chase",
     description: "Speckled white sparks orbiting a midnight indigo core.",
     gradient: "from-slate-800 via-blue-600 to-slate-900",
+    toolkitAnimId: "starlightChase",
   },
 ];
 
