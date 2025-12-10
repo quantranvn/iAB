@@ -32,6 +32,7 @@ import {
   AppStoreDialogContent,
   FALLBACK_USER_ANIMATIONS,
   type AnimationLibraryTab,
+  ANIMATION_TOOLKIT_SLOT_ID,
 } from "./components/AppStore";
 import { ModeToggle } from "./components/ModeToggle";
 import {
@@ -46,6 +47,7 @@ import {
 } from "./utils/firebase";
 import { FALLBACK_USER_PROFILE, type LightSettings, type Preset, type UserProfile } from "./types/userProfile";
 import type { AnimationScenarioOption } from "./types/animation";
+import type { DesignerConfig, DesignerConfigEntry } from "./types/designer";
 import { Avatar, AvatarFallback, AvatarImage } from "./components/ui/avatar";
 import { buildFallbackProfile, normalizeUserProfile } from "./utils/profileHelpers";
 
@@ -142,6 +144,26 @@ const [userAnimationOptions, setUserAnimationOptions] = useState<StoreAnimation[
   FALLBACK_USER_ANIMATIONS
 );
 const [animationCatalog, setAnimationCatalog] = useState<StoreAnimation[]>([]);
+const [designerConfig, setDesignerConfig] = useState<DesignerConfig | null>(null);
+
+  const normalizeDesignerConfig = useCallback((config: DesignerConfig): DesignerConfig => {
+    const entries = Array.isArray(config.configs) ? config.configs : [];
+    const safeEntries = entries
+      .filter((entry): entry is DesignerConfigEntry => Boolean(entry && typeof entry === "object"))
+      .map((entry) => ({
+        start: Number.isFinite(entry.start) ? entry.start : 0,
+        length: Number.isFinite(entry.length) ? entry.length : 0,
+        animId: typeof entry.animId === "string" && entry.animId.length > 0 ? entry.animId : "rainbow",
+        props: typeof entry.props === "object" && entry.props !== null ? entry.props : {},
+      }));
+
+    return {
+      ledCount: Number.isFinite(config.ledCount) ? config.ledCount : 0,
+      globalBrightness: Number.isFinite(config.globalBrightness) ? config.globalBrightness : 1,
+      globalSpeed: Number.isFinite(config.globalSpeed) ? config.globalSpeed : 1,
+      configs: safeEntries,
+    };
+  }, []);
 
   const computeUserAnimations = (
     animationIds: string[],
@@ -424,6 +446,27 @@ const [animationCatalog, setAnimationCatalog] = useState<StoreAnimation[]>([]);
     toast.success(`Selected ${animation.name}`);
   };
 
+  const handleDesignerConfigCapture = (config: DesignerConfig) => {
+    const normalized = normalizeDesignerConfig(config);
+
+    setDesignerConfig(normalized);
+    setCustomScenarioAnimationId(ANIMATION_TOOLKIT_SLOT_ID);
+    setAnimationScenario(CUSTOM_ANIMATION_SCENARIO_ID);
+
+    setUserProfile((prev) => {
+      if (!prev) {
+        return prev;
+      }
+
+      const updatedProfile: UserProfile = {
+        ...prev,
+        customScenarioAnimationId: ANIMATION_TOOLKIT_SLOT_ID,
+      };
+      void persistCustomScenarioSelection(updatedProfile);
+      return updatedProfile;
+    });
+  };
+
   const userAnimationScenarioData = useMemo(() => {
     const options: AnimationScenarioOption[] = [];
     const sourceToId = new Map<string, number>();
@@ -493,7 +536,13 @@ const [animationCatalog, setAnimationCatalog] = useState<StoreAnimation[]>([]);
     return animationLookup.get(selectedUserAnimationId) ?? null;
   }, [animationLookup, selectedUserAnimationId]);
 
-  const selectedToolkitAnimId = selectedUserAnimation?.toolkitAnimId ?? null;
+  const usingDesignerAnimation =
+    selectedUserAnimation?.id === ANIMATION_TOOLKIT_SLOT_ID && Boolean(designerConfig);
+  const selectedToolkitAnimId = usingDesignerAnimation
+    ? null
+    : selectedUserAnimation?.toolkitAnimId ?? null;
+  const designerPreviewConfig =
+    selectedUserAnimation?.id === ANIMATION_TOOLKIT_SLOT_ID ? designerConfig : null;
 
   useEffect(() => {
     if (!customScenarioAnimationId) {
@@ -930,6 +979,7 @@ const [animationCatalog, setAnimationCatalog] = useState<StoreAnimation[]>([]);
               selectedAnimationId={selectedUserAnimationId}
               initialTab={appStoreInitialTab}
               onTabChange={setAppStoreInitialTab}
+              onDesignerConfigCapture={handleDesignerConfigCapture}
               onClose={() => setAppStoreOpen(false)}
             />
           </Dialog>
@@ -1009,6 +1059,7 @@ const [animationCatalog, setAnimationCatalog] = useState<StoreAnimation[]>([]);
                       selectedScenario={animationScenario}
                       onScenarioChange={setAnimationScenario}
                       currentSettings={animation}
+                      designerConfig={designerPreviewConfig}
                       onRedChange={(value) => updateLightSetting(setAnimation, "red", value)}
                       onGreenChange={(value) => updateLightSetting(setAnimation, "green", value)}
                       onBlueChange={(value) => updateLightSetting(setAnimation, "blue", value)}

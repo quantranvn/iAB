@@ -2,12 +2,15 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties } from "react";
 
 import type { LightSettings } from "../types/userProfile";
+import type { DesignerConfig, DesignerFrameColor } from "../types/designer";
+import { evaluateDesignerFrame } from "../utils/designerAnimations";
 
 interface LEDStripPreviewProps {
   settings: LightSettings;
   scenarioName: string;
   scenarioId?: number;
   toolkitAnimId?: string;
+  designerConfig?: DesignerConfig | null;
 }
 
 const LED_GROUPS = [
@@ -76,6 +79,7 @@ export function LEDStripPreview({
   scenarioName,
   scenarioId,
   toolkitAnimId,
+  designerConfig,
 }: LEDStripPreviewProps) {
   const [toolkitLoaded, setToolkitLoaded] = useState(false);
   const toolkitIframeRef = useRef<HTMLIFrameElement | null>(null);
@@ -120,6 +124,39 @@ export function LEDStripPreview({
     const toHex = (value: number) => value.toString(16).padStart(2, "0");
     return `#${toHex(red)}${toHex(green)}${toHex(blue)}`;
   }, [blue, green, red]);
+
+  const [designerFrames, setDesignerFrames] = useState<DesignerFrameColor[]>([]);
+  const normalizedDesignerCount = Math.max(1, Math.round(designerConfig?.ledCount ?? 0));
+
+  useEffect(() => {
+    if (!designerConfig) {
+      setDesignerFrames([]);
+      return undefined;
+    }
+
+    let cancelled = false;
+    let rafId = requestAnimationFrame(function renderFrame(timestamp) {
+      if (cancelled) {
+        return;
+      }
+
+      try {
+        setDesignerFrames(evaluateDesignerFrame(designerConfig, timestamp));
+      } catch (error) {
+        console.error("Failed to evaluate designer animation", error);
+        setDesignerFrames([]);
+        cancelled = true;
+        return;
+      }
+
+      rafId = requestAnimationFrame(renderFrame);
+    });
+
+    return () => {
+      cancelled = true;
+      cancelAnimationFrame(rafId);
+    };
+  }, [designerConfig]);
 
   const syncToolkitStrip = useCallback(() => {
     const iframe = toolkitIframeRef.current;
@@ -277,6 +314,41 @@ export function LEDStripPreview({
     highlightColor,
     softGlowColor,
   ]);
+
+  if (designerConfig) {
+    const leds = designerFrames.length > 0
+      ? designerFrames
+      : Array.from({ length: normalizedDesignerCount }, () => ({ r: 0, g: 0, b: 0 }));
+
+    return (
+      <div className="w-full space-y-3">
+        <div className="toolkit-strip" role="img" aria-label={`${scenarioName} animation preview`}>
+          <div className="toolkit-strip__header">
+            <span className="toolkit-strip__title">Designer preview</span>
+            <span className="toolkit-strip__status">
+              Live JSON ({designerConfig.configs.length} layers)
+            </span>
+          </div>
+          <div className="toolkit-strip__leds flex flex-wrap justify-center gap-2 p-3">
+            {leds.map((color, index) => {
+              const background = `rgb(${color.r}, ${color.g}, ${color.b})`;
+              return (
+                <span key={`designer-led-${index}`} className="toolkit-led-shell" aria-hidden>
+                  <span
+                    className="toolkit-led"
+                    style={{
+                      backgroundColor: background,
+                      boxShadow: `0 0 10px rgba(${color.r}, ${color.g}, ${color.b}, 0.9), 0 0 0 1px rgba(70, 78, 120, 0.85)`,
+                    }}
+                  />
+                </span>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const scenarioConfig = useMemo<ScenarioAnimationConfig>(() => {
     const {
