@@ -261,30 +261,33 @@ export function AppStoreDialogContent({
       const iframeWin = designerIframeRef.current?.contentWindow as
         | (Window & Record<string, any>)
         | null;
-
+  
       if (!iframeWin) {
         console.error("Designer iframe not ready");
         toast.error("Designer is not ready yet.");
         return;
       }
-
+  
       const getConfigFn =
         typeof iframeWin.getCurrentLedDesign === "function"
           ? iframeWin.getCurrentLedDesign
           : typeof iframeWin.iab_getDesignerConfig === "function"
             ? iframeWin.iab_getDesignerConfig
             : null;
-
+  
       if (!getConfigFn) {
         console.error("Designer bridge API not available on iframe window", iframeWin);
         toast.error("Designer API not available.");
         return;
       }
-
+  
       const raw = getConfigFn();
       // Deep-clone into a plain object so it’s safe to put in React state
       const design = raw ? (JSON.parse(JSON.stringify(raw)) as DesignerConfig) : null;
-
+  
+      console.log("[Designer] raw config from iframe:", raw);
+      console.log("[Designer] normalized design:", design);
+  
       if (
         !design ||
         typeof design.ledCount !== "number" ||
@@ -295,17 +298,24 @@ export function AppStoreDialogContent({
         toast.error("Invalid design returned from designer.");
         return;
       }
-
+  
       const toolkitAnimation = {
         id: "designer-mix",
         name: "Designer mix",
-        source: "designer",
+        source: "designer" as const,
         mixerConfig: design,
       };
-
+  
+      // Local state in the dialog
       setSelectedToolkitAnim(toolkitAnimation);
+  
+      // Send the config up to App.tsx
       onDesignerConfigCapture?.(design);
+  
+      // Tell App.tsx “use the toolkit slot animation” (the custom scenario)
       onAnimationSelect?.(ANIMATION_TOOLKIT_SLOT_ID);
+  
+      // Swap tab and close the dialog
       setActiveTabState("owned");
       toast.success("Designer mix loaded.");
       onClose?.();
