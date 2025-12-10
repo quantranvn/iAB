@@ -353,7 +353,7 @@ export function AppStoreDialogContent({
                             <div
                               className={`relative h-20 w-full overflow-y-auto rounded-xl bg-gradient-to-br ${
                                 animation.gradient ?? defaultGradient
-                              } sm:w-32`}
+                              } `}
                             >
                               <div className="absolute inset-0 animate-pulse bg-[radial-gradient(circle_at_40%_40%,rgba(255,255,255,0.5),transparent),radial-gradient(circle_at_70%_70%,rgba(255,255,255,0.35),transparent)]" />
                             </div>
