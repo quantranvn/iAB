@@ -142,8 +142,8 @@ export function AnimationControl({
                   <Button
                     type="button"
                     size="sm"
-                    variant="secondary"
-                    className="w-full"
+                    variant="outline"
+                    className="w-full border-border shadow-sm"
                     onClick={(event) => {
                       event.stopPropagation();
                       handleActivateScenario();
