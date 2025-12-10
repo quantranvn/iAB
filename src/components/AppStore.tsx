@@ -29,7 +29,7 @@ import {
   type StoreAnimation,
 } from "../utils/firebase";
 import { FALLBACK_USER_PROFILE } from "../types/userProfile";
-import type { DesignerConfig } from "../types/designer";
+import type { DesignerConfig, DesignerConfigEntry } from "../types/designer";
 
 export const ANIMATION_TOOLKIT_SLOT_ID = "animation-toolkit-slot";
 
