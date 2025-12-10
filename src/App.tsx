@@ -32,6 +32,7 @@ import {
   AppStoreDialogContent,
   FALLBACK_USER_ANIMATIONS,
   type AnimationLibraryTab,
+  ANIMATION_TOOLKIT_SLOT_ID,
 } from "./components/AppStore";
 import { ModeToggle } from "./components/ModeToggle";
 import {
@@ -46,6 +47,7 @@ import {
 } from "./utils/firebase";
 import { FALLBACK_USER_PROFILE, type LightSettings, type Preset, type UserProfile } from "./types/userProfile";
 import type { AnimationScenarioOption } from "./types/animation";
+import type { DesignerConfig } from "./types/designer";
 import { Avatar, AvatarFallback, AvatarImage } from "./components/ui/avatar";
 import { buildFallbackProfile, normalizeUserProfile } from "./utils/profileHelpers";
 
@@ -142,6 +144,7 @@ const [userAnimationOptions, setUserAnimationOptions] = useState<StoreAnimation[
   FALLBACK_USER_ANIMATIONS
 );
 const [animationCatalog, setAnimationCatalog] = useState<StoreAnimation[]>([]);
+const [designerConfig, setDesignerConfig] = useState<DesignerConfig | null>(null);
 
   const computeUserAnimations = (
     animationIds: string[],
@@ -424,6 +427,25 @@ const [animationCatalog, setAnimationCatalog] = useState<StoreAnimation[]>([]);
     toast.success(`Selected ${animation.name}`);
   };
 
+  const handleDesignerConfigCapture = (config: DesignerConfig) => {
+    setDesignerConfig(config);
+    setCustomScenarioAnimationId(ANIMATION_TOOLKIT_SLOT_ID);
+    setAnimationScenario(CUSTOM_ANIMATION_SCENARIO_ID);
+
+    setUserProfile((prev) => {
+      if (!prev) {
+        return prev;
+      }
+
+      const updatedProfile: UserProfile = {
+        ...prev,
+        customScenarioAnimationId: ANIMATION_TOOLKIT_SLOT_ID,
+      };
+      void persistCustomScenarioSelection(updatedProfile);
+      return updatedProfile;
+    });
+  };
+
   const userAnimationScenarioData = useMemo(() => {
     const options: AnimationScenarioOption[] = [];
     const sourceToId = new Map<string, number>();
@@ -493,7 +515,13 @@ const [animationCatalog, setAnimationCatalog] = useState<StoreAnimation[]>([]);
     return animationLookup.get(selectedUserAnimationId) ?? null;
   }, [animationLookup, selectedUserAnimationId]);
 
-  const selectedToolkitAnimId = selectedUserAnimation?.toolkitAnimId ?? null;
+  const usingDesignerAnimation =
+    selectedUserAnimation?.id === ANIMATION_TOOLKIT_SLOT_ID && Boolean(designerConfig);
+  const selectedToolkitAnimId = usingDesignerAnimation
+    ? null
+    : selectedUserAnimation?.toolkitAnimId ?? null;
+  const designerPreviewConfig =
+    selectedUserAnimation?.id === ANIMATION_TOOLKIT_SLOT_ID ? designerConfig : null;
 
   useEffect(() => {
     if (!customScenarioAnimationId) {
@@ -930,6 +958,7 @@ const [animationCatalog, setAnimationCatalog] = useState<StoreAnimation[]>([]);
               selectedAnimationId={selectedUserAnimationId}
               initialTab={appStoreInitialTab}
               onTabChange={setAppStoreInitialTab}
+              onDesignerConfigCapture={handleDesignerConfigCapture}
               onClose={() => setAppStoreOpen(false)}
             />
           </Dialog>
@@ -1009,6 +1038,7 @@ const [animationCatalog, setAnimationCatalog] = useState<StoreAnimation[]>([]);
                       selectedScenario={animationScenario}
                       onScenarioChange={setAnimationScenario}
                       currentSettings={animation}
+                      designerConfig={designerPreviewConfig}
                       onRedChange={(value) => updateLightSetting(setAnimation, "red", value)}
                       onGreenChange={(value) => updateLightSetting(setAnimation, "green", value)}
                       onBlueChange={(value) => updateLightSetting(setAnimation, "blue", value)}

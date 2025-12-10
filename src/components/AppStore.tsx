@@ -29,6 +29,9 @@ import {
   type StoreAnimation,
 } from "../utils/firebase";
 import { FALLBACK_USER_PROFILE } from "../types/userProfile";
+import type { DesignerConfig } from "../types/designer";
+
+export const ANIMATION_TOOLKIT_SLOT_ID = "animation-toolkit-slot";
 
 const animationToolkitUrl = "/Animation_Toolkit.html";
 
@@ -92,6 +95,7 @@ interface AppStoreDialogContentProps {
   initialTab?: AnimationLibraryTab;
   onTabChange?: (tab: AnimationLibraryTab) => void;
   onClose?: () => void;
+  onDesignerConfigCapture?: (config: DesignerConfig) => void;
 }
 
 export function AppStoreDialogContent({
@@ -101,6 +105,7 @@ export function AppStoreDialogContent({
   initialTab = "owned",
   onTabChange,
   onClose,
+  onDesignerConfigCapture,
 }: AppStoreDialogContentProps) {
   const firebaseConfigured = isFirebaseConfigured();
   const fallbackTokenBalance = FALLBACK_USER_PROFILE.tokenBalance ?? 1200;
@@ -188,8 +193,6 @@ export function AppStoreDialogContent({
           FALLBACK_USER_ANIMATIONS.map((animation) => [animation.id, animation]),
         );
         
-        const ANIMATION_TOOLKIT_SLOT_ID = "animation-toolkit-slot";
-
         const resolvedLibrary = ownedIds
           .map((id) => catalogLookup.get(id) ?? fallbackLookup.get(id))
           .filter((animation): animation is StoreAnimation => Boolean(animation));
@@ -242,6 +245,40 @@ export function AppStoreDialogContent({
     () => new Set(libraryAnimations.map((animation) => animation.id)),
     [libraryAnimations],
   );
+
+  const handleUseDesignerConfig = () => {
+    const iframe = document.getElementById("animation-designer-iframe") as
+      | HTMLIFrameElement
+      | null;
+
+    if (!iframe?.contentWindow) {
+      toast.error("Designer iframe is not available yet.");
+      return;
+    }
+
+    try {
+      const bridge = (iframe.contentWindow as typeof window & Record<string, unknown>);
+      const reader = bridge.iab_getDesignerConfig;
+
+      if (typeof reader !== "function") {
+        throw new Error("Designer config bridge is missing.");
+      }
+
+      const config = reader() as DesignerConfig;
+      if (!config || !Array.isArray(config.configs)) {
+        throw new Error("Designer did not return a valid configuration.");
+      }
+
+      onDesignerConfigCapture?.(config);
+      onAnimationSelect?.(ANIMATION_TOOLKIT_SLOT_ID);
+      setActiveTabState("owned");
+      toast.success("Imported design from the animation toolkit.");
+      onClose?.();
+    } catch (error) {
+      console.error(error);
+      toast.error("Unable to read the current design from the toolkit.");
+    }
+  };
 
   const handlePlayAnimation = (animation: StoreAnimation) => {
     onAnimationSelect?.(animation.id);
@@ -558,14 +595,26 @@ export function AppStoreDialogContent({
 
         <TabsContent value="designer" className="mt-0 flex-1">
           <ScrollArea className="h-[85vh] pr-4">
-             <div className="mt-4 h-[85vh] overflow-hidden rounded-xl border shadow-inner">
-                <iframe
-                  title="Animation designer toolkit"
-                  src={animationToolkitUrl}
-                  className="h-full w-full min-h-[600px] border-0 bg-background"
-                  loading="lazy"
-                />
-             </div>
+            <div className="flex items-center justify-between pb-3 pt-1">
+              <div className="flex flex-col gap-1">
+                <h4 className="text-sm font-semibold">Animation designer</h4>
+                <p className="text-xs text-muted-foreground">
+                  Craft layered effects and send the JSON directly into your library.
+                </p>
+              </div>
+              <Button size="sm" onClick={handleUseDesignerConfig}>
+                Use this design
+              </Button>
+            </div>
+            <div className="mt-1 h-[85vh] overflow-hidden rounded-xl border shadow-inner">
+              <iframe
+                id="animation-designer-iframe"
+                title="Animation designer toolkit"
+                src={animationToolkitUrl}
+                className="h-full w-full min-h-[600px] border-0 bg-background"
+                loading="lazy"
+              />
+            </div>
           </ScrollArea>
         </TabsContent>
 

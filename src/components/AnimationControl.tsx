@@ -7,6 +7,7 @@ import { toast } from "sonner@2.0.3";
 import type { AnimationScenarioOption } from "../types/animation";
 import type { LightSettings } from "../types/userProfile";
 import { LEDStripPreview } from "./LEDStripPreview";
+import type { DesignerConfig } from "../types/designer";
 
 interface AnimationControlProps {
   scenarios: AnimationScenarioOption[];
@@ -20,6 +21,7 @@ interface AnimationControlProps {
   onIntensityChange: (value: number[]) => void;
   onSend: () => void | Promise<void>;
   onOpenAnimationLibrary?: (scenarioId: number) => void;
+  designerConfig?: DesignerConfig | null;
 }
 
 export function AnimationControl({
@@ -34,6 +36,7 @@ export function AnimationControl({
   onIntensityChange,
   onSend,
   onOpenAnimationLibrary,
+  designerConfig,
 }: AnimationControlProps) {
   const [isSending, setIsSending] = useState(false);
   const [justSent, setJustSent] = useState(false);
@@ -165,6 +168,7 @@ export function AnimationControl({
           scenarioName={selectedScenarioName}
           scenarioId={selectedScenario}
           toolkitAnimId={selectedToolkitAnimId ?? undefined}
+          designerConfig={designerConfig}
         />
 
         <div className="space-y-6">

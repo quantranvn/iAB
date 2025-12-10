@@ -1109,6 +1109,11 @@
       };
     }
 
+    // Expose a stable bridge for the React shell to read the current designer config
+    window.iab_getDesignerConfig = function () {
+      return getConfigJsonObject();
+    };
+
     function exportCurrentConfigToText() {
       const obj = getConfigJsonObject();
       configJsonText.value = JSON.stringify(obj, null, 2);
