@@ -47,7 +47,7 @@ import {
 } from "./utils/firebase";
 import { FALLBACK_USER_PROFILE, type LightSettings, type Preset, type UserProfile } from "./types/userProfile";
 import type { AnimationScenarioOption } from "./types/animation";
-import type { DesignerConfig, DesignerConfigEntry } from "./types/designer";
+import type { DesignerConfig } from "./types/designer";
 import { Avatar, AvatarFallback, AvatarImage } from "./components/ui/avatar";
 import { buildFallbackProfile, normalizeUserProfile } from "./utils/profileHelpers";
 
@@ -145,25 +145,6 @@ const [userAnimationOptions, setUserAnimationOptions] = useState<StoreAnimation[
 );
 const [animationCatalog, setAnimationCatalog] = useState<StoreAnimation[]>([]);
 const [designerConfig, setDesignerConfig] = useState<DesignerConfig | null>(null);
-
-  const normalizeDesignerConfig = useCallback((config: DesignerConfig): DesignerConfig => {
-    const entries = Array.isArray(config.configs) ? config.configs : [];
-    const safeEntries = entries
-      .filter((entry): entry is DesignerConfigEntry => Boolean(entry && typeof entry === "object"))
-      .map((entry) => ({
-        start: Number.isFinite(entry.start) ? entry.start : 0,
-        length: Number.isFinite(entry.length) ? entry.length : 0,
-        animId: typeof entry.animId === "string" && entry.animId.length > 0 ? entry.animId : "rainbow",
-        props: typeof entry.props === "object" && entry.props !== null ? entry.props : {},
-      }));
-
-    return {
-      ledCount: Number.isFinite(config.ledCount) ? config.ledCount : 0,
-      globalBrightness: Number.isFinite(config.globalBrightness) ? config.globalBrightness : 1,
-      globalSpeed: Number.isFinite(config.globalSpeed) ? config.globalSpeed : 1,
-      configs: safeEntries,
-    };
-  }, []);
 
   const computeUserAnimations = (
     animationIds: string[],
@@ -447,9 +428,7 @@ const [designerConfig, setDesignerConfig] = useState<DesignerConfig | null>(null
   };
 
   const handleDesignerConfigCapture = (config: DesignerConfig) => {
-    const normalized = normalizeDesignerConfig(config);
-
-    setDesignerConfig(normalized);
+    setDesignerConfig(config);
     setCustomScenarioAnimationId(ANIMATION_TOOLKIT_SLOT_ID);
     setAnimationScenario(CUSTOM_ANIMATION_SCENARIO_ID);
 

@@ -134,28 +134,12 @@ export function LEDStripPreview({
       return undefined;
     }
 
-    let cancelled = false;
     let rafId = requestAnimationFrame(function renderFrame(timestamp) {
-      if (cancelled) {
-        return;
-      }
-
-      try {
-        setDesignerFrames(evaluateDesignerFrame(designerConfig, timestamp));
-      } catch (error) {
-        console.error("Failed to evaluate designer animation", error);
-        setDesignerFrames([]);
-        cancelled = true;
-        return;
-      }
-
+      setDesignerFrames(evaluateDesignerFrame(designerConfig, timestamp));
       rafId = requestAnimationFrame(renderFrame);
     });
 
-    return () => {
-      cancelled = true;
-      cancelAnimationFrame(rafId);
-    };
+    return () => cancelAnimationFrame(rafId);
   }, [designerConfig]);
 
   const syncToolkitStrip = useCallback(() => {
