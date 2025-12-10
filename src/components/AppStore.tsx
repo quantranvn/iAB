@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Sparkles,
   CheckCircle2,
@@ -74,6 +74,13 @@ export const FALLBACK_USER_ANIMATIONS: StoreAnimation[] = [
     gradient: "from-slate-800 via-blue-600 to-slate-900",
     toolkitAnimId: "starlightChase",
   },
+  {
+    id: "animation-toolkit-slot",
+    name: "Animation Toolkit slot",
+    description: "Save your custom animation here from the Animation Toolkit.",
+    gradient: "from-indigo-600 via-sky-500 to-emerald-500",
+    toolkitAnimId: "animationToolkit",
+  },
 ];
 
 export type AnimationLibraryTab = "owned" | "store" | "designer";
@@ -103,8 +110,6 @@ export function AppStoreDialogContent({
   const [ownedAnimations, setOwnedAnimations] = useState<StoreAnimation[]>(
     FALLBACK_USER_ANIMATIONS,
   );
-  const designerIframeRef = useRef<HTMLIFrameElement | null>(null);
-  const [designerAnimation, setDesignerAnimation] = useState<StoreAnimation | null>(null);
   const [tokenBalance, setTokenBalance] = useState<number>(fallbackTokenBalance);
   const [activeTabState, setActiveTabState] = useState<AnimationLibraryTab>(initialTab);
   const [loading, setLoading] = useState(firebaseConfigured);
@@ -228,12 +233,6 @@ export function AppStoreDialogContent({
     onClose?.();
   };
 
-  const handleOpenInDesigner = (animation: StoreAnimation) => {
-    setDesignerAnimation(animation);
-    setActiveTabState("designer");
-    toast.success(`Loaded ${animation.name} into the animation designer`);
-  };
-
   const handlePreviewAnimation = (animation: StoreAnimation) => {
     toast.info(`Preview "${animation.name}" coming soon.`);
   };
@@ -272,46 +271,6 @@ export function AppStoreDialogContent({
 
     onAnimationSelect?.(animation.id);
     setActiveTabState("owned");
-  };
-
-  const handleImportFromDesigner = () => {
-    const iframeWindow = designerIframeRef.current?.contentWindow as
-      | (Window & { getConfigJsonObject?: () => unknown })
-      | null;
-
-    if (!iframeWindow) {
-      toast.error("Open the animation toolkit to import a design.");
-      return;
-    }
-
-    const getConfigJsonObject = iframeWindow.getConfigJsonObject;
-
-    if (typeof getConfigJsonObject !== "function") {
-      toast.error("Unable to read from the animation toolkit.");
-      return;
-    }
-
-    const config = getConfigJsonObject() as
-      | { configs?: { animId?: string }[] }
-      | null
-      | undefined;
-    const primaryAnimId = config?.configs?.find((entry) => Boolean(entry.animId))?.animId;
-
-    const importedAnimation: StoreAnimation = {
-      id: `designer-${Date.now()}`,
-      name: "Toolkit creation",
-      description:
-        "Saved from the Animation Toolkit so you can use it with your owned animations.",
-      gradient: designerAnimation?.gradient ?? FALLBACK_USER_ANIMATIONS[0].gradient,
-      toolkitAnimId:
-        typeof primaryAnimId === "string" ? primaryAnimId : designerAnimation?.toolkitAnimId,
-    };
-
-    setOwnedAnimations((previous) => [...previous, importedAnimation]);
-    setDesignerAnimation(importedAnimation);
-    onAnimationSelect?.(importedAnimation.id);
-    setActiveTabState("owned");
-    toast.success("Imported your toolkit design into Owned animations.");
   };
 
   return (
@@ -421,15 +380,6 @@ export function AppStoreDialogContent({
                                   >
                                     <PlayCircle className="h-4 w-4" />
                                     {isActive ? "Now playing" : "Play on scooter"}
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    className="gap-2"
-                                    onClick={() => handleOpenInDesigner(animation)}
-                                  >
-                                    <Wand2 className="h-4 w-4" />
-                                    Choose for designer
                                   </Button>
                                 </div>
                               </div>
@@ -597,18 +547,8 @@ export function AppStoreDialogContent({
                   title="Animation designer toolkit"
                   src={animationToolkitUrl}
                   className="h-full w-full min-h-[600px] border-0 bg-background"
-                  ref={designerIframeRef}
                   loading="lazy"
                 />
-              <div className="flex items-center justify-between border-t bg-muted/40 px-4 py-3">
-                <div className="text-sm text-muted-foreground">
-                  Save your toolkit creation and return to the Owned tab to play it on your scooter.
-                </div>
-                <Button className="gap-2" onClick={handleImportFromDesigner}>
-                  <Sparkles className="h-4 w-4" />
-                  Import to owned
-                </Button>
-              </div>
             </div>
           </ScrollArea>
         </TabsContent>
