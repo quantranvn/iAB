@@ -135,7 +135,11 @@ export function LEDStripPreview({
     }
 
     let rafId = requestAnimationFrame(function renderFrame(timestamp) {
-      setDesignerFrames(evaluateDesignerFrame(designerConfig, timestamp));
+      try {
+        setDesignerFrames(evaluateDesignerFrame(designerConfig, timestamp));
+      } catch (error) {
+        console.error("Failed to evaluate designer frame", error);
+      }
       rafId = requestAnimationFrame(renderFrame);
     });
 

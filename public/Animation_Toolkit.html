@@ -1295,6 +1295,16 @@
     });
 
     requestAnimationFrame(loop);
+
+    // Expose a safe API for the parent window (React app)
+    window.getCurrentLedDesign = function () {
+      try {
+        return getConfigJsonObject();
+      } catch (e) {
+        console.error("Failed to get current LED design", e);
+        return null;
+      }
+    };
   </script>
 </body>
 </html>
