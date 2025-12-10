@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Sparkles,
   CheckCircle2,
@@ -119,6 +119,16 @@ export function AppStoreDialogContent({
   const [activeTabState, setActiveTabState] = useState<AnimationLibraryTab>(initialTab);
   const [loading, setLoading] = useState(firebaseConfigured);
   const [usingFallbackData, setUsingFallbackData] = useState(!firebaseConfigured);
+  const [, setSelectedToolkitAnim] = useState<
+    | {
+        id: string;
+        name: string;
+        source: string;
+        mixerConfig: DesignerConfig;
+      }
+    | null
+  >(null);
+  const designerIframeRef = useRef<HTMLIFrameElement | null>(null);
 
   useEffect(() => {
     setActiveTabState(initialTab);
@@ -246,37 +256,46 @@ export function AppStoreDialogContent({
     [libraryAnimations],
   );
 
-  const handleUseDesignerConfig = () => {
-    const iframe = document.getElementById("animation-designer-iframe") as
-      | HTMLIFrameElement
-      | null;
-
-    if (!iframe?.contentWindow) {
-      toast.error("Designer iframe is not available yet.");
-      return;
-    }
-
+  const handleUseDesignerMix = () => {
     try {
-      const bridge = (iframe.contentWindow as typeof window & Record<string, unknown>);
-      const reader = bridge.iab_getDesignerConfig;
-
-      if (typeof reader !== "function") {
-        throw new Error("Designer config bridge is missing.");
+      const iframeWin = designerIframeRef.current?.contentWindow as any;
+      if (!iframeWin) {
+        console.error("Designer iframe not ready");
+        toast.error("Designer is not ready yet.");
+        return;
       }
 
-      const config = reader() as DesignerConfig;
-      if (!config || !Array.isArray(config.configs)) {
-        throw new Error("Designer did not return a valid configuration.");
+      if (typeof iframeWin.getCurrentLedDesign !== "function") {
+        console.error("getCurrentLedDesign not found on iframe window");
+        toast.error("Designer API not available.");
+        return;
       }
 
-      onDesignerConfigCapture?.(config);
+      const design = iframeWin.getCurrentLedDesign() as DesignerConfig | null;
+      if (!design || !Array.isArray(design.configs)) {
+        console.error("Invalid design from designer", design);
+        toast.error("Invalid design returned from designer.");
+        return;
+      }
+
+      // OPTIONAL: adapt the schema to whatever the app expects.
+      // Here we store it as a custom toolkit animation:
+      const toolkitAnimation = {
+        id: "designer-mix",
+        name: "Designer mix",
+        source: "designer",
+        mixerConfig: design, // keep raw mixer JSON here
+      };
+
+      setSelectedToolkitAnim(toolkitAnimation);
+      onDesignerConfigCapture?.(design);
       onAnimationSelect?.(ANIMATION_TOOLKIT_SLOT_ID);
       setActiveTabState("owned");
-      toast.success("Imported design from the animation toolkit.");
+      toast.success("Designer mix loaded.");
       onClose?.();
-    } catch (error) {
-      console.error(error);
-      toast.error("Unable to read the current design from the toolkit.");
+    } catch (err) {
+      console.error("Failed to use designer mix", err);
+      toast.error("Failed to use this design.");
     }
   };
 
@@ -602,12 +621,13 @@ export function AppStoreDialogContent({
                   Craft layered effects and send the JSON directly into your library.
                 </p>
               </div>
-              <Button size="sm" onClick={handleUseDesignerConfig}>
+              <Button size="sm" onClick={handleUseDesignerMix}>
                 Use this design
               </Button>
             </div>
             <div className="mt-1 h-[85vh] overflow-hidden rounded-xl border shadow-inner">
               <iframe
+                ref={designerIframeRef}
                 id="animation-designer-iframe"
                 title="Animation designer toolkit"
                 src={animationToolkitUrl}
