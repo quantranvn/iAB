@@ -427,24 +427,27 @@ const [designerConfig, setDesignerConfig] = useState<DesignerConfig | null>(null
     toast.success(`Selected ${animation.name}`);
   };
 
-  const handleDesignerConfigCapture = (config: DesignerConfig) => {
-    setDesignerConfig(config);
-    setCustomScenarioAnimationId(ANIMATION_TOOLKIT_SLOT_ID);
-    setAnimationScenario(CUSTOM_ANIMATION_SCENARIO_ID);
+const handleDesignerConfigCapture = (config: DesignerConfig) => {
+  console.log("[Designer] captured config in App.tsx:", config);
 
-    setUserProfile((prev) => {
-      if (!prev) {
-        return prev;
-      }
+  setDesignerConfig(config);
+  setCustomScenarioAnimationId(ANIMATION_TOOLKIT_SLOT_ID);
+  setAnimationScenario(CUSTOM_ANIMATION_SCENARIO_ID);
 
-      const updatedProfile: UserProfile = {
-        ...prev,
-        customScenarioAnimationId: ANIMATION_TOOLKIT_SLOT_ID,
-      };
-      void persistCustomScenarioSelection(updatedProfile);
-      return updatedProfile;
-    });
-  };
+  setUserProfile((prev) => {
+    if (!prev) {
+      return prev;
+    }
+
+    const updatedProfile: UserProfile = {
+      ...prev,
+      customScenarioAnimationId: ANIMATION_TOOLKIT_SLOT_ID,
+    };
+
+    void persistCustomScenarioSelection(updatedProfile);
+    return updatedProfile;
+  });
+};
 
   const userAnimationScenarioData = useMemo(() => {
     const options: AnimationScenarioOption[] = [];
