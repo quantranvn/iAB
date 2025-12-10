@@ -13,6 +13,7 @@ interface AnimationControlProps {
   selectedScenario: number;
   onScenarioChange: (scenario: number) => void;
   currentSettings: LightSettings;
+  selectedToolkitAnimId?: string | null;
   onRedChange: (value: number[]) => void;
   onGreenChange: (value: number[]) => void;
   onBlueChange: (value: number[]) => void;
@@ -26,6 +27,7 @@ export function AnimationControl({
   selectedScenario,
   onScenarioChange,
   currentSettings,
+  selectedToolkitAnimId,
   onRedChange,
   onGreenChange,
   onBlueChange,
@@ -162,6 +164,7 @@ export function AnimationControl({
           settings={currentSettings}
           scenarioName={selectedScenarioName}
           scenarioId={selectedScenario}
+          toolkitAnimId={selectedToolkitAnimId ?? undefined}
         />
 
         <div className="space-y-6">

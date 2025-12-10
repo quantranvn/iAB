@@ -7,6 +7,7 @@ export interface StoreAnimation {
   price?: number;
   gradient?: string;
   featured?: boolean;
+  toolkitAnimId?: string;
 }
 
 type FirebaseCompat = {
