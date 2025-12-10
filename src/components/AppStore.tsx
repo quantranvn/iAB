@@ -76,8 +76,9 @@ export const FALLBACK_USER_ANIMATIONS: StoreAnimation[] = [
   },
   {
     id: "animation-toolkit-slot",
-    name: "Animation Toolkit slot",
-    description: "Save your custom animation here from the Animation Toolkit.",
+    name: "Designer save slot",
+    description:
+      "Save your custom animation from the Designer tab. It will sync here for instant playback.",
     gradient: "from-indigo-600 via-sky-500 to-emerald-500",
     toolkitAnimId: "animationToolkit",
   },
@@ -220,7 +221,7 @@ export function AppStoreDialogContent({
   }, [activeUserId, firebaseConfigured, fallbackTokenBalance]);
 
   const defaultGradient = "from-purple-500 via-sky-500 to-indigo-500";
-  const libraryAnimations = useMemo(() => ownedAnimations, [ownedAnimations]);    const seen = new Set<string>();
+  const libraryAnimations = useMemo(() => ownedAnimations, [ownedAnimations]);
   const catalogAnimations = useMemo(() => availableAnimations, [availableAnimations]);
   const ownedAnimationIds = useMemo(
     () => new Set(libraryAnimations.map((animation) => animation.id)),
@@ -344,6 +345,7 @@ export function AppStoreDialogContent({
                   ) : (
                     libraryAnimations.map((animation) => {
                       const isActive = selectedAnimationId === animation.id;
+                      const isDesignerSlot = animation.id === "animation-toolkit-slot";
                       return (
                         <article
                           key={animation.id}
@@ -372,6 +374,17 @@ export function AppStoreDialogContent({
                                   Synced to rider profile
                                 </span>
                                 <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
+                                  {isDesignerSlot && (
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="gap-2"
+                                      onClick={() => setActiveTabState("designer")}
+                                    >
+                                      <Wand2 className="h-4 w-4" />
+                                      Open designer
+                                    </Button>
+                                  )}
                                   <Button
                                     size="sm"
                                     className="gap-2"
