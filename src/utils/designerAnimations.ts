@@ -318,8 +318,16 @@ export const evaluateDesignerFrame = (
     b: 0,
   }));
 
-  for (const conf of config.configs ?? []) {
-    const anim = animationLookup.get(conf.animId) || animations[0];
+  const configs = Array.isArray(config.configs) ? config.configs : [];
+
+  for (const raw of configs) {
+    if (!raw || typeof raw !== "object") {
+      continue;
+    }
+
+    const conf = raw as DesignerConfigEntry;
+    const animId = typeof conf.animId === "string" ? conf.animId : animations[0].id;
+    const anim = animationLookup.get(animId) || animations[0];
     const start = clamp(Math.round(conf.start ?? 0), 0, ledCount - 1);
     const len = clamp(Math.round(conf.length ?? 0), 1, ledCount - start);
 

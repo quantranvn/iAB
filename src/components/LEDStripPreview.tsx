@@ -126,10 +126,12 @@ export function LEDStripPreview({
   }, [blue, green, red]);
 
   const [designerFrames, setDesignerFrames] = useState<DesignerFrameColor[]>([]);
+  const isValidDesignerConfig =
+    designerConfig && Array.isArray(designerConfig.configs) && designerConfig.configs.length > 0;
   const normalizedDesignerCount = Math.max(1, Math.round(designerConfig?.ledCount ?? 0));
 
   useEffect(() => {
-    if (!designerConfig) {
+    if (!isValidDesignerConfig) {
       setDesignerFrames([]);
       return undefined;
     }
@@ -144,7 +146,7 @@ export function LEDStripPreview({
     });
 
     return () => cancelAnimationFrame(rafId);
-  }, [designerConfig]);
+  }, [designerConfig, isValidDesignerConfig]);
 
   const syncToolkitStrip = useCallback(() => {
     const iframe = toolkitIframeRef.current;
@@ -303,7 +305,7 @@ export function LEDStripPreview({
     softGlowColor,
   ]);
 
-  if (designerConfig) {
+  if (isValidDesignerConfig) {
     const leds = designerFrames.length > 0
       ? designerFrames
       : Array.from({ length: normalizedDesignerCount }, () => ({ r: 0, g: 0, b: 0 }));
