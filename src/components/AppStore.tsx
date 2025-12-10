@@ -258,33 +258,49 @@ export function AppStoreDialogContent({
 
   const handleUseDesignerMix = () => {
     try {
-      const iframeWin = designerIframeRef.current?.contentWindow as any;
+      const iframeWin = designerIframeRef.current?.contentWindow as
+        | (Window & Record<string, any>)
+        | null;
+
       if (!iframeWin) {
         console.error("Designer iframe not ready");
         toast.error("Designer is not ready yet.");
         return;
       }
 
-      if (typeof iframeWin.getCurrentLedDesign !== "function") {
-        console.error("getCurrentLedDesign not found on iframe window");
+      const getConfigFn =
+        typeof iframeWin.getCurrentLedDesign === "function"
+          ? iframeWin.getCurrentLedDesign
+          : typeof iframeWin.iab_getDesignerConfig === "function"
+            ? iframeWin.iab_getDesignerConfig
+            : null;
+
+      if (!getConfigFn) {
+        console.error("Designer bridge API not available on iframe window", iframeWin);
         toast.error("Designer API not available.");
         return;
       }
 
-      const design = iframeWin.getCurrentLedDesign() as DesignerConfig | null;
-      if (!design || !Array.isArray(design.configs)) {
+      const raw = getConfigFn();
+      // Deep-clone into a plain object so it’s safe to put in React state
+      const design = raw ? (JSON.parse(JSON.stringify(raw)) as DesignerConfig) : null;
+
+      if (
+        !design ||
+        typeof design.ledCount !== "number" ||
+        !Array.isArray(design.configs) ||
+        design.configs.length === 0
+      ) {
         console.error("Invalid design from designer", design);
         toast.error("Invalid design returned from designer.");
         return;
       }
 
-      // OPTIONAL: adapt the schema to whatever the app expects.
-      // Here we store it as a custom toolkit animation:
       const toolkitAnimation = {
         id: "designer-mix",
         name: "Designer mix",
         source: "designer",
-        mixerConfig: design, // keep raw mixer JSON here
+        mixerConfig: design,
       };
 
       setSelectedToolkitAnim(toolkitAnimation);

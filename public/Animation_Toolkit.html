@@ -1296,7 +1296,12 @@
 
     requestAnimationFrame(loop);
 
-    // Expose a safe API for the parent window (React app)
+    // Expose a stable bridge for the React shell to read the current designer config
+    window.iab_getDesignerConfig = function () {
+      return getConfigJsonObject();
+    };
+
+    // Backwards-compatible alias used by the React app
     window.getCurrentLedDesign = function () {
       try {
         return getConfigJsonObject();
