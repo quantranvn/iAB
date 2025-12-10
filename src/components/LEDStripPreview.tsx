@@ -126,14 +126,21 @@ export function LEDStripPreview({
   }, [blue, green, red]);
 
   const [designerFrames, setDesignerFrames] = useState<DesignerFrameColor[]>([]);
+
   const isValidDesignerConfig =
-    designerConfig && Array.isArray(designerConfig.configs) && designerConfig.configs.length > 0;
-  const normalizedDesignerCount = Math.max(1, Math.round(designerConfig?.ledCount ?? 0));
+    Boolean(designerConfig) &&
+    Array.isArray(designerConfig?.configs) &&
+    designerConfig!.configs.length > 0;
+
+  const normalizedDesignerCount = Math.max(
+    1,
+    Math.round(designerConfig?.ledCount ?? 0),
+  );
 
   useEffect(() => {
-    if (!isValidDesignerConfig) {
+    if (!isValidDesignerConfig || !designerConfig) {
       setDesignerFrames([]);
-      return undefined;
+      return;
     }
 
     let rafId = requestAnimationFrame(function renderFrame(timestamp) {
@@ -322,13 +329,15 @@ export function LEDStripPreview({
           <div className="toolkit-strip__leds flex flex-wrap justify-center gap-2 p-3">
             {leds.map((color, index) => {
               const background = `rgb(${color.r}, ${color.g}, ${color.b})`;
+              const shadow = `0 0 10px rgba(${color.r}, ${color.g}, ${color.b}, 0.9), 0 0 0 1px rgba(70, 78, 120, 0.85)`;
+
               return (
                 <span key={`designer-led-${index}`} className="toolkit-led-shell" aria-hidden>
                   <span
                     className="toolkit-led"
                     style={{
                       backgroundColor: background,
-                      boxShadow: `0 0 10px rgba(${color.r}, ${color.g}, ${color.b}, 0.9), 0 0 0 1px rgba(70, 78, 120, 0.85)`,
+                      boxShadow: shadow,
                     }}
                   />
                 </span>
