@@ -349,7 +349,7 @@ export function AppStoreDialogContent({
                           key={animation.id}
                           className="rounded-2xl border border-border/60 bg-muted/50 p-4 backdrop-blur"
                         >
-                          <div className="flex flex-col gap-4 sm:flex-row">
+                          <div className="flex flex-col gap-4">
                             <div
                               className={`relative h-20 w-full overflow-y-auto rounded-xl bg-gradient-to-br ${
                                 animation.gradient ?? defaultGradient
