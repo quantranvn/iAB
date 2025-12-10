@@ -3,7 +3,7 @@ import { Slider } from "./ui/slider";
 import { Label } from "./ui/label";
 import { Button } from "./ui/button";
 import { Send, CheckCircle2 } from "lucide-react";
-import { toast } from "sonner@2.0.3";
+import { toast } from "sonner";
 
 interface LightControlProps {
   lightType: string;
