@@ -143,7 +143,7 @@ export function AnimationControl({
                     type="button"
                     size="sm"
                     variant="outline"
-                    className="w-full border-border shadow-sm"
+                    className="w-full text-black dark:text-white"
                     onClick={(event) => {
                       event.stopPropagation();
                       handleActivateScenario();
