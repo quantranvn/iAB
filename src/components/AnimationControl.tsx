@@ -128,7 +128,7 @@ export function AnimationControl({
                   <div
                     className={`p-3 rounded-full bg-gradient-to-r ${scenario.gradient} ${isSelected ? "shadow-lg" : ""}`}
                   >
-                    <Icon className="h-6 w-6 text-white" />
+                    <Icon className="h-6 w-6" />
                   </div>
                   <span className="font-medium">{scenario.name}</span>
                   {subtitle && (
