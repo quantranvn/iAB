@@ -187,11 +187,14 @@ export function AppStoreDialogContent({
         const fallbackLookup = new Map(
           FALLBACK_USER_ANIMATIONS.map((animation) => [animation.id, animation]),
         );
+        
+        const ANIMATION_TOOLKIT_SLOT_ID = "animation-toolkit-slot";
 
         const resolvedLibrary = ownedIds
           .map((id) => catalogLookup.get(id) ?? fallbackLookup.get(id))
           .filter((animation): animation is StoreAnimation => Boolean(animation));
         
+
         const toolkitSlot =
           fallbackLookup.get(ANIMATION_TOOLKIT_SLOT_ID) ??
           FALLBACK_USER_ANIMATIONS.find((a) => a.id === ANIMATION_TOOLKIT_SLOT_ID);
@@ -201,9 +204,13 @@ export function AppStoreDialogContent({
             ? [...resolvedLibrary, toolkitSlot]
             : resolvedLibrary;
         
+
         setOwnedAnimations(
-          resolvedLibrary.length > 0 ? resolvedLibrary : FALLBACK_USER_ANIMATIONS,
+          libraryWithToolkitSlot.length > 0
+            ? libraryWithToolkitSlot
+            : FALLBACK_USER_ANIMATIONS,
         );
+        
         setTokenBalance(
           typeof profile?.tokenBalance === "number"
             ? profile.tokenBalance
