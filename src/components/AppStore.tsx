@@ -191,7 +191,22 @@ export function AppStoreDialogContent({
         const resolvedLibrary = ownedIds
           .map((id) => catalogLookup.get(id) ?? fallbackLookup.get(id))
           .filter((animation): animation is StoreAnimation => Boolean(animation));
-
+        
+          const toolkitSlot = FALLBACK_USER_ANIMATIONS.find(
+            (a) => a.id === "animation-toolkit-slot",
+          );
+          
+          const libraryWithToolkitSlot =
+            toolkitSlot && !resolvedLibrary.some((a) => a.id === toolkitSlot.id)
+              ? [...resolvedLibrary, toolkitSlot]
+              : resolvedLibrary;
+          
+          setOwnedAnimations(
+            libraryWithToolkitSlot.length > 0
+              ? libraryWithToolkitSlot
+              : FALLBACK_USER_ANIMATIONS,
+          );
+        
         setOwnedAnimations(
           resolvedLibrary.length > 0 ? resolvedLibrary : FALLBACK_USER_ANIMATIONS,
         );
