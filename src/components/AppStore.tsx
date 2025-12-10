@@ -542,12 +542,14 @@ export function AppStoreDialogContent({
 
         <TabsContent value="designer" className="mt-0 flex-1">
           <ScrollArea className="h-[85vh] pr-4">
+             <div className="mt-4 h-[85vh] overflow-hidden rounded-xl border shadow-inner">
                 <iframe
                   title="Animation designer toolkit"
                   src={animationToolkitUrl}
-                  className="h-full w-full min-h-[85vh] border-0 bg-background"
+                  className="h-full w-full min-h-[600px] border-0 bg-background"
                   loading="lazy"
                 />
+             </div>
           </ScrollArea>
         </TabsContent>
 
