@@ -32,6 +32,15 @@ import { FALLBACK_USER_PROFILE } from "../types/userProfile";
 
 const animationToolkitUrl = "/Animation_Toolkit.html";
 
+const ANIMATION_TOOLKIT_SLOT =
+  FALLBACK_USER_ANIMATIONS.find((animation) => animation.id === "animation-toolkit-slot") ?? {
+    id: "animation-toolkit-slot",
+    name: "Animation Toolkit slot",
+    description: "Save your custom animation here from the Animation Toolkit.",
+    gradient: "from-indigo-600 via-sky-500 to-emerald-500",
+    toolkitAnimId: "animationToolkit",
+  };
+
 export const FALLBACK_FEATURED_ANIMATIONS: StoreAnimation[] = [
   {
     id: "nebula-drift",
@@ -220,7 +229,35 @@ export function AppStoreDialogContent({
   }, [activeUserId, firebaseConfigured, fallbackTokenBalance]);
 
   const defaultGradient = "from-purple-500 via-sky-500 to-indigo-500";
-  const libraryAnimations = useMemo(() => ownedAnimations, [ownedAnimations]);
+  const libraryAnimations = useMemo(() => {
+    const seen = new Set<string>();
+    const dedupedOwnedAnimations = ownedAnimations.filter((animation) => {
+      if (seen.has(animation.id)) {
+        return false;
+      }
+
+      seen.add(animation.id);
+      return true;
+    });
+
+    const libraryWithoutToolkitSlot = dedupedOwnedAnimations.filter(
+      (animation) => animation.id !== ANIMATION_TOOLKIT_SLOT.id,
+    );
+
+    const starlightChaseIndex = libraryWithoutToolkitSlot.findIndex(
+      (animation) => animation.id === "starlight-chase",
+    );
+
+    if (starlightChaseIndex === -1) {
+      return [...libraryWithoutToolkitSlot, ANIMATION_TOOLKIT_SLOT];
+    }
+
+    return [
+      ...libraryWithoutToolkitSlot.slice(0, starlightChaseIndex + 1),
+      ANIMATION_TOOLKIT_SLOT,
+      ...libraryWithoutToolkitSlot.slice(starlightChaseIndex + 1),
+    ];
+  }, [ownedAnimations]);
   const catalogAnimations = useMemo(() => availableAnimations, [availableAnimations]);
   const ownedAnimationIds = useMemo(
     () => new Set(libraryAnimations.map((animation) => animation.id)),
@@ -344,6 +381,7 @@ export function AppStoreDialogContent({
                   ) : (
                     libraryAnimations.map((animation) => {
                       const isActive = selectedAnimationId === animation.id;
+                      const isAnimationToolkitSlot = animation.id === "animation-toolkit-slot";
                       return (
                         <article
                           key={animation.id}
@@ -381,6 +419,14 @@ export function AppStoreDialogContent({
                                     <PlayCircle className="h-4 w-4" />
                                     {isActive ? "Now playing" : "Play on scooter"}
                                   </Button>
+                                  {isAnimationToolkitSlot && (
+                                    <Button asChild size="sm" variant="outline" className="gap-2">
+                                      <a href={animationToolkitUrl} target="_blank" rel="noreferrer">
+                                        <Wand2 className="h-4 w-4" />
+                                        Open animation toolkit
+                                      </a>
+                                    </Button>
+                                  )}
                                 </div>
                               </div>
                             </div>
