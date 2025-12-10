@@ -278,51 +278,17 @@ export function AppStoreDialogContent({
         return;
       }
 
-      const normalizeNumber = (value: unknown, fallback: number) => {
-        const num = Number(value);
-        return Number.isFinite(num) ? num : fallback;
-      };
-
-      const normalizedConfigs = design.configs
-        .filter((entry) => entry && typeof entry === "object")
-        .map((entry) => {
-          const configEntry = entry as Partial<DesignerConfigEntry> & Record<string, unknown>;
-          const start = normalizeNumber(configEntry.start, 0);
-          const length = normalizeNumber(configEntry.length, 1);
-          const animId = typeof configEntry.animId === "string" ? configEntry.animId : "rainbow";
-          const propsValue = configEntry.props;
-          const props = propsValue && typeof propsValue === "object" ? propsValue : {};
-
-          return {
-            start,
-            length,
-            animId,
-            props,
-          };
-        })
-        .filter((entry) => entry.length > 0);
-
-      if (normalizedConfigs.length === 0) {
-        toast.error("Designer returned an empty configuration.");
-        return;
-      }
-
-      const normalizedDesign: DesignerConfig = {
-        ledCount: normalizeNumber(design.ledCount, 16),
-        globalBrightness: Math.max(0, Math.min(1, normalizeNumber(design.globalBrightness, 1))),
-        globalSpeed: Math.max(0.01, Math.min(10, normalizeNumber(design.globalSpeed, 1))),
-        configs: normalizedConfigs,
-      };
-
+      // OPTIONAL: adapt the schema to whatever the app expects.
+      // Here we store it as a custom toolkit animation:
       const toolkitAnimation = {
         id: "designer-mix",
         name: "Designer mix",
         source: "designer",
-        mixerConfig: normalizedDesign, // keep raw mixer JSON here
+        mixerConfig: design, // keep raw mixer JSON here
       };
 
       setSelectedToolkitAnim(toolkitAnimation);
-      onDesignerConfigCapture?.(normalizedDesign);
+      onDesignerConfigCapture?.(design);
       onAnimationSelect?.(ANIMATION_TOOLKIT_SLOT_ID);
       setActiveTabState("owned");
       toast.success("Designer mix loaded.");
