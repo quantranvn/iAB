@@ -143,6 +143,6 @@ export const FALLBACK_USER_PROFILE: UserProfile = {
   },
   createdAt: "2025-10-27T12:00:00Z",
   lastLogin: "2025-10-27T18:30:00Z",
-  ownedAnimations: ["aurora-veil", "starlight-chase","animation-toolkit-slot"],
+  ownedAnimations: ["aurora-veil", "starlight-chase"],
   tokenBalance: 1480,
 };
