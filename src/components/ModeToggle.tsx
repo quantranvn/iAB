@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Moon, Sun, Laptop } from "lucide-react@0.487.0";
-import { useTheme } from "next-themes@0.4.6";
+import { useTheme } from "next-themes";
 
 import { Button } from "./ui/button";
 import {

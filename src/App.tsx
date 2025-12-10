@@ -26,7 +26,7 @@ import { Label } from "./components/ui/label";
 import { TurnSignalIcon, LowBeamIcon, HighBeamIcon, BrakeLightIcon } from "./components/icons/AutomotiveIcons";
 import { BluetoothCommandGenerator } from "./utils/bluetooth-commands";
 import { CommandLog, CommandLogEntry } from "./components/CommandLog";
-import { toast } from "sonner@2.0.3";
+import { toast } from "sonner";
 import { BluetoothConnectionTransport } from "./utils/bluetooth-types";
 import {
   AppStoreDialogContent,
