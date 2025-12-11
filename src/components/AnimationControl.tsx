@@ -150,7 +150,7 @@ export function AnimationControl({
         </div>
       </div>
 
-      <div className="space-y-6">
+      <div className="space-y-8">
         <LEDStripPreview
           settings={currentSettings}
           scenarioName={selectedScenarioName}
