@@ -166,9 +166,6 @@ export function LEDStripPreview({
             className="min-h-[50vh] h-full w-full border-0 bg-background"
             loading="lazy"
         />
-        {!previewApplied && (
-          <p className="px-3 pb-3 text-sm text-muted-foreground">Syncing animation with the toolkit…</p>
-        )}
     </div>
   );
 }
