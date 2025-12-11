@@ -154,18 +154,26 @@ export function LEDStripPreview({
     ? `Designer config (${designerConfig.configs.length} layers)`
     : `${scenarioName}`;
 
-  return (
-    <div className="w-full space-y-4">
-        <div className="toolkit-strip__header">
-          <span className="toolkit-strip__status">{statusLabel}</span>
-        </div>
-        <iframe
-            ref={toolkitIframeRef}
-            title="Toolkit animation preview"
-            src="/Animation_Toolkit.html?embedPreview=1"
-            className="min-h-[50vh] h-full w-full border-0 bg-background"
-            loading="lazy"
-        />
-    </div>
-  );
+return ( 
+<div className="w-full space-y-3"> 
+	<div className="toolkit-strip" role="img" aria-label={${scenarioName} animation preview}> 
+		<div className="toolkit-strip__header"> 
+			<span className="toolkit-strip__title">Animation Preview</span> 
+			<span className="toolkit-strip__status">{statusLabel}</span> 
+		</div> 
+		<iframe 
+      ref={toolkitIframeRef} 
+      title="Toolkit animation preview" 
+      src="/Animation_Toolkit.html?embedPreview=1" 
+      className="h-64 w-full border-0 bg-background" 
+      loading="lazy" 
+    /> 
+		{!previewApplied && ( 
+      <p className="px-3 pb-3 text-sm text-muted-foreground">
+        Syncing animation with the toolkit…</p> )
+    } 
+		</div> 
+	</div> 
+	)
+	; 
 }
