@@ -155,7 +155,7 @@ export function LEDStripPreview({
     : `${scenarioName}`;
 
   return (
-    <div className="w-full space-y-4">
+    <div className="h-[85vh] w-full space-y-4">
       <div className="toolkit-strip" role="img" aria-label={`${scenarioName} animation preview`}>
         <div className="toolkit-strip__header">
           <span className="toolkit-strip__status">{statusLabel}</span>
