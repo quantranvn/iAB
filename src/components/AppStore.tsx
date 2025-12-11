@@ -327,7 +327,7 @@ export function AppStoreDialogContent({
   };
 
   return (
-    <DialogContent className="max-h-[85vh] overflow-y-auto">
+    <DialogContent className="max-h-[90vh] overflow-y-auto">
       <DialogHeader>
         <DialogTitle className="flex items-center gap-2">
           <Store className="h-5 w-5" />
@@ -376,7 +376,7 @@ export function AppStoreDialogContent({
 
 
         <TabsContent value="owned" className="mt-0 flex-1">
-          <ScrollArea className="max-h-[55vh] pr-4">
+          <ScrollArea className="max-h-[65vh] pr-4">
             <div className="space-y-6 pb-4">
               <section className="space-y-4">
                 <div className="flex items-center gap-2">
