@@ -916,12 +916,6 @@ const [designerConfig, setDesignerConfig] = useState<DesignerConfig | null>(null
                       onScenarioChange={setAnimationScenario}
                       currentSettings={animation}
                       designerConfig={designerPreviewConfig}
-                      onRedChange={(value) => updateLightSetting(setAnimation, "red", value)}
-                      onGreenChange={(value) => updateLightSetting(setAnimation, "green", value)}
-                      onBlueChange={(value) => updateLightSetting(setAnimation, "blue", value)}
-                      onIntensityChange={(value) =>
-                        updateLightSetting(setAnimation, "intensity", value)
-                      }
                       selectedToolkitAnimId={selectedToolkitAnimId}
                       onSend={() => sendAnimationCommand(animationScenario, animation)}
                       onOpenAnimationLibrary={() => {
