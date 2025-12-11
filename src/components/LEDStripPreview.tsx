@@ -164,7 +164,7 @@ export function LEDStripPreview({
             ref={toolkitIframeRef}
             title="Toolkit animation preview"
             src="/Animation_Toolkit.html?embedPreview=1"
-            className="h-[600px] w-full border-0 bg-background"
+            className="min-h-[600px] h-full w-full border-0 bg-background"
             loading="lazy"
         />
         {!previewApplied && (
