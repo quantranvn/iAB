@@ -942,7 +942,7 @@ const [designerCommandLoading, setDesignerCommandLoading] = useState(false);
                       </div>
                       <div className="flex-1 text-left">
                         <h3>{button.title}</h3>
-                        {button.settings && (
+                        {button.settings && !button.isAnimation && (
                           <p className="text-muted-foreground">
                             RGB({button.settings.red}, {button.settings.green}, {button.settings.blue})
                           </p>
