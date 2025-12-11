@@ -334,6 +334,26 @@
       display: none;
     }
 
+    body.embed-preview {
+      padding: 0;
+    }
+    .embed-preview .app {
+      max-width: 720px;
+      padding: 12px;
+    }
+    .embed-preview .top-row,
+    .embed-preview .configs-header,
+    .embed-preview .configs-list,
+    .embed-preview #configJsonBtn,
+    .embed-preview .modal-overlay,
+    .embed-preview .subtitle,
+    .embed-preview .configs-toolbar {
+      display: none !important;
+    }
+    .embed-preview .led-strip-container {
+      margin-bottom: 0;
+    }
+
     @media (max-width: 640px) {
       .app { padding: 14px 12px 10px; }
       .config-row { grid-template-columns: 1.4fr 0.8fr 0.8fr auto; }
@@ -453,6 +473,12 @@
 
     let configs = [];
     let configIdCounter = 1;
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const embedPreview = urlParams.has("embedPreview");
+    if (embedPreview) {
+      document.body.classList.add("embed-preview");
+    }
 
     function clamp(v, min, max) {
       return v < min ? min : v > max ? max : v;
@@ -1112,6 +1138,47 @@
     // Expose a stable bridge for the React shell to read the current designer config
     window.iab_getDesignerConfig = function () {
       return getConfigJsonObject();
+    };
+
+    // Allow the host shell to push a saved configuration directly into the designer
+    window.iab_applyDesignerConfig = function (config) {
+      if (!config || !Array.isArray(config.configs)) return false;
+
+      try {
+        const ledCount = clamp(parseInt(config.ledCount, 10) || 0, 1, 256);
+        const newBrightness = clamp(parseFloat(config.globalBrightness) || 0.9, 0.1, 1);
+        const newSpeed = clamp(parseFloat(config.globalSpeed) || 1, 0.01, 10);
+
+        NUM_LEDS = ledCount;
+        brightness = newBrightness;
+        globalSpeed = newSpeed;
+
+        ledCountInput.value = ledCount;
+        brightnessRange.value = newBrightness;
+        brightnessValue.textContent = `${Math.round(newBrightness * 100)}%`;
+        speedRange.value = newSpeed;
+        speedValue.textContent = `${newSpeed.toFixed(2)}x`;
+
+        createStrip();
+        clearConfigs();
+        config.configs.forEach((entry) => {
+          addConfig({
+            start: entry.start ?? 0,
+            length: entry.length ?? ledCount,
+            animId: entry.animId,
+            props: entry.props || {},
+          });
+        });
+
+        if (toggleText) {
+          toggleText.textContent = running ? "Pause" : "Resume";
+        }
+
+        return true;
+      } catch (error) {
+        console.error("Failed to apply designer config", error);
+        return false;
+      }
     };
 
     function exportCurrentConfigToText() {

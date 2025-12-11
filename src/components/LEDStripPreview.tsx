@@ -2,8 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties } from "react";
 
 import type { LightSettings } from "../types/userProfile";
-import type { DesignerConfig, DesignerFrameColor } from "../types/designer";
-import { evaluateDesignerFrame } from "../utils/designerAnimations";
+import type { DesignerConfig } from "../types/designer";
 
 interface LEDStripPreviewProps {
   settings: LightSettings;
@@ -82,6 +81,7 @@ export function LEDStripPreview({
   designerConfig,
 }: LEDStripPreviewProps) {
   const [toolkitLoaded, setToolkitLoaded] = useState(false);
+  const [designerPreviewReady, setDesignerPreviewReady] = useState(false);
   const toolkitIframeRef = useRef<HTMLIFrameElement | null>(null);
   const { red, green, blue, intensity } = settings;
   const alpha = Math.max(intensity / 100, 0.25);
@@ -125,24 +125,11 @@ export function LEDStripPreview({
     return `#${toHex(red)}${toHex(green)}${toHex(blue)}`;
   }, [blue, green, red]);
 
-  const [designerFrames, setDesignerFrames] = useState<DesignerFrameColor[]>([]);
-  const normalizedDesignerCount = Math.max(1, Math.round(designerConfig?.ledCount ?? 0));
-
-  useEffect(() => {
-    if (!designerConfig) {
-      setDesignerFrames([]);
-      return undefined;
+  const syncToolkitStrip = useCallback(() => {
+    if (designerConfig) {
+      return;
     }
 
-    let rafId = requestAnimationFrame(function renderFrame(timestamp) {
-      setDesignerFrames(evaluateDesignerFrame(designerConfig, timestamp));
-      rafId = requestAnimationFrame(renderFrame);
-    });
-
-    return () => cancelAnimationFrame(rafId);
-  }, [designerConfig]);
-
-  const syncToolkitStrip = useCallback(() => {
     const iframe = toolkitIframeRef.current;
     const iframeWindow = iframe?.contentWindow as (Window & Record<string, any>) | null;
 
@@ -186,7 +173,25 @@ export function LEDStripPreview({
         phaseMs: 0,
       },
     });
-  }, [intensity, toolkitAnimationId, toolkitColorHex, toolkitLoaded]);
+  }, [designerConfig, intensity, toolkitAnimationId, toolkitColorHex, toolkitLoaded]);
+
+  const syncDesignerPreview = useCallback(() => {
+    if (!designerConfig) {
+      return;
+    }
+
+    const iframeWindow = toolkitIframeRef.current
+      ?.contentWindow as (Window & Record<string, unknown>) | null;
+
+    if (!iframeWindow || !designerPreviewReady) {
+      return;
+    }
+
+    const applyConfig = iframeWindow.iab_applyDesignerConfig;
+    if (typeof applyConfig === "function") {
+      applyConfig(designerConfig);
+    }
+  }, [designerConfig, designerPreviewReady]);
 
   useEffect(() => {
     const iframe = toolkitIframeRef.current;
@@ -197,6 +202,7 @@ export function LEDStripPreview({
 
     const handleLoad = () => {
       setToolkitLoaded(true);
+      setDesignerPreviewReady(true);
     };
 
     iframe.addEventListener("load", handleLoad);
@@ -207,8 +213,13 @@ export function LEDStripPreview({
   }, []);
 
   useEffect(() => {
+    if (designerConfig) {
+      syncDesignerPreview();
+      return;
+    }
+
     syncToolkitStrip();
-  }, [syncToolkitStrip]);
+  }, [designerConfig, syncDesignerPreview, syncToolkitStrip]);
 
   const animationMetrics = useMemo(
     () => {
@@ -300,35 +311,29 @@ export function LEDStripPreview({
   ]);
 
   if (designerConfig) {
-    const leds = designerFrames.length > 0
-      ? designerFrames
-      : Array.from({ length: normalizedDesignerCount }, () => ({ r: 0, g: 0, b: 0 }));
-
     return (
       <div className="w-full space-y-3">
         <div className="toolkit-strip" role="img" aria-label={`${scenarioName} animation preview`}>
           <div className="toolkit-strip__header">
             <span className="toolkit-strip__title">Designer preview</span>
             <span className="toolkit-strip__status">
-              Live JSON ({designerConfig.configs.length} layers)
+              Live from toolkit ({designerConfig.configs.length} layers)
             </span>
           </div>
-          <div className="toolkit-strip__leds flex flex-wrap justify-center gap-2 p-3">
-            {leds.map((color, index) => {
-              const background = `rgb(${color.r}, ${color.g}, ${color.b})`;
-              return (
-                <span key={`designer-led-${index}`} className="toolkit-led-shell" aria-hidden>
-                  <span
-                    className="toolkit-led"
-                    style={{
-                      backgroundColor: background,
-                      boxShadow: `0 0 10px rgba(${color.r}, ${color.g}, ${color.b}, 0.9), 0 0 0 1px rgba(70, 78, 120, 0.85)`,
-                    }}
-                  />
-                </span>
-              );
-            })}
+          <div className="overflow-hidden rounded-xl border bg-background">
+            <iframe
+              ref={toolkitIframeRef}
+              title="Designer animation preview"
+              src="/Animation_Toolkit.html?embedPreview=1"
+              className="h-64 w-full border-0 bg-background"
+              loading="lazy"
+            />
           </div>
+          {!designerPreviewReady && (
+            <p className="px-3 pb-3 text-sm text-muted-foreground">
+              Loading live designer animation…
+            </p>
+          )}
         </div>
       </div>
     );
