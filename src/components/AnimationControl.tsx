@@ -58,7 +58,7 @@ export function AnimationControl({
       });
 
       // Reset success state after animation
-      setTimeout(() => setJustSent(false), 2000);
+      setTimeout(() => setJustSent(false), 1500);
     }, 400);
   };
 
