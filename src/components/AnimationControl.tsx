@@ -1,8 +1,6 @@
 import { useState } from "react";
 import { Send, CheckCircle2 } from "lucide-react";
 import { Button } from "./ui/button";
-import { Slider } from "./ui/slider";
-import { Label } from "./ui/label";
 import { toast } from "sonner@2.0.3";
 import type { AnimationScenarioOption } from "../types/animation";
 import type { LightSettings } from "../types/userProfile";
@@ -15,10 +13,6 @@ interface AnimationControlProps {
   onScenarioChange: (scenario: number) => void;
   currentSettings: LightSettings;
   selectedToolkitAnimId?: string | null;
-  onRedChange: (value: number[]) => void;
-  onGreenChange: (value: number[]) => void;
-  onBlueChange: (value: number[]) => void;
-  onIntensityChange: (value: number[]) => void;
   onSend: () => void | Promise<void>;
   onOpenAnimationLibrary?: (scenarioId: number) => void;
   designerConfig?: DesignerConfig | null;
@@ -30,10 +24,6 @@ export function AnimationControl({
   onScenarioChange,
   currentSettings,
   selectedToolkitAnimId,
-  onRedChange,
-  onGreenChange,
-  onBlueChange,
-  onIntensityChange,
   onSend,
   onOpenAnimationLibrary,
   designerConfig,
@@ -44,8 +34,6 @@ export function AnimationControl({
   const selectedScenarioName =
     scenarios.find((scenario) => scenario.id === selectedScenario)?.name ??
     `Scenario ${selectedScenario}`;
-
-  const intensityLevel = Math.round(currentSettings.intensity / 5);
 
   const handleSend = async () => {
     setIsSending(true);
@@ -170,65 +158,6 @@ export function AnimationControl({
           toolkitAnimId={selectedToolkitAnimId ?? undefined}
           designerConfig={designerConfig}
         />
-
-        <div className="space-y-6">
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <Label className="text-red-500">Red</Label>
-              <span className="text-muted-foreground">{currentSettings.red}</span>
-            </div>
-            <Slider
-              value={[currentSettings.red]}
-              onValueChange={onRedChange}
-              max={255}
-              step={1}
-              className="[&_[role=slider]]:bg-red-500 [&_[role=slider]]:border-red-600"
-            />
-          </div>
-
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <Label className="text-green-500">Green</Label>
-              <span className="text-muted-foreground">{currentSettings.green}</span>
-            </div>
-            <Slider
-              value={[currentSettings.green]}
-              onValueChange={onGreenChange}
-              max={255}
-              step={1}
-              className="[&_[role=slider]]:bg-green-500 [&_[role=slider]]:border-green-600"
-            />
-          </div>
-
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <Label className="text-blue-500">Blue</Label>
-              <span className="text-muted-foreground">{currentSettings.blue}</span>
-            </div>
-            <Slider
-              value={[currentSettings.blue]}
-              onValueChange={onBlueChange}
-              max={255}
-              step={1}
-              className="[&_[role=slider]]:bg-blue-500 [&_[role=slider]]:border-blue-600"
-            />
-          </div>
-
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <Label>Intensity</Label>
-              <span className="text-muted-foreground">
-                Level {intensityLevel} ({currentSettings.intensity}%)
-              </span>
-            </div>
-            <Slider
-              value={[currentSettings.intensity]}
-              onValueChange={onIntensityChange}
-              max={100}
-              step={5}
-            />
-          </div>
-        </div>
       </div>
 
       <Button
