@@ -155,7 +155,7 @@ export function LEDStripPreview({
     : `${scenarioName}`;
 
   return (
-    <div className="w-full space-y-3">
+    <div className="w-full space-y-4">
       <div className="toolkit-strip" role="img" aria-label={`${scenarioName} animation preview`}>
         <div className="toolkit-strip__header">
           <span className="toolkit-strip__title">Animation Preview</span>
@@ -165,7 +165,7 @@ export function LEDStripPreview({
             ref={toolkitIframeRef}
             title="Toolkit animation preview"
             src="/Animation_Toolkit.html?embedPreview=1"
-            className="h-[520px] w-full border-0 bg-background"
+            className="h-[600px] w-full border-0 bg-background"
             loading="lazy"
         />
         {!previewApplied && (
