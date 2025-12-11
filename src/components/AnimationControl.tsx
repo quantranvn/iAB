@@ -53,8 +53,8 @@ export function AnimationControl({
 
       // Show success toast
       toast.success(`Animation sent!`, {
-        description: `${selectedScenarioName} with RGB(${currentSettings.red}, ${currentSettings.green}, ${currentSettings.blue})`,
-        duration: 2000,
+        description: `${selectedScenarioName}`,
+        duration: 1500,
       });
 
       // Reset success state after animation
