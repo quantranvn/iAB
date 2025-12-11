@@ -606,7 +606,7 @@ export function AppStoreDialogContent({
                 Use this design
               </Button>
             </div>
-            <div className="mt-1 h-[85vh] overflow-hidden rounded-xl border shadow-inner">
+            <div className="mt-1 h-[85vh] overflow-y-auto rounded-xl border shadow-inner">
               <iframe
                 id="animation-designer-iframe"
                 title="Animation designer toolkit"
