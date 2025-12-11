@@ -1,4 +1,4 @@
-import type { Dispatch, SetStateAction, CSSProperties, FormEvent } from "react";
+import type { Dispatch, SetStateAction, FormEvent } from "react";
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "./components/ui/sheet";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "./components/ui/dialog";
@@ -8,18 +8,7 @@ import { BluetoothConnection } from "./components/BluetoothConnection";
 import { UserProfileManager } from "./components/UserProfileManager";
 import { InstallPrompt } from "./components/InstallPrompt";
 import { Toaster } from "./components/ui/sonner";
-import {
-  Sparkles,
-  Zap,
-  Waves,
-  Star,
-  Bluetooth,
-  BluetoothOff,
-  ScrollText,
-  LogIn,
-  Loader2,
-  Bot,
-} from "lucide-react";
+import { Sparkles, Bluetooth, BluetoothOff, ScrollText, LogIn, Loader2 } from "lucide-react";
 import { Button } from "./components/ui/button";
 import { Input } from "./components/ui/input";
 import { Label } from "./components/ui/label";
@@ -35,6 +24,7 @@ import {
   ANIMATION_TOOLKIT_SLOT_ID,
 } from "./components/AppStore";
 import { ModeToggle } from "./components/ModeToggle";
+import { useAnimationScenarios } from "./hooks/useAnimationScenarios";
 import {
   fetchStoreAnimations,
   getActiveUserId,
@@ -46,10 +36,12 @@ import {
   type StoreAnimation,
 } from "./utils/firebase";
 import { FALLBACK_USER_PROFILE, type LightSettings, type Preset, type UserProfile } from "./types/userProfile";
-import type { AnimationScenarioOption } from "./types/animation";
 import type { DesignerConfig } from "./types/designer";
 import { Avatar, AvatarFallback, AvatarImage } from "./components/ui/avatar";
 import { buildFallbackProfile, normalizeUserProfile } from "./utils/profileHelpers";
+import { BASE_ANIMATION_SCENARIOS, CUSTOM_ANIMATION_SCENARIO_ID } from "./utils/animationConstants";
+import { computeUserAnimations } from "./utils/userAnimations";
+import { getButtonGradientStyle } from "./utils/colorGradients";
 
 const BASIC_LIGHT_TYPES = {
   lowBeam: 1,
@@ -57,23 +49,6 @@ const BASIC_LIGHT_TYPES = {
   turnLight: 3,
   brakeLight: 4,
 } as const;
-
-const BASE_ANIMATION_SCENARIOS: AnimationScenarioOption[] = [
-  { id: 1, name: "Rainbow Flow", icon: Sparkles, gradient: "from-red-500 to-purple-500" },
-  { id: 2, name: "Lightning Pulse", icon: Zap, gradient: "from-yellow-400 to-orange-500" },
-  { id: 3, name: "Ocean Wave", icon: Waves, gradient: "from-blue-400 to-cyan-500" },
-  { id: 4, name: "Starlight", icon: Star, gradient: "from-indigo-400 to-pink-500" },
-];
-
-const CUSTOM_ANIMATION_SCENARIO_ID = BASE_ANIMATION_SCENARIOS.length + 1;
-const AI_PLACEHOLDER_SCENARIO_ID = BASE_ANIMATION_SCENARIOS.length + 2;
-
-const USER_ANIMATION_GRADIENTS = [
-  "from-emerald-500 via-teal-500 to-cyan-500",
-  "from-rose-500 via-purple-500 to-indigo-500",
-  "from-amber-400 via-orange-500 to-rose-500",
-  "from-blue-400 via-sky-500 to-indigo-500",
-];
 
 export default function App() {
   const [activeUserId, setActiveUserIdState] = useState(() => getActiveUserId());
@@ -145,46 +120,6 @@ const [userAnimationOptions, setUserAnimationOptions] = useState<StoreAnimation[
 );
 const [animationCatalog, setAnimationCatalog] = useState<StoreAnimation[]>([]);
 const [designerConfig, setDesignerConfig] = useState<DesignerConfig | null>(null);
-
-  const computeUserAnimations = (
-    animationIds: string[],
-    catalog: StoreAnimation[]
-  ): StoreAnimation[] => {
-    const lookup = new Map(
-      [...catalog, ...FALLBACK_USER_ANIMATIONS].map((animation) => [animation.id, animation])
-    );
-
-    const resolved = animationIds
-      .map((animationId) => lookup.get(animationId))
-      .filter((animation): animation is StoreAnimation => Boolean(animation));
-
-    return resolved.length > 0 ? resolved : FALLBACK_USER_ANIMATIONS;
-  };
-
-  const clamp = (value: number, min: number, max: number) =>
-    Math.min(Math.max(value, min), max);
-
-  const lightenChannel = (value: number) => Math.min(255, Math.round(value + (255 - value) * 0.35));
-  const darkenChannel = (value: number) => Math.max(0, Math.round(value * 0.65));
-
-  const getButtonGradientStyle = (settings?: LightSettings): CSSProperties | undefined => {
-    if (!settings) {
-      return undefined;
-    }
-
-    const alpha = clamp(settings.intensity / 100, 0.25, 1);
-    const start = `rgba(${lightenChannel(settings.red)}, ${lightenChannel(settings.green)}, ${lightenChannel(
-      settings.blue
-    )}, ${clamp(alpha + 0.15, 0.35, 1)})`;
-    const end = `rgba(${darkenChannel(settings.red)}, ${darkenChannel(settings.green)}, ${darkenChannel(
-      settings.blue
-    )}, ${alpha})`;
-
-    return {
-      backgroundColor: end,
-      backgroundImage: `linear-gradient(135deg, ${start}, ${end})`,
-    };
-  };
 
   // Send AT command when settings change
   const isBluetoothConnected = connectionTransport !== null;
@@ -446,82 +381,24 @@ const [designerConfig, setDesignerConfig] = useState<DesignerConfig | null>(null
     });
   };
 
-  const userAnimationScenarioData = useMemo(() => {
-    const options: AnimationScenarioOption[] = [];
-    const sourceToId = new Map<string, number>();
-    const idToSource = new Map<number, string>();
-
-    const customAnimation =
-      customScenarioAnimationId
-        ? animationLookup.get(customScenarioAnimationId) ?? null
-        : null;
-
-    options.push({
-      id: CUSTOM_ANIMATION_SCENARIO_ID,
-      name: customAnimation?.name ?? "Custom Scenario",
-      icon: Sparkles,
-      gradient:
-        customAnimation?.gradient ??
-        USER_ANIMATION_GRADIENTS[0],
-      sourceId: customAnimation?.id,
-      supportsLibrarySelection: true,
-      subtitle: customAnimation ? "Custom selection" : "Select from your library",
-      disabled: !customAnimation,
-    });
-
-    if (customAnimation) {
-      sourceToId.set(customAnimation.id, CUSTOM_ANIMATION_SCENARIO_ID);
-      idToSource.set(CUSTOM_ANIMATION_SCENARIO_ID, customAnimation.id);
-    }
-
-    options.push({
-      id: AI_PLACEHOLDER_SCENARIO_ID,
-      name: "AI Generated Animation",
-      icon: Bot,
-      gradient: "from-slate-700 via-purple-600 to-indigo-500",
-      subtitle: "Coming soon",
-      disabled: true,
-    });
-
-    return { options, sourceToId, idToSource };
-  }, [animationLookup, customScenarioAnimationId]);
-
-  const animationScenarioOptions = useMemo(
-    () => [...BASE_ANIMATION_SCENARIOS, ...userAnimationScenarioData.options],
-    [userAnimationScenarioData.options]
-  );
-
-  const userAnimationIdToScenarioId = userAnimationScenarioData.sourceToId;
-  const scenarioIdToUserAnimationId = userAnimationScenarioData.idToSource;
-
-  const selectedAnimationOption = useMemo(
-    () => animationScenarioOptions.find((option) => option.id === animationScenario),
-    [animationScenarioOptions, animationScenario]
-  );
-
-  const selectedUserAnimationId = useMemo(() => {
-    if (animationScenario === CUSTOM_ANIMATION_SCENARIO_ID) {
-      return customScenarioAnimationId;
-    }
-
-    return scenarioIdToUserAnimationId.get(animationScenario) ?? null;
-  }, [animationScenario, customScenarioAnimationId, scenarioIdToUserAnimationId]);
-
-  const selectedUserAnimation = useMemo(() => {
-    if (!selectedUserAnimationId) {
-      return null;
-    }
-
-    return animationLookup.get(selectedUserAnimationId) ?? null;
-  }, [animationLookup, selectedUserAnimationId]);
+  const {
+    animationScenarioOptions,
+    selectedAnimationOption,
+    selectedUserAnimation,
+    selectedUserAnimationId,
+    selectedToolkitAnimId,
+    designerPreviewConfig,
+    userAnimationIdToScenarioId,
+    scenarioIdToUserAnimationId,
+  } = useAnimationScenarios({
+    animationLookup,
+    animationScenario,
+    customScenarioAnimationId,
+    designerConfig,
+  });
 
   const usingDesignerAnimation =
     selectedUserAnimation?.id === ANIMATION_TOOLKIT_SLOT_ID && Boolean(designerConfig);
-  const selectedToolkitAnimId = usingDesignerAnimation
-    ? null
-    : selectedUserAnimation?.toolkitAnimId ?? null;
-  const designerPreviewConfig =
-    selectedUserAnimation?.id === ANIMATION_TOOLKIT_SLOT_ID ? designerConfig : null;
 
   useEffect(() => {
     if (!customScenarioAnimationId) {
