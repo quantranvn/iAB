@@ -42,6 +42,10 @@ import { buildFallbackProfile, normalizeUserProfile } from "./utils/profileHelpe
 import { BASE_ANIMATION_SCENARIOS, CUSTOM_ANIMATION_SCENARIO_ID } from "./utils/animationConstants";
 import { computeUserAnimations } from "./utils/userAnimations";
 import { getButtonGradientStyle } from "./utils/colorGradients";
+import {
+  convertDesignerConfigToCommand,
+  type DesignerCommandResult,
+} from "./utils/designerCommands";
 
 const BASIC_LIGHT_TYPES = {
   lowBeam: 1,
@@ -120,6 +124,8 @@ const [userAnimationOptions, setUserAnimationOptions] = useState<StoreAnimation[
 );
 const [animationCatalog, setAnimationCatalog] = useState<StoreAnimation[]>([]);
 const [designerConfig, setDesignerConfig] = useState<DesignerConfig | null>(null);
+const [designerCommand, setDesignerCommand] = useState<DesignerCommandResult | null>(null);
+const [designerCommandLoading, setDesignerCommandLoading] = useState(false);
 
   // Send AT command when settings change
   const isBluetoothConnected = connectionTransport !== null;
@@ -362,6 +368,29 @@ const [designerConfig, setDesignerConfig] = useState<DesignerConfig | null>(null
     toast.success(`Selected ${animation.name}`);
   };
 
+  const prepareDesignerCommand = useCallback(async (config: DesignerConfig) => {
+    setDesignerCommandLoading(true);
+    setDesignerCommand(null);
+
+    try {
+      const conversion = await convertDesignerConfigToCommand(config);
+      setDesignerCommand(conversion);
+
+      toast.success("Design converted for your scooter", {
+        description:
+          conversion.note ??
+          (conversion.source === "cloud"
+            ? "Converted with Firebase Cloud."
+            : "Using the built-in police animation as a fallback."),
+      });
+    } catch (error) {
+      const description = error instanceof Error ? error.message : undefined;
+      toast.error("Unable to convert designer animation", { description });
+    } finally {
+      setDesignerCommandLoading(false);
+    }
+  }, []);
+
   const handleDesignerConfigCapture = (config: DesignerConfig) => {
     setDesignerConfig(config);
     setCustomScenarioAnimationId(ANIMATION_TOOLKIT_SLOT_ID);
@@ -379,6 +408,8 @@ const [designerConfig, setDesignerConfig] = useState<DesignerConfig | null>(null
       void persistCustomScenarioSelection(updatedProfile);
       return updatedProfile;
     });
+
+    void prepareDesignerCommand(config);
   };
 
   const {
@@ -482,6 +513,51 @@ const [designerConfig, setDesignerConfig] = useState<DesignerConfig | null>(null
   };
 
   const sendAnimationCommand = async (scenario: number, settings: LightSettings) => {
+    if (usingDesignerAnimation) {
+      if (designerCommandLoading) {
+        toast.info("Preparing your designer command. Please try again in a moment.");
+        return;
+      }
+
+      if (!designerCommand?.bytes?.length) {
+        toast.error("Designer command not ready", {
+          description: "Tap \"Use this design\" again to refresh the scooter payload.",
+        });
+        return;
+      }
+
+      const command = new Uint8Array(designerCommand.bytes);
+      const hexString =
+        designerCommand.hexString?.length
+          ? designerCommand.hexString
+          : BluetoothCommandGenerator.commandToHexString(command);
+      const description =
+        designerCommand.note ?? "Animation toolkit command ready for scooter playback.";
+
+      setCommandHistory((prev) =>
+        [
+          {
+            timestamp: new Date(),
+            type: "animation",
+            hexString,
+            bytes: Array.from(command),
+            description,
+          },
+          ...prev,
+        ].slice(0, 50),
+      );
+
+      if (isBluetoothConnected) {
+        try {
+          await BluetoothCommandGenerator.sendCommand(connectionTransport, command);
+        } catch (error) {
+          console.error("Failed to send designer animation command:", error);
+        }
+      }
+
+      return;
+    }
+
     const command = BluetoothCommandGenerator.generateAnimationCommand(scenario, settings);
     const hexString = BluetoothCommandGenerator.commandToHexString(command);
     const intensityLevel = Math.round(settings.intensity / 5);
