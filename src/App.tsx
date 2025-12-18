@@ -434,6 +434,8 @@ const [designerCommandLoading, setDesignerCommandLoading] = useState(false);
             conversion.note ??
             (conversion.source === "cloud"
               ? "Converted with Firebase Cloud."
+              : conversion.source === "local"
+                ? "Converted locally for the police animation."
               : "Using the built-in police animation as a fallback."),
         });
 
