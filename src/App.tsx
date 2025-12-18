@@ -368,28 +368,87 @@ const [designerCommandLoading, setDesignerCommandLoading] = useState(false);
     toast.success(`Selected ${animation.name}`);
   };
 
-  const prepareDesignerCommand = useCallback(async (config: DesignerConfig) => {
-    setDesignerCommandLoading(true);
-    setDesignerCommand(null);
+  const sendDesignerCommandToScooter = useCallback(
+    async (conversion: DesignerCommandResult) => {
+      if (!conversion?.bytes?.length) {
+        toast.error("Designer command not ready", {
+          description: "Tap \"Use this design\" again to refresh the scooter payload.",
+        });
+        return;
+      }
 
-    try {
-      const conversion = await convertDesignerConfigToCommand(config);
-      setDesignerCommand(conversion);
+      const command = new Uint8Array(conversion.bytes);
+      const hexString =
+        conversion.hexString?.length > 0
+          ? conversion.hexString
+          : BluetoothCommandGenerator.commandToHexString(command);
+      const description =
+        conversion.note ?? "Animation toolkit command ready for scooter playback.";
 
-      toast.success("Design converted for your scooter", {
-        description:
-          conversion.note ??
-          (conversion.source === "cloud"
-            ? "Converted with Firebase Cloud."
-            : "Using the built-in police animation as a fallback."),
-      });
-    } catch (error) {
-      const description = error instanceof Error ? error.message : undefined;
-      toast.error("Unable to convert designer animation", { description });
-    } finally {
-      setDesignerCommandLoading(false);
-    }
-  }, []);
+      setCommandHistory((prev) =>
+        [
+          {
+            timestamp: new Date(),
+            type: "animation",
+            hexString,
+            bytes: Array.from(command),
+            description,
+          },
+          ...prev,
+        ].slice(0, 50),
+      );
+
+      if (isBluetoothConnected && connectionTransport) {
+        try {
+          await BluetoothCommandGenerator.sendCommand(connectionTransport, command);
+          toast.success("Designer animation sent to your scooter.");
+        } catch (error) {
+          console.error("Failed to send designer animation command:", error);
+          toast.error("Unable to send designer animation to scooter.");
+        }
+      } else {
+        toast.info("Designer command is ready. Connect via Bluetooth to send.");
+      }
+    },
+    [connectionTransport, isBluetoothConnected],
+  );
+
+  const prepareDesignerCommand = useCallback(
+    async (config: DesignerConfig, options?: { autoSendOnReady?: boolean }) => {
+      setDesignerCommandLoading(true);
+      setDesignerCommand(null);
+
+      try {
+        toast.info("Uploading design to Firebase", {
+          description: "Your JSON will be converted and pushed to the scooter automatically.",
+        });
+
+        const conversion = await convertDesignerConfigToCommand(config, {
+          userId: activeUserId,
+          preferFirebase: true,
+        });
+        setDesignerCommand(conversion);
+
+        toast.success("Design converted for your scooter", {
+          description:
+            conversion.note ??
+            (conversion.source === "cloud"
+              ? "Converted with Firebase Cloud."
+              : "Using the built-in police animation as a fallback."),
+        });
+
+        if (options?.autoSendOnReady) {
+          await sendDesignerCommandToScooter(conversion);
+        }
+      } catch (error) {
+        const description = error instanceof Error ? error.message : undefined;
+        toast.error("Unable to convert designer animation", { description });
+      } finally {
+        setDesignerCommandLoading(false);
+      }
+    },
+    [activeUserId, sendDesignerCommandToScooter],
+  );
 
   const handleDesignerConfigCapture = (config: DesignerConfig) => {
     setDesignerConfig(config);
@@ -409,7 +468,7 @@ const [designerCommandLoading, setDesignerCommandLoading] = useState(false);
       return updatedProfile;
     });
 
-    void prepareDesignerCommand(config);
+    void prepareDesignerCommand(config, { autoSendOnReady: true });
   };
 
   const {
@@ -526,34 +585,7 @@ const [designerCommandLoading, setDesignerCommandLoading] = useState(false);
         return;
       }
 
-      const command = new Uint8Array(designerCommand.bytes);
-      const hexString =
-        designerCommand.hexString?.length
-          ? designerCommand.hexString
-          : BluetoothCommandGenerator.commandToHexString(command);
-      const description =
-        designerCommand.note ?? "Animation toolkit command ready for scooter playback.";
-
-      setCommandHistory((prev) =>
-        [
-          {
-            timestamp: new Date(),
-            type: "animation",
-            hexString,
-            bytes: Array.from(command),
-            description,
-          },
-          ...prev,
-        ].slice(0, 50),
-      );
-
-      if (isBluetoothConnected) {
-        try {
-          await BluetoothCommandGenerator.sendCommand(connectionTransport, command);
-        } catch (error) {
-          console.error("Failed to send designer animation command:", error);
-        }
-      }
+      await sendDesignerCommandToScooter(designerCommand);
 
       return;
     }

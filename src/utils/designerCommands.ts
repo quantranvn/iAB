@@ -1,3 +1,4 @@
+import { convertDesignerConfigViaFirebase } from "./firebase";
 import type { DesignerConfig } from "../types/designer";
 
 export type DesignerCommandSource = "cloud" | "sample";
@@ -7,6 +8,12 @@ export interface DesignerCommandResult {
   hexString: string;
   source: DesignerCommandSource;
   note?: string;
+}
+
+export interface DesignerConversionOptions {
+  userId?: string | null;
+  preferFirebase?: boolean;
+  timeoutMs?: number;
 }
 
 const SAMPLE_DESIGNER_JSON: DesignerConfig = {
@@ -144,7 +151,28 @@ const buildSampleResult = (note?: string): DesignerCommandResult => ({
 
 export const convertDesignerConfigToCommand = async (
   config: DesignerConfig,
+  options?: DesignerConversionOptions,
 ): Promise<DesignerCommandResult> => {
+  const preferFirebase = options?.preferFirebase ?? true;
+
+  if (preferFirebase) {
+    const firebaseResult = await convertDesignerConfigViaFirebase(config, {
+      userId: options?.userId ?? null,
+      timeoutMs: options?.timeoutMs,
+    });
+
+    if (firebaseResult) {
+      return {
+        bytes: firebaseResult.bytes,
+        hexString: firebaseResult.hexString,
+        note:
+          firebaseResult.note ??
+          "Animation toolkit JSON converted through Firebase and ready for your scooter.",
+        source: "cloud",
+      };
+    }
+  }
+
   const endpoint =
     import.meta.env.VITE_ANIMATION_CONVERTER_URL ??
     import.meta.env.VITE_FIREBASE_ANIMATION_CONVERTER_URL ??

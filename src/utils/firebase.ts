@@ -1,3 +1,4 @@
+import type { DesignerConfig } from "../types/designer";
 import type { UserProfile } from "../types/userProfile";
 
 export interface StoreAnimation {
@@ -18,18 +19,29 @@ type FirebaseCompat = {
 
 type FirestoreCompat = {
   collection: (name: string) => {
-    doc: (id: string) => FirestoreDoc;
+    doc: (id?: string) => FirestoreDoc;
     get: () => Promise<FirestoreCollectionSnapshot>;
   };
 };
 
 type FirestoreDoc = {
+  id?: string;
   get: () => Promise<{ exists: boolean; data: () => unknown }>;
   set: (data: unknown, options?: { merge?: boolean }) => Promise<void>;
+  onSnapshot: (
+    onNext: (snapshot: FirestoreDocSnapshot) => void,
+    onError?: (error: unknown) => void,
+  ) => () => void;
 };
 
 type FirestoreCollectionSnapshot = {
   docs: { id: string; data: () => unknown }[];
+};
+
+type FirestoreDocSnapshot = {
+  id?: string;
+  exists: boolean;
+  data: () => unknown;
 };
 
 type FirestoreFieldValue = {
@@ -54,6 +66,36 @@ const firebaseConfig = {
 const firebaseConfigValid = Object.values(firebaseConfig).every((value) => Boolean(value));
 const ACTIVE_USER_STORAGE_KEY = "iab-active-user-id";
 const firebaseCompatVersion = "10.12.4";
+const DEFAULT_CONVERSION_COLLECTION = "animationConversions";
+const DEFAULT_CONVERSION_TIMEOUT_MS = 15000;
+
+const toHexString = (bytes: number[]): string =>
+  bytes
+    .map((byte) => byte.toString(16).padStart(2, "0").toUpperCase())
+    .join(" ");
+
+const sanitizeBytes = (input: unknown): number[] => {
+  if (!Array.isArray(input)) {
+    return [];
+  }
+
+  return input
+    .map((value) => {
+      const numeric = typeof value === "number" ? value : Number.parseInt(String(value), 10);
+
+      if (Number.isNaN(numeric)) {
+        return null;
+      }
+
+      return Math.max(0, Math.min(255, numeric));
+    })
+    .filter((value): value is number => value !== null);
+};
+
+const createConversionRequestId = () =>
+  (typeof crypto !== "undefined" && crypto.randomUUID
+    ? crypto.randomUUID()
+    : `conversion-${Date.now().toString(16)}-${Math.random().toString(16).slice(2)}`);
 
 let firebaseNamespace: FirebaseNamespace | null = null;
 let firestoreInstance: FirestoreCompat | null = null;
@@ -206,6 +248,147 @@ export const getActiveUserId = () =>
   readStoredActiveUserId() ?? import.meta.env.VITE_FIREBASE_USER_ID ?? "rider-001";
 
 export const getFirestoreInstance = () => firestoreInstance;
+
+type ConversionPayload = Record<string, unknown> | undefined;
+
+const getConversionCollectionName = () =>
+  import.meta.env.VITE_FIREBASE_ANIMATION_CONVERTER_COLLECTION ??
+  import.meta.env.VITE_FIREBASE_CONVERSION_COLLECTION ??
+  DEFAULT_CONVERSION_COLLECTION;
+
+const getConversionNote = (payload: ConversionPayload) => {
+  const payloadNote = payload?.message ?? payload?.note ?? payload?.statusMessage;
+  return typeof payloadNote === "string" && payloadNote.trim().length > 0 ? payloadNote : undefined;
+};
+
+const extractConversionBytes = (payload: ConversionPayload) =>
+  sanitizeBytes(
+    payload?.bytes ??
+      payload?.command ??
+      payload?.commandBytes ??
+      (payload?.result as ConversionPayload)?.bytes ??
+      (payload?.result as ConversionPayload)?.commandBytes ??
+      (payload?.payload as ConversionPayload)?.bytes ??
+      (payload?.payload as ConversionPayload)?.commandBytes ??
+      [],
+  );
+
+const extractHexString = (payload: ConversionPayload, fallback: number[]) => {
+  const hexCandidate =
+    payload?.hexString ??
+    (payload?.result as ConversionPayload)?.hexString ??
+    (payload?.payload as ConversionPayload)?.hexString;
+
+  if (typeof hexCandidate === "string" && hexCandidate.trim().length > 0) {
+    return hexCandidate;
+  }
+
+  return toHexString(fallback);
+};
+
+export interface FirebaseConversionResult {
+  bytes: number[];
+  hexString: string;
+  note?: string;
+  requestId: string;
+}
+
+export interface FirebaseConversionOptions {
+  timeoutMs?: number;
+  collectionName?: string;
+  userId?: string | null;
+}
+
+export const convertDesignerConfigViaFirebase = async (
+  config: DesignerConfig,
+  options?: FirebaseConversionOptions,
+): Promise<FirebaseConversionResult | null> => {
+  const context = await ensureFirebase();
+  if (!context) {
+    return null;
+  }
+
+  const { firestore } = context;
+  const collectionName = options?.collectionName ?? getConversionCollectionName();
+  const requestId = createConversionRequestId();
+  const now = new Date().toISOString();
+
+  const docRef = firestore.collection(collectionName).doc(requestId);
+
+  try {
+    await docRef.set({
+      id: requestId,
+      status: "pending",
+      source: "smartlight-app",
+      createdAt: now,
+      updatedAt: now,
+      userId: options?.userId ?? null,
+      payload: {
+        animation: config,
+        requestedAt: now,
+      },
+    });
+  } catch (error) {
+    console.error("Failed to submit designer config to Firebase", error);
+    return null;
+  }
+
+  const timeoutMs = options?.timeoutMs ?? DEFAULT_CONVERSION_TIMEOUT_MS;
+
+  return new Promise((resolve) => {
+    let settled = false;
+    let unsubscribe: (() => void) | null = null;
+    const finish = (result: FirebaseConversionResult | null) => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      if (unsubscribe) {
+        unsubscribe();
+      }
+      resolve(result);
+    };
+
+    unsubscribe = docRef.onSnapshot(
+      (snapshot) => {
+        const data = snapshot.data() as ConversionPayload;
+        if (!data) {
+          return;
+        }
+
+        const status = typeof data.status === "string" ? data.status.toLowerCase() : "pending";
+        const resultPayload = (data.result as ConversionPayload) ?? data.payload ?? data;
+        const bytes = extractConversionBytes(resultPayload);
+
+        if ((status === "completed" || status === "ready" || status === "done") && bytes.length > 0) {
+          const hexString = extractHexString(resultPayload, bytes);
+          finish({
+            bytes,
+            hexString,
+            note: getConversionNote(resultPayload),
+            requestId,
+          });
+          return;
+        }
+
+        if (status === "failed" || status === "error") {
+          finish(null);
+        }
+      },
+      (error) => {
+        console.error("Conversion listener failed", error);
+        finish(null);
+      },
+    );
+
+    const scheduleTimeout =
+      typeof window !== "undefined" && typeof window.setTimeout === "function"
+        ? window.setTimeout
+        : setTimeout;
+
+    scheduleTimeout(() => finish(null), timeoutMs);
+  });
+};
 
 export async function loadUserProfile(userId: string): Promise<UserProfile | null> {
   const context = await ensureFirebase();
