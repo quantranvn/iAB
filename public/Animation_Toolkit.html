@@ -1343,26 +1343,14 @@
     // Default configs so it does something
     addConfig({
       start: 0,
-      length: 4,
-      animId: "rainbow",
+      length: 16,
+      animId: "police",
       props: { direction: "left", mirror: false, phaseMs: 0, speed: 1 }
     });
-    addConfig({
-      start: 4,
-      length: 4,
-      animId: "water",
-      props: { direction: "right", mirror: true, phaseMs: 0, speed: 1.2 }
-    });
-    addConfig({
-      start: 8,
-      length: 8,
-      animId: "twinkle",
-      props: { direction: "left", mirror: false, phaseMs: 300, color: "#ffffff", speed: 1 }
-    });
-
     requestAnimationFrame(loop);
   </script>
 </body>
 </html>
+
 
 
