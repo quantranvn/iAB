@@ -116,7 +116,7 @@ const convertPoliceAnimationLocally = (config: DesignerConfig): DesignerCommandR
 
 const SAMPLE_DESIGNER_JSON: DesignerConfig = {
   ledCount: 16,
-  globalBrightness: 0.9,
+  globalBrightness: 1,
   globalSpeed: 1,
   configs: [
     {
