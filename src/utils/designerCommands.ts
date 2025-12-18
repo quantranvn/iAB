@@ -71,7 +71,10 @@ const convertPoliceAnimationLocally = (config: DesignerConfig): DesignerCommandR
   const redLength = clampByte(requestedLength, 1, ledCount - redStart);
   const redEndIndex = redStart + redLength - 1;
 
-  const brightnessScale = clampNumber(config.globalBrightness, 0, 1, 1);
+  const clampedBrightness = clampNumber(config.globalBrightness, 0, 1, 1);
+  const brightnessHex = clampByte(Math.round(clampedBrightness * 20), 0, 0x14); 
+  const brightnessScale = brightnessHex / 0x14;
+  
   const rawSpeed =
     typeof policeEntry.props?.speed === "number" ? policeEntry.props.speed : config.globalSpeed;
   const normalizedSpeed = clampNumber(rawSpeed, 0.1, 10, 1);
