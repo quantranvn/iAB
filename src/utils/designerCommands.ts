@@ -66,8 +66,8 @@ const convertPoliceAnimationLocally = (config: DesignerConfig): DesignerCommandR
     return null;
   }
 
-  const redStart = clampByte(policeEntry.start ?? 0, 0, ledCount - 1);
-  const requestedLength = clampByte(policeEntry.length ?? ledCount, 1, ledCount);
+  const redStart = clampByte(3, 0, ledCount - 1);
+  const requestedLength = Math.floor(ledCount / 2);
   const redLength = clampByte(requestedLength, 1, ledCount - redStart);
   const redEndIndex = redStart + redLength - 1;
 
@@ -121,7 +121,7 @@ const SAMPLE_DESIGNER_JSON: DesignerConfig = {
   configs: [
     {
       start: 0,
-      length: 8,
+      length: 16,
       animId: "police",
       props: {
         direction: "left",
