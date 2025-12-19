@@ -333,19 +333,14 @@ const [designerCommandLoading, setDesignerCommandLoading] = useState(false);
 
     if (scenarioId) {
       setAnimationScenario(scenarioId);
-
-      const option = animationScenarioOptions.find((candidate) => candidate.id === scenarioId);
-      if (option) {
-        toast.success(`Selected ${option.name}`);
-      } else {
-        toast.success("Animation selected");
-      }
       return;
     }
 
     const animation = animationLookup.get(animationId);
     if (!animation) {
-      toast.error("Animation is not available yet. Sync your profile to refresh the list.");
+      console.warn("Animation is not available yet. Sync your profile to refresh the list.", {
+        animationId,
+      });
       return;
     }
 
@@ -364,8 +359,6 @@ const [designerCommandLoading, setDesignerCommandLoading] = useState(false);
       void persistCustomScenarioSelection(updatedProfile);
       return updatedProfile;
     });
-
-    toast.success(`Selected ${animation.name}`);
   };
 
   const sendDesignerCommandToScooter = useCallback(
@@ -419,28 +412,13 @@ const [designerCommandLoading, setDesignerCommandLoading] = useState(false);
       setDesignerCommand(null);
 
       try {
-        toast.info("Uploading design to Firebase", {
-          description: "Your JSON will be converted into a scooter-ready command.",
-        });
-
         const conversion = await convertDesignerConfigToCommand(config, {
           userId: activeUserId,
           preferFirebase: true,
         });
         setDesignerCommand(conversion);
-
-        toast.success("Design converted for your scooter", {
-          description:
-            conversion.note ??
-            (conversion.source === "cloud"
-              ? "Converted with Firebase Cloud."
-              : conversion.source === "local"
-                ? "Converted locally for the police animation."
-              : "Using the built-in police animation as a fallback."),
-        });
       } catch (error) {
-        const description = error instanceof Error ? error.message : undefined;
-        toast.error("Unable to convert designer animation", { description });
+        console.error("Unable to convert designer animation", error);
       } finally {
         setDesignerCommandLoading(false);
       }

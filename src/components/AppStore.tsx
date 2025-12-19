@@ -20,7 +20,6 @@ import { ScrollArea } from "./ui/scroll-area";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
-import { toast } from "sonner@2.0.3";
 import {
   fetchStoreAnimations,
   initializeFirebaseIfReady,
@@ -30,6 +29,11 @@ import {
 } from "../utils/firebase";
 import { FALLBACK_USER_PROFILE } from "../types/userProfile";
 import type { DesignerConfig } from "../types/designer";
+
+type LibraryMessage = {
+  type: "info" | "error" | "success";
+  text: string;
+};
 
 export const ANIMATION_TOOLKIT_SLOT_ID = "animation-toolkit-slot";
 
@@ -119,6 +123,7 @@ export function AppStoreDialogContent({
   const [activeTabState, setActiveTabState] = useState<AnimationLibraryTab>(initialTab);
   const [loading, setLoading] = useState(firebaseConfigured);
   const [usingFallbackData, setUsingFallbackData] = useState(!firebaseConfigured);
+  const [libraryMessage, setLibraryMessage] = useState<LibraryMessage | null>(null);
 
   useEffect(() => {
     setActiveTabState(initialTab);
@@ -127,6 +132,10 @@ export function AppStoreDialogContent({
   useEffect(() => {
     onTabChange?.(activeTabState);
   }, [activeTabState, onTabChange]);
+
+  useEffect(() => {
+    setLibraryMessage(null);
+  }, [activeTabState]);
 
   useEffect(() => {
     let isMounted = true;
@@ -155,6 +164,7 @@ export function AppStoreDialogContent({
       }
 
       setLoading(true);
+      setLibraryMessage(null);
       const ready = await initializeFirebaseIfReady();
 
       if (!isMounted) {
@@ -222,7 +232,12 @@ export function AppStoreDialogContent({
         setUsingFallbackData(animations.length === 0);
       } catch (error) {
         console.error("Failed to load app store data", error);
-        toast.error("Unable to load animations from the cloud. Showing sample content.");
+        if (isMounted) {
+          setLibraryMessage({
+            type: "error",
+            text: "Unable to load animations from the cloud. Showing sample content.",
+          });
+        }
         applyFallback();
       } finally {
         if (isMounted) {
@@ -239,7 +254,8 @@ export function AppStoreDialogContent({
   }, [activeUserId, firebaseConfigured, fallbackTokenBalance]);
 
   const defaultGradient = "from-purple-500 via-sky-500 to-indigo-500";
-  const libraryAnimations = useMemo(() => ownedAnimations, [ownedAnimations]);    const seen = new Set<string>();
+  const libraryAnimations = useMemo(() => ownedAnimations, [ownedAnimations]);
+  const seen = new Set<string>();
   const catalogAnimations = useMemo(() => availableAnimations, [availableAnimations]);
   const ownedAnimationIds = useMemo(
     () => new Set(libraryAnimations.map((animation) => animation.id)),
@@ -252,7 +268,10 @@ export function AppStoreDialogContent({
       | null;
 
     if (!iframe?.contentWindow) {
-      toast.error("Designer iframe is not available yet.");
+      setLibraryMessage({
+        type: "error",
+        text: "Designer iframe is not available yet.",
+      });
       return;
     }
 
@@ -269,25 +288,30 @@ export function AppStoreDialogContent({
         throw new Error("Designer did not return a valid configuration.");
       }
 
+      setLibraryMessage(null);
       onDesignerConfigCapture?.(config);
       onAnimationSelect?.(ANIMATION_TOOLKIT_SLOT_ID);
       setActiveTabState("owned");
-      toast.success("Imported design from the animation toolkit.");
       onClose?.();
     } catch (error) {
       console.error(error);
-      toast.error("Unable to read the current design from the toolkit.");
+      setLibraryMessage({
+        type: "error",
+        text: "Unable to read the current design from the toolkit.",
+      });
     }
   };
 
   const handlePlayAnimation = (animation: StoreAnimation) => {
     onAnimationSelect?.(animation.id);
-    toast.success(`Queued ${animation.name} for playback`);
     onClose?.();
   };
 
   const handlePreviewAnimation = (animation: StoreAnimation) => {
-    toast.info(`Preview "${animation.name}" coming soon.`);
+    setLibraryMessage({
+      type: "info",
+      text: `Preview "${animation.name}" coming soon.`,
+    });
   };
 
   const handlePurchaseAnimation = (animation: StoreAnimation) => {
@@ -295,16 +319,20 @@ export function AppStoreDialogContent({
     const alreadyOwned = ownedAnimationIds.has(animation.id);
 
     if (alreadyOwned) {
-      toast.info(`You already own ${animation.name}.`);
+      setLibraryMessage({
+        type: "info",
+        text: `${animation.name} is already in your library.`,
+      });
       setActiveTabState("owned");
       return;
     }
 
     if (price > tokenBalance) {
       const difference = price - tokenBalance;
-      toast.error(
-        `Not enough tokens to purchase ${animation.name}. You need ${difference.toLocaleString()} more.`,
-      );
+      setLibraryMessage({
+        type: "error",
+        text: `Not enough tokens to purchase ${animation.name}. You need ${difference.toLocaleString()} more.`,
+      });
       return;
     }
 
@@ -317,9 +345,9 @@ export function AppStoreDialogContent({
       return [...previous, animation];
     });
 
-    toast.success(`${animation.name} added to your library!`, {
-      description:
-        price > 0 ? `Spent ${price.toLocaleString()} scooter tokens.` : undefined,
+    setLibraryMessage({
+      type: "success",
+      text: `${animation.name} added to your library${price > 0 ? ` (spent ${price.toLocaleString()} tokens).` : "."}`,
     });
 
     onAnimationSelect?.(animation.id);
@@ -342,6 +370,20 @@ export function AppStoreDialogContent({
           </p>
         )}
       </DialogHeader>
+
+      {libraryMessage && (
+        <div
+          className={`rounded-md border px-3 py-2 text-sm transition-colors ${
+            libraryMessage.type === "error"
+              ? "border-destructive/40 bg-destructive/10 text-destructive"
+              : libraryMessage.type === "success"
+                ? "border-emerald-400/60 bg-emerald-50 text-emerald-800 dark:border-emerald-500/50 dark:bg-emerald-500/10 dark:text-emerald-200"
+                : "border-border bg-muted/60 text-foreground"
+          }`}
+        >
+          {libraryMessage.text}
+        </div>
+      )}
 
       <Tabs
         value={activeTabState}
