@@ -25,7 +25,6 @@ const clampNumber = (value: unknown, min: number, max: number, fallback: number)
   if (typeof value !== "number" || Number.isNaN(value)) {
     return fallback;
   }
-
   return Math.max(min, Math.min(max, value));
 };
 
@@ -33,7 +32,6 @@ const clampByte = (value: unknown, min = 0, max = 255): number => {
   if (typeof value !== "number" || Number.isNaN(value)) {
     return min;
   }
-
   return Math.max(min, Math.min(max, Math.round(value)));
 };
 
@@ -55,6 +53,26 @@ const sanitizeBytes = (input: unknown): number[] => {
     .filter((value): value is number => value !== null);
 };
 
+// ✅ NEW: parse "#RRGGBB" (or "#RGB") into [r,g,b]
+const hexColorToRgb = (value: unknown, fallback: [number, number, number]): [number, number, number] => {
+  if (typeof value !== "string") return fallback;
+
+  let hex = value.trim();
+  if (hex.startsWith("#")) hex = hex.slice(1);
+
+  if (hex.length === 3) {
+    hex = `${hex[0]}${hex[0]}${hex[1]}${hex[1]}${hex[2]}${hex[2]}`;
+  }
+  if (hex.length !== 6) return fallback;
+
+  const r = Number.parseInt(hex.slice(0, 2), 16);
+  const g = Number.parseInt(hex.slice(2, 4), 16);
+  const b = Number.parseInt(hex.slice(4, 6), 16);
+
+  if ([r, g, b].some((v) => Number.isNaN(v))) return fallback;
+  return [r, g, b];
+};
+
 const convertPoliceAnimationLocally = (config: DesignerConfig): DesignerCommandResult | null => {
   const policeEntry = config.configs.find((entry) => entry.animId?.toLowerCase() === "police");
   if (!policeEntry) {
@@ -66,65 +84,75 @@ const convertPoliceAnimationLocally = (config: DesignerConfig): DesignerCommandR
     return null;
   }
 
-  // Red block always starts at LED 3 (clamped if ledCount < 4)
-  const redStart = clampByte(3, 0, ledCount - 1);
-  const requestedLength = Math.floor(ledCount / 2);
-  const redLength = clampByte(requestedLength, 1, ledCount - redStart);
-  const redEndIndex = redStart + redLength - 1;
-
   // ✅ Brightness in your protocol is INTENSITY (4th byte), not RGB scaling.
   // Map globalBrightness 0..1 -> 0x00..0x14 (5% steps).
   const clampedBrightness = clampNumber(config.globalBrightness, 0, 1, 1);
   const intensity = clampByte(Math.round(clampedBrightness * 20), 0, 0x14);
 
   // Speed -> repeat count (each repeat = 20ms)
-  const LOOP_MS = 20;
   const BASE_REPEATS_AT_SPEED_1 = 10; // => 200ms at speed=1 (matches 0x0A sample)
-  
-  const perConfigSpeed =
-    typeof policeEntry.props?.speed === "number" ? policeEntry.props.speed : 1;
-  
-  const global =
-    typeof config.globalSpeed === "number" ? config.globalSpeed : 1;
-  
+  const perConfigSpeed = typeof policeEntry.props?.speed === "number" ? policeEntry.props.speed : 1;
+  const global = typeof config.globalSpeed === "number" ? config.globalSpeed : 1;
+
   const effectiveSpeed = perConfigSpeed * global; // ✅ toolkit behavior
   const normalizedSpeed = clampNumber(effectiveSpeed, 0.1, 10, 1);
-  
+
   // faster speed => smaller repeat count
   const loopCount = clampByte(Math.max(1, Math.round(BASE_REPEATS_AT_SPEED_1 / normalizedSpeed)));
 
+  // ✅ NEW: read left/right colors from designer props (fallback to red/blue)
+  const leftColor: [number, number, number] = hexColorToRgb(
+    (policeEntry.props as any)?.leftColor,
+    [0xff, 0x00, 0x00],
+  );
+  const rightColor: [number, number, number] = hexColorToRgb(
+    (policeEntry.props as any)?.rightColor,
+    [0x00, 0x00, 0xff],
+  );
 
-  // ✅ Keep pure RGB colors; intensity controls brightness
-  const redColor: [number, number, number] = [0xFF, 0x00, 0x00];
-  const blueColor: [number, number, number] = [0x00, 0x00, 0xFF];
+  // ✅ FIXED mapping requested:
+  // Left 8 LEDs from index 3: [3..10]
+  const leftStart = clampByte(3, 0, ledCount - 1);
+  const leftLength = clampByte(8, 0, Math.max(0, ledCount - leftStart));
+
+  // Right 8 LEDs split:
+  // 3 from index 0: [0..2]
+  const rightAStart = 0;
+  const rightALength = clampByte(3, 0, ledCount);
+
+  // 5 from index 11: [11..15]
+  const rightBStart = clampByte(11, 0, ledCount - 1);
+  const rightBLength = clampByte(5, 0, Math.max(0, ledCount - rightBStart));
 
   // 01 00 = infinite loop start, 01 <loopCount> = cycle start
   const bytes: number[] = [0x01, 0x00, 0x01, loopCount];
 
   const appendSegment = (start: number, length: number, [r, g, b]: [number, number, number]) => {
-    if (length <= 0) return;
+    const safeStart = clampByte(start, 0, ledCount - 1);
+    const safeLength = clampByte(length, 0, ledCount - safeStart);
+    if (safeLength <= 0) return;
 
     // 0x37 (55) mask, then start index, then length
-    bytes.push(0x37, clampByte(start), clampByte(length));
+    bytes.push(0x37, safeStart, safeLength);
 
     // Per LED tuple: R G B INTENSITY (0x00..0x14)
-    for (let index = 0; index < length; index += 1) {
-      bytes.push(r, g, b, intensity);
+    for (let index = 0; index < safeLength; index += 1) {
+      bytes.push(clampByte(r), clampByte(g), clampByte(b), intensity);
     }
   };
 
-  // RED segment
-  appendSegment(redStart, redLength, redColor);
+  // -----------------------------
+  // Cycle A: LEFT ON (index 3..10)
+  // -----------------------------
+  appendSegment(leftStart, leftLength, leftColor);
   bytes.push(0x03); // end cycle
 
-  // BLUE segments (LEDs outside the red block)
-  const firstBlueLength = redStart;
-  const secondBlueLength = Math.max(0, ledCount - (redEndIndex + 1));
-
-  // Start next cycle
-  bytes.push(0x01, loopCount);
-  appendSegment(0, firstBlueLength, blueColor);
-  appendSegment(redEndIndex + 1, secondBlueLength, blueColor);
+  // -----------------------------
+  // Cycle B: RIGHT ON (index 0..2 and 11..15)
+  // -----------------------------
+  bytes.push(0x01, loopCount); // start next cycle
+  appendSegment(rightAStart, rightALength, rightColor);
+  appendSegment(rightBStart, rightBLength, rightColor);
 
   // End cycle + end infinite loop
   bytes.push(0x03, 0x03);
@@ -133,10 +161,10 @@ const convertPoliceAnimationLocally = (config: DesignerConfig): DesignerCommandR
     bytes,
     hexString: toHexString(bytes),
     source: "local",
-    note: `Converted locally using the built-in police animation mapper. intensity=0x${intensity
+    note: `Converted locally using police mapper. intensity=0x${intensity
       .toString(16)
       .toUpperCase()
-      .padStart(2, "0")} loop=${loopCount}`,
+      .padStart(2, "0")} loop=${loopCount} left=${(policeEntry.props as any)?.leftColor ?? "#ff0000"} right=${(policeEntry.props as any)?.rightColor ?? "#0000ff"}`,
   };
 };
 
@@ -154,6 +182,8 @@ const SAMPLE_DESIGNER_JSON: DesignerConfig = {
         mirror: false,
         phaseMs: 0,
         speed: 1,
+        leftColor: "#FF0000",
+        rightColor: "#0000FF",
       },
     },
   ],
