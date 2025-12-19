@@ -66,54 +66,66 @@ const convertPoliceAnimationLocally = (config: DesignerConfig): DesignerCommandR
     return null;
   }
 
+  // Red block always starts at LED 3 (clamped if ledCount < 4)
   const redStart = clampByte(3, 0, ledCount - 1);
   const requestedLength = Math.floor(ledCount / 2);
   const redLength = clampByte(requestedLength, 1, ledCount - redStart);
   const redEndIndex = redStart + redLength - 1;
 
+  // ✅ Brightness in your protocol is INTENSITY (4th byte), not RGB scaling.
+  // Map globalBrightness 0..1 -> 0x00..0x14 (5% steps).
   const clampedBrightness = clampNumber(config.globalBrightness, 0, 1, 1);
-  const brightnessHex = clampByte(Math.round(clampedBrightness * 20), 0, 0x14); 
-  const brightnessScale = brightnessHex / 0x14;
-  
+  const intensity = clampByte(Math.round(clampedBrightness * 20), 0, 0x14);
+
+  // Speed -> loopCount (kept as your original behavior)
   const rawSpeed =
     typeof policeEntry.props?.speed === "number" ? policeEntry.props.speed : config.globalSpeed;
   const normalizedSpeed = clampNumber(rawSpeed, 0.1, 10, 1);
   const loopCount = clampByte(Math.max(1, Math.round(10 * normalizedSpeed)));
-  const frameDuration = clampByte(Math.max(10, Math.round(50 / normalizedSpeed)));
 
-  const scaleColor = (value: number) => clampByte(value * brightnessScale);
-  const redColor: [number, number, number] = [scaleColor(255), 0, 0];
-  const blueColor: [number, number, number] = [0, 0, scaleColor(255)];
+  // ✅ Keep pure RGB colors; intensity controls brightness
+  const redColor: [number, number, number] = [0xFF, 0x00, 0x00];
+  const blueColor: [number, number, number] = [0x00, 0x00, 0xFF];
 
+  // 01 00 = infinite loop start, 01 <loopCount> = cycle start
   const bytes: number[] = [0x01, 0x00, 0x01, loopCount];
 
   const appendSegment = (start: number, length: number, [r, g, b]: [number, number, number]) => {
-    if (length <= 0) {
-      return;
-    }
+    if (length <= 0) return;
 
+    // 0x37 (55) mask, then start index, then length
     bytes.push(0x37, clampByte(start), clampByte(length));
+
+    // Per LED tuple: R G B INTENSITY (0x00..0x14)
     for (let index = 0; index < length; index += 1) {
-      bytes.push(r, g, b, frameDuration);
+      bytes.push(r, g, b, intensity);
     }
   };
 
+  // RED segment
   appendSegment(redStart, redLength, redColor);
-  bytes.push(0x03);
+  bytes.push(0x03); // end cycle
 
+  // BLUE segments (LEDs outside the red block)
   const firstBlueLength = redStart;
   const secondBlueLength = Math.max(0, ledCount - (redEndIndex + 1));
 
+  // Start next cycle
   bytes.push(0x01, loopCount);
   appendSegment(0, firstBlueLength, blueColor);
   appendSegment(redEndIndex + 1, secondBlueLength, blueColor);
+
+  // End cycle + end infinite loop
   bytes.push(0x03, 0x03);
 
   return {
     bytes,
     hexString: toHexString(bytes),
     source: "local",
-    note: "Converted locally using the built-in police animation mapper.",
+    note: `Converted locally using the built-in police animation mapper. intensity=0x${intensity
+      .toString(16)
+      .toUpperCase()
+      .padStart(2, "0")} loop=${loopCount}`,
   };
 };
 
@@ -136,31 +148,33 @@ const SAMPLE_DESIGNER_JSON: DesignerConfig = {
   ],
 };
 
+// Uses local converter if available; otherwise fallback sample bytes.
+// NOTE: With globalBrightness=1, intensity becomes 0x14 (not 0x32).
 const SAMPLE_POLICE_COMMAND_BYTES =
   convertPoliceAnimationLocally(SAMPLE_DESIGNER_JSON)?.bytes ?? [
     0x01, 0x00,
     0x01, 0x0A,
     0x37, 0x03, 0x08,
-    0xFF, 0x00, 0x00, 0x32,
-    0xFF, 0x00, 0x00, 0x32,
-    0xFF, 0x00, 0x00, 0x32,
-    0xFF, 0x00, 0x00, 0x32,
-    0xFF, 0x00, 0x00, 0x32,
-    0xFF, 0x00, 0x00, 0x32,
-    0xFF, 0x00, 0x00, 0x32,
-    0xFF, 0x00, 0x00, 0x32,
+    0xFF, 0x00, 0x00, 0x14,
+    0xFF, 0x00, 0x00, 0x14,
+    0xFF, 0x00, 0x00, 0x14,
+    0xFF, 0x00, 0x00, 0x14,
+    0xFF, 0x00, 0x00, 0x14,
+    0xFF, 0x00, 0x00, 0x14,
+    0xFF, 0x00, 0x00, 0x14,
+    0xFF, 0x00, 0x00, 0x14,
     0x03,
     0x01, 0x0A,
     0x37, 0x00, 0x03,
-    0x00, 0x00, 0xFF, 0x32,
-    0x00, 0x00, 0xFF, 0x32,
-    0x00, 0x00, 0xFF, 0x32,
+    0x00, 0x00, 0xFF, 0x14,
+    0x00, 0x00, 0xFF, 0x14,
+    0x00, 0x00, 0xFF, 0x14,
     0x37, 0x0B, 0x05,
-    0x00, 0x00, 0xFF, 0x32,
-    0x00, 0x00, 0xFF, 0x32,
-    0x00, 0x00, 0xFF, 0x32,
-    0x00, 0x00, 0xFF, 0x32,
-    0x00, 0x00, 0xFF, 0x32,
+    0x00, 0x00, 0xFF, 0x14,
+    0x00, 0x00, 0xFF, 0x14,
+    0x00, 0x00, 0xFF, 0x14,
+    0x00, 0x00, 0xFF, 0x14,
+    0x00, 0x00, 0xFF, 0x14,
     0x03,
     0x03
   ];
@@ -171,7 +185,7 @@ const buildSampleResult = (note?: string): DesignerCommandResult => ({
   source: "sample",
   note:
     note ??
-    "Using the built-in police animation example (500ms red, 500ms blue) while the converter is unavailable.",
+    "Using the built-in police animation example while the converter is unavailable.",
 });
 
 export const convertDesignerConfigToCommand = async (
