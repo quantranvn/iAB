@@ -77,11 +77,22 @@ const convertPoliceAnimationLocally = (config: DesignerConfig): DesignerCommandR
   const clampedBrightness = clampNumber(config.globalBrightness, 0, 1, 1);
   const intensity = clampByte(Math.round(clampedBrightness * 20), 0, 0x14);
 
-  // Speed -> loopCount (kept as your original behavior)
-  const rawSpeed =
-    typeof policeEntry.props?.speed === "number" ? policeEntry.props.speed : config.globalSpeed;
-  const normalizedSpeed = clampNumber(rawSpeed, 0.1, 10, 1);
-  const loopCount = clampByte(Math.max(1, Math.round(10 * normalizedSpeed)));
+  // Speed -> repeat count (each repeat = 20ms)
+  const LOOP_MS = 20;
+  const BASE_REPEATS_AT_SPEED_1 = 10; // => 200ms at speed=1 (matches 0x0A sample)
+  
+  const perConfigSpeed =
+    typeof policeEntry.props?.speed === "number" ? policeEntry.props.speed : 1;
+  
+  const global =
+    typeof config.globalSpeed === "number" ? config.globalSpeed : 1;
+  
+  const effectiveSpeed = perConfigSpeed * global; // ✅ toolkit behavior
+  const normalizedSpeed = clampNumber(effectiveSpeed, 0.1, 10, 1);
+  
+  // faster speed => smaller repeat count
+  const loopCount = clampByte(Math.max(1, Math.round(BASE_REPEATS_AT_SPEED_1 / normalizedSpeed)));
+
 
   // ✅ Keep pure RGB colors; intensity controls brightness
   const redColor: [number, number, number] = [0xFF, 0x00, 0x00];
