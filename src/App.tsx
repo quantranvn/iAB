@@ -414,13 +414,13 @@ const [designerCommandLoading, setDesignerCommandLoading] = useState(false);
   );
 
   const prepareDesignerCommand = useCallback(
-    async (config: DesignerConfig, options?: { autoSendOnReady?: boolean }) => {
+    async (config: DesignerConfig) => {
       setDesignerCommandLoading(true);
       setDesignerCommand(null);
 
       try {
         toast.info("Uploading design to Firebase", {
-          description: "Your JSON will be converted and pushed to the scooter automatically.",
+          description: "Your JSON will be converted into a scooter-ready command.",
         });
 
         const conversion = await convertDesignerConfigToCommand(config, {
@@ -438,10 +438,6 @@ const [designerCommandLoading, setDesignerCommandLoading] = useState(false);
                 ? "Converted locally for the police animation."
               : "Using the built-in police animation as a fallback."),
         });
-
-        if (options?.autoSendOnReady) {
-          await sendDesignerCommandToScooter(conversion);
-        }
       } catch (error) {
         const description = error instanceof Error ? error.message : undefined;
         toast.error("Unable to convert designer animation", { description });
@@ -449,7 +445,7 @@ const [designerCommandLoading, setDesignerCommandLoading] = useState(false);
         setDesignerCommandLoading(false);
       }
     },
-    [activeUserId, sendDesignerCommandToScooter],
+    [activeUserId],
   );
 
   const handleDesignerConfigCapture = (config: DesignerConfig) => {
@@ -470,7 +466,7 @@ const [designerCommandLoading, setDesignerCommandLoading] = useState(false);
       return updatedProfile;
     });
 
-    void prepareDesignerCommand(config, { autoSendOnReady: true });
+    void prepareDesignerCommand(config);
   };
 
   const {
