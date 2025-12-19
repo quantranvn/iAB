@@ -399,9 +399,7 @@ const [designerCommandLoading, setDesignerCommandLoading] = useState(false);
           console.error("Failed to send designer animation command:", error);
           toast.error("Unable to send designer animation to scooter.");
         }
-      } else {
-        toast.info("Designer command is ready. Connect via Bluetooth to send.");
-      }
+      } 
     },
     [connectionTransport, isBluetoothConnected],
   );
