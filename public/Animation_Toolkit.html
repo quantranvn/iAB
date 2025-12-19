@@ -712,9 +712,10 @@
           };
         },
       },
+
       {
         id: "police",
-        name: "Police red/blue",
+        name: "Police (2 colors)",
         props: [
           { id: "direction", label: "Start from", type: "select", options: [
             { value: "left", label: "Left" },
@@ -722,20 +723,34 @@
           ], default: "left" },
           { id: "mirror", label: "Mirror", type: "checkbox", default: false },
           { id: "phaseMs", label: "Phase (ms)", type: "number", min: -5000, max: 5000, step: 50, default: 0 },
+      
+          // ✅ NEW: per-side colors
+          { id: "leftColor",  label: "Left color",  type: "color", default: "#ff0000" },
+          { id: "rightColor", label: "Right color", type: "color", default: "#0000ff" },
+      
           { id: "speed", label: "Speed", type: "number", min: 0.2, max: 3, step: 0.1, default: 1 }
         ],
         fn: (t, i, len, conf) => {
           const props = conf.props || {};
           const tShift = t + (props.phaseMs ?? 0);
           const localSpeed = ((props.speed ?? 1) * globalSpeed);
+      
+          const leftRgb = hexToRgb(props.leftColor || "#ff0000");
+          const rightRgb = hexToRgb(props.rightColor || "#0000ff");
+      
           const half = Math.floor(len / 2);
+      
+          // (keep your rhythm)
           const period = 1000 / localSpeed;
           const phase = (tShift % period) / period;
           const leftOn = phase < 0.5;
-          if (i < half) return leftOn ? { r: 255, g: 0, b: 0 } : { r: 0, g: 0, b: 0 };
-          return !leftOn ? { r: 0, g: 0, b: 255 } : { r: 0, g: 0, b: 0 };
+      
+          // Left half flashes first, right half flashes second
+          if (i < half) return leftOn ? leftRgb : { r: 0, g: 0, b: 0 };
+          return !leftOn ? rightRgb : { r: 0, g: 0, b: 0 };
         },
       },
+
       {
         id: "strobe",
         name: "Strobe white",
@@ -1351,6 +1366,7 @@
   </script>
 </body>
 </html>
+
 
 
 
