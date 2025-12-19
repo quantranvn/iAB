@@ -729,7 +729,7 @@
           const tShift = t + (props.phaseMs ?? 0);
           const localSpeed = ((props.speed ?? 1) * globalSpeed);
           const half = Math.floor(len / 2);
-          const period = 800 / localSpeed;
+          const period = 1000 / localSpeed;
           const phase = (tShift % period) / period;
           const leftOn = phase < 0.5;
           if (i < half) return leftOn ? { r: 255, g: 0, b: 0 } : { r: 0, g: 0, b: 0 };
@@ -1351,6 +1351,7 @@
   </script>
 </body>
 </html>
+
 
 
 
