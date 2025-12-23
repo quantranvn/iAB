@@ -42,288 +42,334 @@ const sanitizeBytes = (input: unknown): number[] => {
     .filter((value): value is number => value !== null);
 };
 
-const hexColorToRgb = (value: unknown, fallback: [number, number, number]): [number, number, number] => {
-  if (typeof value !== "string") return fallback;
-  let hex = value.trim();
-  if (hex.startsWith("#")) hex = hex.slice(1);
-  if (hex.length === 3) hex = `${hex[0]}${hex[0]}${hex[1]}${hex[1]}${hex[2]}${hex[2]}`;
-  if (hex.length !== 6) return fallback;
+type RGB = { r: number; g: number; b: number };
+const BLACK: RGB = { r: 0, g: 0, b: 0 };
 
-  const r = Number.parseInt(hex.slice(0, 2), 16);
-  const g = Number.parseInt(hex.slice(2, 4), 16);
-  const b = Number.parseInt(hex.slice(4, 6), 16);
-  if ([r, g, b].some((v) => Number.isNaN(v))) return fallback;
-  return [r, g, b];
+const hexToRgb = (hex: unknown, fallback: RGB): RGB => {
+  if (typeof hex !== "string") return fallback;
+  const raw = hex.trim().replace("#", "");
+  if (!(raw.length === 6 || raw.length === 3)) return fallback;
+
+  const expanded =
+    raw.length === 3 ? raw.split("").map((c) => c + c).join("") : raw;
+
+  const n = Number.parseInt(expanded, 16);
+  if (Number.isNaN(n)) return fallback;
+
+  return {
+    r: (n >> 16) & 0xff,
+    g: (n >> 8) & 0xff,
+    b: n & 0xff,
+  };
 };
 
-// ----------------------------
-// Fixed LED map
-// ----------------------------
-const LEFT_INDEXES = [3, 4, 5, 6, 7, 8, 9, 10]; // 8 LEDs
-const RIGHT_INDEXES = [0, 1, 2, 11, 12, 13, 14, 15]; // 8 LEDs split
+// ✅ Fixed physical map (per your rule)
+// logical 0..7 (left)  -> physical 3..10
+// logical 8..15 (right)-> physical 0..2 and 11..15
+const RIGHT_PHYSICAL: number[] = [0, 1, 2, 11, 12, 13, 14, 15];
+const mapLogicalToPhysical = (logicalIndex: number): number => {
+  if (logicalIndex < 8) return 3 + logicalIndex; // 3..10
+  return RIGHT_PHYSICAL[logicalIndex - 8] ?? 0;
+};
 
-type ScenarioId = 0 | 1 | 2;
-const scenarioIdForAnim = (animId: string): ScenarioId | null => {
-  const id = animId.toLowerCase();
-  if (id === "police") return 0;
-  if (id === "larson") return 1;
-  if (id === "breathing") return 2;
+const getEffectiveIndex = (i: number, len: number, props: any): number => {
+  // mirrors toolkit-ish behavior (direction + mirror)
+  const direction = props?.direction === "right" ? "right" : "left";
+  const mirror = Boolean(props?.mirror);
+
+  // direction flips the whole strip
+  let idx = direction === "right" ? len - 1 - i : i;
+
+  // mirror reflects within halves (0..7 and 8..15)
+  if (mirror && len >= 2) {
+    const half = Math.floor(len / 2);
+    if (idx < half) idx = half - 1 - idx;
+    else idx = half + (len - 1 - idx);
+  }
+
+  return idx;
+};
+
+const isBlack = (c: RGB) => c.r === 0 && c.g === 0 && c.b === 0;
+
+// Build contiguous segments in physical index space (0..ledCount-1),
+// but ONLY for non-black LEDs. Contiguous means consecutive physical indices.
+const buildSparseSegments = (
+  physicalColors: RGB[],
+  intensityByte: number,
+): Array<{ start: number; colors: RGB[] }> => {
+  const segments: Array<{ start: number; colors: RGB[] }> = [];
+
+  let runStart: number | null = null;
+  let run: RGB[] = [];
+
+  const flush = () => {
+    if (runStart !== null && run.length > 0) {
+      segments.push({ start: runStart, colors: run });
+    }
+    runStart = null;
+    run = [];
+  };
+
+  for (let p = 0; p < physicalColors.length; p += 1) {
+    const c = physicalColors[p] ?? BLACK;
+
+    if (!isBlack(c)) {
+      if (runStart === null) runStart = p;
+      run.push(c);
+    } else {
+      flush();
+    }
+  }
+
+  flush();
+  return segments;
+};
+
+const appendSegments = (
+  bytes: number[],
+  segments: Array<{ start: number; colors: RGB[] }>,
+  intensity: number,
+) => {
+  for (const seg of segments) {
+    const len = seg.colors.length;
+    if (len <= 0) continue;
+
+    bytes.push(0x37, clampByte(seg.start), clampByte(len));
+
+    for (const c of seg.colors) {
+      bytes.push(clampByte(c.r), clampByte(c.g), clampByte(c.b), intensity);
+    }
+  }
+};
+
+// ===============================
+// ✅ LOCAL CONVERTER (Police/Larson/Breathing) using Option A
+// Header: 01 00 <scenario>
+// Then multiple cycles: 01 <hold> ... 03 inside the infinite loop
+// Fixed map always: left=3..10, right=0..2 & 11..15
+// ===============================
+const convertAnimationLocally = (config: DesignerConfig): DesignerCommandResult | null => {
+  // pick the first known anim in configs (you can change selection logic if needed)
+  const entry = config.configs.find((e) => {
+    const id = e.animId?.toLowerCase();
+    return id === "police" || id === "larson" || id === "breathing";
+  });
+
+  if (!entry) return null;
+
+  const animId = (entry.animId ?? "").toLowerCase();
+  const props = entry.props ?? {};
+
+  // Your firmware scenario byte mapping
+  const scenarioByte = animId === "police" ? 0x00 : animId === "larson" ? 0x01 : 0x02;
+
+  // ledCount: your examples assume 16 and fixed mapping relies on 16
+  // We’ll still clamp, but if not 16, we do best-effort on first ledCount indices.
+  const ledCount = clampByte(config.ledCount, 1, 255);
+  if (ledCount <= 0) return null;
+
+  // Brightness -> intensity byte (0x00..0x14)
+  const clampedBrightness = clampNumber(config.globalBrightness, 0, 1, 1);
+  const intensity = clampByte(Math.round(clampedBrightness * 20), 0, 0x14);
+
+  // Speed -> hold (repeat count), each repeat = 20ms
+  const LOOP_MS = 20;
+  const BASE_REPEATS_AT_SPEED_1 = 10; // 200ms @ speed=1
+  const perAnimSpeed = typeof props.speed === "number" ? props.speed : 1;
+  const globalSpeed = typeof config.globalSpeed === "number" ? config.globalSpeed : 1;
+  const effectiveSpeed = perAnimSpeed * globalSpeed;
+  const normalizedSpeed = clampNumber(effectiveSpeed, 0.1, 10, 1);
+  const hold = clampByte(Math.max(1, Math.round(BASE_REPEATS_AT_SPEED_1 / normalizedSpeed)));
+
+  // Start infinite loop with scenario in header
+  const bytes: number[] = [0x01, 0x00, scenarioByte];
+
+  // Helper to push one frame (one 01 <hold> ... 03 cycle)
+  const pushFrame = (physicalColors: RGB[]) => {
+    bytes.push(0x01, hold);
+
+    // Option A: sparse segments (only non-black)
+    const segments = buildSparseSegments(physicalColors, intensity);
+    appendSegments(bytes, segments, intensity);
+
+    bytes.push(0x03);
+  };
+
+  // Build logical frame colors (0..15), then map to physical index space (0..15)
+  const logicalLen = Math.min(16, ledCount);
+  const toPhysicalColors = (logicalColors: RGB[]): RGB[] => {
+    const phys: RGB[] = Array.from({ length: ledCount }, () => BLACK);
+
+    for (let i = 0; i < logicalColors.length; i += 1) {
+      const effective = getEffectiveIndex(i, logicalColors.length, props);
+      const physical = mapLogicalToPhysical(effective);
+
+      if (physical >= 0 && physical < ledCount) {
+        phys[physical] = logicalColors[i] ?? BLACK;
+      }
+    }
+    return phys;
+  };
+
+  // =========================
+  // POLICE (2 frames: left on, then right on)
+  // =========================
+  if (animId === "police") {
+    const leftRgb = hexToRgb(props.leftColor, { r: 255, g: 0, b: 0 });
+    const rightRgb = hexToRgb(props.rightColor, { r: 0, g: 0, b: 255 });
+
+    // Frame A: left half ON, right half OFF
+    const logicalA: RGB[] = Array.from({ length: logicalLen }, (_, i) =>
+      i < 8 ? leftRgb : BLACK,
+    );
+    pushFrame(toPhysicalColors(logicalA));
+
+    // Frame B: left half OFF, right half ON
+    const logicalB: RGB[] = Array.from({ length: logicalLen }, (_, i) =>
+      i < 8 ? BLACK : rightRgb,
+    );
+    pushFrame(toPhysicalColors(logicalB));
+
+    // end infinite loop
+    bytes.push(0x03);
+
+    return {
+      bytes,
+      hexString: toHexString(bytes),
+      source: "local",
+      note: `Police(local) header=01 00 ${scenarioByte} hold=${hold} intensity=0x${intensity
+        .toString(16)
+        .toUpperCase()
+        .padStart(2, "0")}`,
+    };
+  }
+
+  // =========================
+  // BREATHING (color) — still "full strip", but we keep frames small enough for 2KB
+  // Option A here means: we still send segments, but all LEDs are non-black, so it becomes 3 segments
+  // (left 8, right 3, right 5). Reduce frames to fit.
+  // =========================
+  if (animId === "breathing") {
+    const base = hexToRgb(props.color, { r: 0, g: 255, b: 255 });
+    const phaseMs = typeof props.phaseMs === "number" ? props.phaseMs : 0;
+
+    // Keep it safe for 2KB: 24 frames is usually fine even with full 16 LEDs.
+    // You can tune this up/down.
+    const frames = clampByte(24, 4, 60);
+
+    for (let f = 0; f < frames; f += 1) {
+      // emulate toolkit-ish breathing curve
+      const t = f * hold * LOOP_MS + phaseMs;
+      const period = 3000 / normalizedSpeed;
+      const phase = ((t % period) / period) * 2 * Math.PI;
+      let v = (Math.sin(phase - Math.PI / 2) + 1) / 2;
+      v = v * 0.9 + 0.1;
+
+      const c: RGB = {
+        r: clampByte(Math.round(base.r * v)),
+        g: clampByte(Math.round(base.g * v)),
+        b: clampByte(Math.round(base.b * v)),
+      };
+
+      const logical: RGB[] = Array.from({ length: logicalLen }, () => c);
+      pushFrame(toPhysicalColors(logical));
+    }
+
+    bytes.push(0x03);
+
+    return {
+      bytes,
+      hexString: toHexString(bytes),
+      source: "local",
+      note: `Breathing(local) header=01 00 ${scenarioByte} frames=${clampByte(
+        24,
+      )} hold=${hold} intensity=0x${intensity.toString(16).toUpperCase().padStart(2, "0")}`,
+    };
+  }
+
+  // =========================
+  // LARSON (scanner) — make it color-configurable + Option A sparse frames
+  // We send ONLY top K LEDs per frame (typically 2–3), as 1-LED segments.
+  // This is what keeps it well under 2KB.
+  // =========================
+  if (animId === "larson") {
+    // ✅ NEW: allow configurable color in designer JSON (props.color)
+    // default matches your original reddish look
+    const base = hexToRgb(props.color, { r: 255, g: 40, b: 40 });
+    const phaseMs = typeof props.phaseMs === "number" ? props.phaseMs : 0;
+
+    // Frames count: keep moderate. 44 worked in your example; still safe with sparse K LEDs.
+    const frames = clampByte(44, 8, 80);
+
+    // How many LEDs to send per frame (Option A)
+    const TOP_K = 3;
+
+    for (let f = 0; f < frames; f += 1) {
+      const t = f * hold * LOOP_MS + phaseMs;
+
+      const period = 2200 / normalizedSpeed;
+      const phase = ((t % period) / period) * 2 * Math.PI;
+
+      // position along logical strip
+      const pos = (Math.sin(phase) * 0.5 + 0.5) * Math.max(0, logicalLen - 1);
+
+      // compute intensity per logical index
+      const logicalIntensities = Array.from({ length: logicalLen }, (_, i) => {
+        const dist = Math.abs(i - pos);
+        let v = Math.max(0, 1.4 - dist);
+        v = v * v; // sharpen
+        return v;
+      });
+
+      // pick top K indices
+      const ranked = logicalIntensities
+        .map((v, i) => ({ i, v }))
+        .filter((x) => x.v > 0.02) // threshold to avoid sending near-black
+        .sort((a, b) => b.v - a.v)
+        .slice(0, TOP_K);
+
+      // build sparse logical colors (mostly black)
+      const logical: RGB[] = Array.from({ length: logicalLen }, () => BLACK);
+      for (const { i, v } of ranked) {
+        logical[i] = {
+          r: clampByte(Math.round(base.r * v)),
+          g: clampByte(Math.round(base.g * v)),
+          b: clampByte(Math.round(base.b * v)),
+        };
+      }
+
+      // Convert to physical
+      const physical = toPhysicalColors(logical);
+
+      // Force 1-LED segments to avoid “contiguous run” accidentally sending many LEDs
+      // (because physical indices for right side are split)
+      bytes.push(0x01, hold);
+      for (let p = 0; p < physical.length; p += 1) {
+        const c = physical[p] ?? BLACK;
+        if (isBlack(c)) continue;
+        bytes.push(0x37, clampByte(p), 0x01, c.r, c.g, c.b, intensity);
+      }
+      bytes.push(0x03);
+    }
+
+    bytes.push(0x03);
+
+    return {
+      bytes,
+      hexString: toHexString(bytes),
+      source: "local",
+      note: `Larson(local) header=01 00 ${scenarioByte} frames=${frames} hold=${hold} topK=${TOP_K} intensity=0x${intensity
+        .toString(16)
+        .toUpperCase()
+        .padStart(2, "0")}`,
+    };
+  }
+
   return null;
 };
 
-const buildIntensity = (config: DesignerConfig): number => {
-  // globalBrightness 0..1 -> 0..0x14
-  const b = clampNumber(config.globalBrightness, 0, 1, 1);
-  return clampByte(Math.round(b * 20), 0, 0x14);
-};
-
-const buildLoopCountFromSpeed = (config: DesignerConfig, perConfigSpeed: unknown): number => {
-  // repeat count (each repeat = 20ms)
-  const BASE_REPEATS_AT_SPEED_1 = 10; // 0x0A => 200ms
-  const p = typeof perConfigSpeed === "number" ? perConfigSpeed : 1;
-  const g = typeof config.globalSpeed === "number" ? config.globalSpeed : 1;
-  const effectiveSpeed = p * g;
-  const normalized = clampNumber(effectiveSpeed, 0.1, 10, 1);
-  return clampByte(Math.max(1, Math.round(BASE_REPEATS_AT_SPEED_1 / normalized)));
-};
-
-const writeSolidSegment = (
-  bytes: number[],
-  start: number,
-  length: number,
-  rgb: [number, number, number],
-  intensity: number,
-  ledCount: number,
-) => {
-  const safeStart = clampByte(start, 0, ledCount - 1);
-  const safeLength = clampByte(length, 0, ledCount - safeStart);
-  if (safeLength <= 0) return;
-
-  bytes.push(0x37, safeStart, safeLength);
-  for (let i = 0; i < safeLength; i += 1) {
-    bytes.push(clampByte(rgb[0]), clampByte(rgb[1]), clampByte(rgb[2]), clampByte(intensity));
-  }
-};
-
-const writeFullStripFrame = (
-  bytes: number[],
-  colors: Array<[number, number, number]>,
-  intensity: number,
-  loopCount: number,
-) => {
-  // cycle start
-  bytes.push(0x01, clampByte(loopCount));
-
-  // one full-strip segment
-  bytes.push(0x37, 0x00, clampByte(colors.length));
-  for (let i = 0; i < colors.length; i += 1) {
-    const [r, g, b] = colors[i];
-    bytes.push(clampByte(r), clampByte(g), clampByte(b), clampByte(intensity));
-  }
-
-  // end cycle
-  bytes.push(0x03);
-};
-
-// ----------------------------
-// Police: 2 colors, 2 frames
-// ----------------------------
-const convertPoliceLocally = (config: DesignerConfig, entry: any): DesignerCommandResult | null => {
-  const ledCount = clampByte(config.ledCount, 1, 255);
-  if (ledCount <= 0) return null;
-
-  const scenarioId: ScenarioId = 0;
-  const intensity = buildIntensity(config);
-  const loopCount = buildLoopCountFromSpeed(config, entry.props?.speed);
-
-  const leftColor = hexColorToRgb(entry.props?.leftColor, [0xff, 0x00, 0x00]);
-  const rightColor = hexColorToRgb(entry.props?.rightColor, [0x00, 0x00, 0xff]);
-
-  // Header: 01 00 <scenarioId>
-  const bytes: number[] = [0x01, 0x00, scenarioId];
-
-  // Frame A: LEFT ON (3..10) as one segment
-  // start cycle
-  bytes.push(0x01, loopCount);
-  // segment start 3 len 8
-  writeSolidSegment(bytes, 3, 8, leftColor, intensity, ledCount);
-  bytes.push(0x03);
-
-  // Frame B: RIGHT ON (0..2 and 11..15) as two segments
-  bytes.push(0x01, loopCount);
-  writeSolidSegment(bytes, 0, 3, rightColor, intensity, ledCount);
-  writeSolidSegment(bytes, 11, 5, rightColor, intensity, ledCount);
-  bytes.push(0x03);
-
-  // End infinite loop
-  bytes.push(0x03);
-
-  return {
-    bytes,
-    hexString: toHexString(bytes),
-    source: "local",
-    note: `Police(local) header=01 00 00 intensity=0x${intensity.toString(16).toUpperCase().padStart(2, "0")} loop=${loopCount}`,
-  };
-};
-
-// ----------------------------
-// Breathing: base color, sampled frames
-// ----------------------------
-const convertBreathingLocally = (config: DesignerConfig, entry: any): DesignerCommandResult | null => {
-  const ledCount = clampByte(config.ledCount, 1, 255);
-  if (ledCount <= 0) return null;
-
-  const scenarioId: ScenarioId = 2;
-  const intensity = buildIntensity(config);
-
-  const globalSpeed = typeof config.globalSpeed === "number" ? config.globalSpeed : 1;
-  const props = entry.props || {};
-  const perSpeed = typeof props.speed === "number" ? props.speed : 1;
-  const localSpeed = clampNumber(perSpeed * globalSpeed, 0.1, 10, 1);
-
-  const phaseMs = typeof props.phaseMs === "number" ? props.phaseMs : 0;
-  const base = hexColorToRgb(props.color, [0x00, 0xff, 0xff]);
-
-  // Sampling controls (tune if you want)
-  const FRAMES = 40;
-  const FRAME_HOLD_REPEATS = 2; // 40ms per frame
-  const frameLoopCount = clampByte(FRAME_HOLD_REPEATS);
-
-  // Header: 01 00 <scenarioId>
-  const bytes: number[] = [0x01, 0x00, scenarioId];
-
-  const period = 3000 / localSpeed;
-
-  for (let f = 0; f < FRAMES; f += 1) {
-    const tMs = f * (20 * FRAME_HOLD_REPEATS) + phaseMs;
-    const phase = ((tMs % period) / period) * 2 * Math.PI;
-
-    let v = (Math.sin(phase - Math.PI / 2) + 1) / 2;
-    v = v * 0.9 + 0.1;
-
-    const rgb: [number, number, number] = [
-      Math.round(base[0] * v),
-      Math.round(base[1] * v),
-      Math.round(base[2] * v),
-    ];
-
-    // build full-strip colors with fixed map
-    const colors: Array<[number, number, number]> = new Array(ledCount).fill(0).map(() => [0, 0, 0]);
-
-    for (const idx of LEFT_INDEXES) if (idx < ledCount) colors[idx] = rgb;
-    for (const idx of RIGHT_INDEXES) if (idx < ledCount) colors[idx] = rgb;
-
-    writeFullStripFrame(bytes, colors, intensity, frameLoopCount);
-  }
-
-  // End infinite loop
-  bytes.push(0x03);
-
-  return {
-    bytes,
-    hexString: toHexString(bytes),
-    source: "local",
-    note: `Breathing(local) header=01 00 02 frames=${FRAMES} hold=${FRAME_HOLD_REPEATS} intensity=0x${intensity
-      .toString(16)
-      .toUpperCase()
-      .padStart(2, "0")}`,
-  };
-};
-
-// ----------------------------
-// Larson: sampled frames, fixed map
-// ----------------------------
-const convertLarsonLocally = (config: DesignerConfig, entry: any): DesignerCommandResult | null => {
-  const ledCount = clampByte(config.ledCount, 1, 255);
-  if (ledCount <= 0) return null;
-
-  const scenarioId: ScenarioId = 1;
-  const intensityByte = buildIntensity(config);
-
-  const globalSpeed = typeof config.globalSpeed === "number" ? config.globalSpeed : 1;
-  const props = entry.props || {};
-  const perSpeed = typeof props.speed === "number" ? props.speed : 1;
-  const localSpeed = clampNumber(perSpeed * globalSpeed, 0.1, 10, 1);
-  const phaseMs = typeof props.phaseMs === "number" ? props.phaseMs : 0;
-
-  // Sampling controls
-  const FRAMES = 44;
-  const FRAME_HOLD_REPEATS = 2; // 40ms per frame
-  const frameLoopCount = clampByte(FRAME_HOLD_REPEATS);
-
-  // We'll run larson across the 8 LEDs of each side (left & right simultaneously)
-  const len = 8;
-  const period = 2200 / localSpeed;
-
-  const bytes: number[] = [0x01, 0x00, scenarioId];
-
-  for (let f = 0; f < FRAMES; f += 1) {
-    const tMs = f * (20 * FRAME_HOLD_REPEATS) + phaseMs;
-
-    const phase = (((tMs % period) / period) * 2 * Math.PI);
-    const pos = (Math.sin(phase) * 0.5 + 0.5) * Math.max(0, len - 1);
-
-    const sideRgb: Array<[number, number, number]> = new Array(len).fill(0).map(() => [0, 0, 0]);
-
-    for (let i = 0; i < len; i += 1) {
-      const dist = Math.abs(i - pos);
-      let inten = Math.max(0, 1.4 - dist);
-      inten = inten * inten;
-
-      sideRgb[i] = [
-        Math.round(255 * inten),
-        Math.round(40 * inten),
-        Math.round(40 * inten),
-      ];
-    }
-
-    // Map the 8 computed values onto fixed indexes
-    const colors: Array<[number, number, number]> = new Array(ledCount).fill(0).map(() => [0, 0, 0]);
-
-    for (let i = 0; i < len; i += 1) {
-      const li = LEFT_INDEXES[i];
-      if (li < ledCount) colors[li] = sideRgb[i];
-
-      const ri = RIGHT_INDEXES[i];
-      if (ri < ledCount) colors[ri] = sideRgb[i];
-    }
-
-    writeFullStripFrame(bytes, colors, intensityByte, frameLoopCount);
-  }
-
-  bytes.push(0x03);
-
-  return {
-    bytes,
-    hexString: toHexString(bytes),
-    source: "local",
-    note: `Larson(local) header=01 00 01 frames=${FRAMES} hold=${FRAME_HOLD_REPEATS} intensity=0x${intensityByte
-      .toString(16)
-      .toUpperCase()
-      .padStart(2, "0")}`,
-  };
-};
-
-// ----------------------------
-// Dispatcher (local)
-// ----------------------------
-const convertFixedScenarioLocally = (config: DesignerConfig): DesignerCommandResult | null => {
-  const entry = config.configs[0];
-  if (!entry || typeof entry.animId !== "string") return null;
-
-  const scenarioId = scenarioIdForAnim(entry.animId);
-  if (scenarioId === null) return null;
-
-  if (scenarioId === 0) return convertPoliceLocally(config, entry);
-  if (scenarioId === 1) return convertLarsonLocally(config, entry);
-  if (scenarioId === 2) return convertBreathingLocally(config, entry);
-
-  return null;
-};
-
-// ----------------------------
-// Sample config
-// ----------------------------
+// --- SAMPLE JSON (update larson + breathing to support color props if you want) ---
 const SAMPLE_DESIGNER_JSON: DesignerConfig = {
   ledCount: 16,
   globalBrightness: 1,
@@ -334,20 +380,20 @@ const SAMPLE_DESIGNER_JSON: DesignerConfig = {
       length: 16,
       animId: "police",
       props: {
-        speed: 1,
-        phaseMs: 0,
         direction: "left",
         mirror: false,
-        leftColor: "#FF0000",
-        rightColor: "#0000FF",
+        phaseMs: 0,
+        leftColor: "#ff0000",
+        rightColor: "#0000ff",
+        speed: 1,
       },
     },
   ],
 };
 
 const SAMPLE_COMMAND_BYTES =
-  convertFixedScenarioLocally(SAMPLE_DESIGNER_JSON)?.bytes ?? [
-    // fallback to old police sample if something goes wrong
+  convertAnimationLocally(SAMPLE_DESIGNER_JSON)?.bytes ?? [
+    // Fallback stays here (optional)
     0x01, 0x00, 0x00,
     0x01, 0x0A,
     0x37, 0x03, 0x08,
@@ -372,26 +418,23 @@ const SAMPLE_COMMAND_BYTES =
     0x00, 0x00, 0xFF, 0x14,
     0x00, 0x00, 0xFF, 0x14,
     0x03,
-    0x03
+    0x03,
   ];
 
 const buildSampleResult = (note?: string): DesignerCommandResult => ({
   bytes: SAMPLE_COMMAND_BYTES,
   hexString: toHexString(SAMPLE_COMMAND_BYTES),
   source: "sample",
-  note: note ?? "Using sample command bytes.",
+  note: note ?? "Using built-in sample bytes while converter is unavailable.",
 });
 
-// ----------------------------
-// Main export
-// ----------------------------
 export const convertDesignerConfigToCommand = async (
   config: DesignerConfig,
   options?: DesignerConversionOptions,
 ): Promise<DesignerCommandResult> => {
-  // ✅ Local supports police/larson/breathing with fixed map + scenarioId header
-  const local = convertFixedScenarioLocally(config);
-  if (local) return local;
+  // ✅ Local conversion for police/larson/breathing (Option A)
+  const localConversion = convertAnimationLocally(config);
+  if (localConversion) return localConversion;
 
   const preferFirebase = options?.preferFirebase ?? true;
 
@@ -405,7 +448,9 @@ export const convertDesignerConfigToCommand = async (
       return {
         bytes: firebaseResult.bytes,
         hexString: firebaseResult.hexString,
-        note: firebaseResult.note ?? "Converted through Firebase.",
+        note:
+          firebaseResult.note ??
+          "Animation toolkit JSON converted through Firebase and ready for your scooter.",
         source: "cloud",
       };
     }
@@ -417,7 +462,7 @@ export const convertDesignerConfigToCommand = async (
     "";
 
   if (!endpoint) {
-    console.warn("Converter endpoint not configured. Falling back to sample bytes.");
+    console.warn("Animation converter endpoint not configured. Falling back to sample command.");
     return buildSampleResult();
   }
 
@@ -427,7 +472,10 @@ export const convertDesignerConfigToCommand = async (
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         animation: config,
-        metadata: { source: "animation-toolkit", requestedAt: new Date().toISOString() },
+        metadata: {
+          source: "animation-toolkit",
+          requestedAt: new Date().toISOString(),
+        },
         sample: SAMPLE_DESIGNER_JSON,
       }),
     });
@@ -445,7 +493,7 @@ export const convertDesignerConfigToCommand = async (
       bytes,
       hexString: toHexString(bytes),
       source: "cloud",
-      note: payload?.message ?? "Converted with cloud function.",
+      note: payload?.message ?? "Converted with Firebase Cloud function.",
     };
   } catch (error) {
     console.error("Failed to convert designer config, using sample command instead", error);
