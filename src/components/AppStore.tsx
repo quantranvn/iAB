@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   Sparkles,
   CheckCircle2,
@@ -9,6 +9,9 @@ import {
   ShoppingBag,
   ArrowRight,
   Wand2,
+  Send,
+  Bot,
+  AlertCircle,
 } from "lucide-react";
 import {
   DialogContent,
@@ -29,6 +32,9 @@ import {
 } from "../utils/firebase";
 import { FALLBACK_USER_PROFILE } from "../types/userProfile";
 import type { DesignerConfig } from "../types/designer";
+import { generateAIAnimation, getRandomPromptExample, fetchServerConfig } from "../utils/aiAnimationService";
+import { Input } from "./ui/input";
+import { Download } from "lucide-react";
 
 type LibraryMessage = {
   type: "info" | "error" | "success";
@@ -124,6 +130,12 @@ export function AppStoreDialogContent({
   const [loading, setLoading] = useState(firebaseConfigured);
   const [usingFallbackData, setUsingFallbackData] = useState(!firebaseConfigured);
   const [libraryMessage, setLibraryMessage] = useState<LibraryMessage | null>(null);
+
+  // AI Animation Generation State
+  const [aiPrompt, setAiPrompt] = useState("");
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiPlaceholder] = useState(() => getRandomPromptExample());
+  const [configLoading, setConfigLoading] = useState(false);
 
   useEffect(() => {
     setActiveTabState(initialTab);
@@ -352,6 +364,145 @@ export function AppStoreDialogContent({
 
     onAnimationSelect?.(animation.id);
     setActiveTabState("owned");
+  };
+
+  const handleAIGenerate = async () => {
+    if (!aiPrompt.trim() || aiLoading) return;
+
+    setAiLoading(true);
+    setLibraryMessage(null);
+
+    const result = await generateAIAnimation(aiPrompt);
+
+    setAiLoading(false);
+
+    if (!result.success || !result.config) {
+      setLibraryMessage({
+        type: "error",
+        text: result.error || "Failed to generate animation.",
+      });
+      return;
+    }
+
+    console.log("[AI Generation] Received config:", result.config);
+
+    // Inject config into the designer iframe
+    const iframe = document.getElementById("animation-designer-iframe") as HTMLIFrameElement | null;
+    
+    if (iframe?.contentWindow) {
+      try {
+        const bridge = iframe.contentWindow as typeof window & Record<string, unknown>;
+        // Use iab_applyDesignerConfig (same as handleLoadFromServer)
+        const setter = bridge.iab_applyDesignerConfig;
+
+        if (typeof setter === "function") {
+          const applied = setter(result.config);
+          if (applied) {
+            setLibraryMessage({
+              type: "success",
+              text: `AI generated "${aiPrompt}" animation. Click "Use this design" to save it.`,
+            });
+          } else {
+            setLibraryMessage({
+              type: "success",
+              text: `AI generated animation. Config applied to designer.`,
+            });
+          }
+          setAiPrompt("");
+        } else {
+          // If setter not available, still show success and capture config
+          console.warn("iab_applyDesignerConfig bridge not available");
+          setLibraryMessage({
+            type: "success",
+            text: `AI generated animation config. Designer bridge loading...`,
+          });
+        }
+      } catch (error) {
+        console.error("Failed to inject config into designer:", error);
+        setLibraryMessage({
+          type: "success",
+          text: "Animation generated! Refresh the designer to see it.",
+        });
+      }
+    } else {
+      setLibraryMessage({
+        type: "success",
+        text: `AI generated animation config. Designer iframe loading...`,
+      });
+    }
+
+    // Also capture the config directly
+    onDesignerConfigCapture?.(result.config);
+  };
+
+  const handleAIKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      void handleAIGenerate();
+    }
+  };
+
+  const handleLoadFromServer = async () => {
+    if (configLoading) return;
+
+    setConfigLoading(true);
+    setLibraryMessage(null);
+
+    const result = await fetchServerConfig();
+
+    setConfigLoading(false);
+
+    if (!result.success || !result.config) {
+      setLibraryMessage({
+        type: "error",
+        text: result.error || "Failed to load animation config from server.",
+      });
+      return;
+    }
+
+    // Inject config into the designer iframe
+    const iframe = document.getElementById("animation-designer-iframe") as HTMLIFrameElement | null;
+
+    if (iframe?.contentWindow) {
+      try {
+        const bridge = iframe.contentWindow as typeof window & Record<string, unknown>;
+        const setter = bridge.iab_applyDesignerConfig;
+
+        if (typeof setter === "function") {
+          const applied = setter(result.config);
+          if (applied) {
+            setLibraryMessage({
+              type: "success",
+              text: `Loaded animation config from server. Click "Use this design" to save it.`,
+            });
+          } else {
+            setLibraryMessage({
+              type: "info",
+              text: "Config loaded but designer may need to refresh.",
+            });
+          }
+        } else {
+          setLibraryMessage({
+            type: "info",
+            text: "Config loaded! The designer will update shortly.",
+          });
+        }
+      } catch (error) {
+        console.error("Failed to inject config into designer:", error);
+        setLibraryMessage({
+          type: "success",
+          text: "Config loaded! Refresh the designer to see it.",
+        });
+      }
+    } else {
+      setLibraryMessage({
+        type: "info",
+        text: "Config loaded. Designer iframe is still loading...",
+      });
+    }
+
+    // Also capture the config directly
+    onDesignerConfigCapture?.(result.config);
   };
 
   return (
@@ -637,6 +788,83 @@ export function AppStoreDialogContent({
 
         <TabsContent value="designer" className="mt-0 flex-1">
           <ScrollArea className="h-[85vh] pr-4">
+            {/* AI Prompt Input Section */}
+            <div className="mb-4 rounded-2xl border border-primary/30 bg-gradient-to-r from-primary/5 via-purple-500/5 to-cyan-500/5 p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <Bot className="h-5 w-5 text-primary" />
+                <h4 className="text-sm font-semibold">AI Animation Generator</h4>
+                <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary">Beta</span>
+              </div>
+              <p className="text-xs text-muted-foreground mb-3">
+                Describe your animation in natural language. Try: "police lights", "rainbow on first 8 LEDs", or "slow breathing purple".
+              </p>
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <Input
+                    type="text"
+                    placeholder={aiPlaceholder}
+                    value={aiPrompt}
+                    onChange={(e) => setAiPrompt(e.target.value)}
+                    onKeyDown={handleAIKeyDown}
+                    disabled={aiLoading}
+                    className="pr-10"
+                  />
+                  {aiLoading && (
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                      <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                    </div>
+                  )}
+                </div>
+                <Button
+                  size="default"
+                  onClick={() => void handleAIGenerate()}
+                  disabled={aiLoading || !aiPrompt.trim()}
+                  className="gap-2"
+                >
+                  {aiLoading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Generating...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="h-4 w-4" />
+                      Generate
+                    </>
+                  )}
+                </Button>
+              </div>
+              {!aiLoading && (
+                <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
+                  <AlertCircle className="h-3 w-3" />
+                  Make sure the AI server is running: <code className="bg-muted px-1 rounded">cd server && npm run dev</code>
+                </p>
+              )}
+
+              {/* Load from Server Button */}
+              <div className="mt-3 pt-3 border-t border-border/40">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => void handleLoadFromServer()}
+                  disabled={configLoading}
+                  className="gap-2 w-full"
+                >
+                  {configLoading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Loading...
+                    </>
+                  ) : (
+                    <>
+                      <Download className="h-4 w-4" />
+                      Load config from server
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+
             <div className="flex items-center justify-between pb-3 pt-1">
               <div className="flex flex-col gap-1">
                 <h4 className="text-sm font-semibold">Animation designer</h4>

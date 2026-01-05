@@ -1,0 +1,31 @@
+{
+  "ledCount": 16,
+  "globalBrightness": 0.9,
+  "globalSpeed": 1,
+  "configs": [
+    {
+      "start": 0,
+      "length": 4,
+      "animId": "police",
+      "props": {
+        "direction": "left",
+        "mirror": false,
+        "phaseMs": 0,
+        "speed": 1,
+        "leftColor": "#ff0000",
+        "rightColor": "#0000ff"
+      }
+    },
+    {
+      "start": 4,
+      "length": 12,
+      "animId": "smoothFade",
+      "props": {
+        "direction": "left",
+        "mirror": false,
+        "phaseMs": 0,
+        "speed": 1
+      }
+    }
+  ]
+}
