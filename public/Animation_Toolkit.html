@@ -114,6 +114,7 @@
       outline: 2px solid #7685ff;
       outline-offset: 1px;
     }
+
     .led-strip-container {
       margin-top: 6px;
       margin-bottom: 10px;
@@ -157,6 +158,7 @@
       pointer-events: none;
       mix-blend-mode: screen;
     }
+
     .configs-header {
       display: flex;
       justify-content: space-between;
@@ -191,9 +193,7 @@
           rgba(18, 20, 36, 0.95),
           rgba(10, 12, 22, 0.95));
     }
-    .config-row span.label {
-      font-size: 10px;
-    }
+    .config-row span.label { font-size: 10px; }
     .config-row button.remove {
       padding: 3px 7px;
       font-size: 10px;
@@ -215,11 +215,12 @@
       gap: 6px;
       margin-top: 2px;
       font-size: 10px;
+      align-items: center;
     }
     .config-prop-item {
       display: flex;
       align-items: center;
-      gap: 4px;
+      gap: 6px;
     }
     .config-prop-item label {
       font-size: 10px;
@@ -242,6 +243,21 @@
       height: 14px;
       accent-color: #7685ff;
     }
+
+    /* ✅ Speed slider styling */
+    .config-prop-item input[type="range"].speed-range {
+      width: 120px;
+      min-width: 120px;
+      height: 16px;
+      padding: 0;
+    }
+    .config-prop-item .range-value {
+      width: 20px;
+      text-align: right;
+      font-size: 10px;
+      color: #9ea4cf;
+    }
+
     .footer {
       margin-top: 6px;
       font-size: 10px;
@@ -256,7 +272,6 @@
       font-weight: 500;
     }
 
-    /* Modal for JSON export/import */
     .modal-overlay {
       position: fixed;
       inset: 0;
@@ -281,13 +296,8 @@
       align-items: center;
       margin-bottom: 6px;
     }
-    .modal-header h2 {
-      font-size: 14px;
-    }
-    .modal-header button {
-      padding: 3px 8px;
-      font-size: 11px;
-    }
+    .modal-header h2 { font-size: 14px; }
+    .modal-header button { padding: 3px 8px; font-size: 11px; }
     .modal-subtitle {
       font-size: 11px;
       color: #a4aad8;
@@ -330,17 +340,10 @@
       font-size: 10px;
       min-height: 14px;
     }
-    .hidden {
-      display: none;
-    }
+    .hidden { display: none; }
 
-    body.embed-preview {
-      padding: 0;
-    }
-    .embed-preview .app {
-      max-width: 720px;
-      padding: 12px;
-    }
+    body.embed-preview { padding: 0; }
+    .embed-preview .app { max-width: 720px; padding: 12px; }
     .embed-preview .top-row,
     .embed-preview .configs-header,
     .embed-preview .configs-list,
@@ -350,9 +353,7 @@
     .embed-preview .configs-toolbar {
       display: none !important;
     }
-    .embed-preview .led-strip-container {
-      margin-bottom: 0;
-    }
+    .embed-preview .led-strip-container { margin-bottom: 0; }
 
     @media (max-width: 640px) {
       .app { padding: 14px 12px 10px; }
@@ -378,13 +379,9 @@
             <span id="brightnessValue">90%</span>
           </div>
         </div>
-        <div class="control-group">
-          <label for="speedRange">Global speed</label>
-          <div class="range-row">
-            <input id="speedRange" type="range" min="0.2" max="2.5" step="0.05" value="1" />
-            <span id="speedValue">1.00×</span>
-          </div>
-        </div>
+
+        <!-- ✅ REMOVED: Global speed -->
+
         <div class="control-group">
           <label for="ledCountInput">LED count</label>
           <input id="ledCountInput" type="number" min="4" max="64" value="16" />
@@ -419,7 +416,6 @@
     </div>
   </div>
 
-  <!-- Modal for JSON export/import -->
   <div id="configModalOverlay" class="modal-overlay hidden">
     <div class="modal">
       <div class="modal-header">
@@ -445,15 +441,12 @@
     let leds = [];
     let frameColors = [];
     let brightness = 0.9;
-    let globalSpeed = 1.0;
     let running = true;
     let lastTimestamp = 0;
 
     const ledStripEl = document.getElementById("ledStrip");
     const brightnessRange = document.getElementById("brightnessRange");
     const brightnessValue = document.getElementById("brightnessValue");
-    const speedRange = document.getElementById("speedRange");
-    const speedValue = document.getElementById("speedValue");
     const ledCountInput = document.getElementById("ledCountInput");
     const toggleBtn = document.getElementById("toggleBtn");
     const toggleText = document.getElementById("toggleText");
@@ -565,29 +558,28 @@
       }
     }
 
-    // Helper: effective local index with direction + mirror
     function getEffectiveIndex(localIndex, segLength, conf) {
       const props = conf.props || {};
       let idx = localIndex;
 
-      // Direction: start at left (normal) or right (reverse)
       const dir = props.direction || "left";
-      if (dir === "right") {
-        idx = segLength - 1 - idx;
-      }
+      if (dir === "right") idx = segLength - 1 - idx;
 
-      // Mirror around center if enabled
       const mirror = !!props.mirror;
       if (mirror && segLength > 1) {
         const last = segLength - 1;
         idx = Math.min(idx, last - idx);
       }
-
       return idx;
     }
 
-    // Animations with per-config props
-    // Each fn: (tMs, localIndex, segLength, conf) -> {r,g,b}
+    // ✅ Speed scale: 1..10
+    function getLocalSpeed(conf) {
+      const props = conf.props || {};
+      const s = Number(props.speed);
+      return clamp(isFinite(s) ? s : 1, 1, 10);
+    }
+
     const ANIMATIONS = [
       {
         id: "rainbow",
@@ -599,13 +591,13 @@
           ], default: "left" },
           { id: "mirror", label: "Mirror", type: "checkbox", default: false },
           { id: "phaseMs", label: "Phase (ms)", type: "number", min: -5000, max: 5000, step: 50, default: 0 },
-          { id: "speed", label: "Speed", type: "number", min: 0.2, max: 3, step: 0.1, default: 1 }
+          { id: "speed", label: "Speed", type: "speed", min: 1, max: 10, step: 1, default: 1 }
         ],
         fn: (t, i, len, conf) => {
           const props = conf.props || {};
           const idx = getEffectiveIndex(i, len, conf);
           const tShift = t + (props.phaseMs ?? 0);
-          const localSpeed = ((props.speed ?? 1) * globalSpeed);
+          const localSpeed = getLocalSpeed(conf);
           const pos = (idx / Math.max(1, len - 1)) + tShift * 0.00015 * localSpeed;
           const hue = pos % 1;
           return hsvToRgb(hue, 1, 1);
@@ -621,12 +613,12 @@
           ], default: "left" },
           { id: "mirror", label: "Mirror", type: "checkbox", default: false },
           { id: "phaseMs", label: "Phase (ms)", type: "number", min: -5000, max: 5000, step: 50, default: 0 },
-          { id: "speed", label: "Speed", type: "number", min: 0.2, max: 3, step: 0.1, default: 1 }
+          { id: "speed", label: "Speed", type: "speed", min: 1, max: 10, step: 1, default: 1 }
         ],
         fn: (t, i, len, conf) => {
           const props = conf.props || {};
           const tShift = t + (props.phaseMs ?? 0);
-          const localSpeed = ((props.speed ?? 1) * globalSpeed);
+          const localSpeed = getLocalSpeed(conf);
           const hue = (tShift * 0.0002 * localSpeed) % 1;
           return hsvToRgb(hue, 0.9, 1);
         },
@@ -641,13 +633,13 @@
           ], default: "left" },
           { id: "mirror", label: "Mirror", type: "checkbox", default: false },
           { id: "phaseMs", label: "Phase (ms)", type: "number", min: -5000, max: 5000, step: 50, default: 0 },
-          { id: "speed", label: "Speed", type: "number", min: 0.2, max: 3, step: 0.1, default: 1 }
+          { id: "speed", label: "Speed", type: "speed", min: 1, max: 10, step: 1, default: 1 }
         ],
         fn: (t, i, len, conf) => {
           const props = conf.props || {};
           const idx = getEffectiveIndex(i, len, conf);
           const tShift = t + (props.phaseMs ?? 0);
-          const localSpeed = ((props.speed ?? 1) * globalSpeed);
+          const localSpeed = getLocalSpeed(conf);
           const step = Math.floor(tShift * 0.00035 * localSpeed);
           if ((idx + step) % 3 === 0) return { r: 255, g: 255, b: 255 };
           return { r: 0, g: 0, b: 0 };
@@ -663,29 +655,24 @@
           ], default: "left" },
           { id: "mirror", label: "Mirror", type: "checkbox", default: false },
           { id: "phaseMs", label: "Phase (ms)", type: "number", min: -5000, max: 5000, step: 50, default: 0 },
-      
-          // ✅ NEW: base color picker
           { id: "color", label: "Color", type: "color", default: "#ff2828" },
-      
-          { id: "speed", label: "Speed", type: "number", min: 0.2, max: 3, step: 0.1, default: 1 }
+          { id: "speed", label: "Speed", type: "speed", min: 1, max: 10, step: 1, default: 1 }
         ],
         fn: (t, i, len, conf) => {
           const props = conf.props || {};
           const idx = getEffectiveIndex(i, len, conf);
           const tShift = t + (props.phaseMs ?? 0);
-          const localSpeed = ((props.speed ?? 1) * globalSpeed);
-      
-          // ✅ NEW: use chosen base color (fallback red)
+          const localSpeed = getLocalSpeed(conf);
           const base = hexToRgb(props.color || "#ff2828");
-      
+
           const period = 2200 / localSpeed;
           const phase = ((tShift % period) / period) * 2 * Math.PI;
           const pos = (Math.sin(phase) * 0.5 + 0.5) * Math.max(0, len - 1);
-      
+
           const dist = Math.abs(idx - pos);
           let intensity = Math.max(0, 1.4 - dist);
           intensity = intensity * intensity;
-      
+
           return {
             r: Math.round(base.r * intensity),
             g: Math.round(base.g * intensity),
@@ -704,13 +691,13 @@
           { id: "mirror", label: "Mirror", type: "checkbox", default: false },
           { id: "phaseMs", label: "Phase (ms)", type: "number", min: -5000, max: 5000, step: 50, default: 0 },
           { id: "color", label: "Color", type: "color", default: "#00ffff" },
-          { id: "speed", label: "Speed", type: "number", min: 0.2, max: 3, step: 0.1, default: 1 }
+          { id: "speed", label: "Speed", type: "speed", min: 1, max: 10, step: 1, default: 1 }
         ],
         fn: (t, i, len, conf) => {
           const props = conf.props || {};
           const base = hexToRgb(props.color || "#00ffff");
           const tShift = t + (props.phaseMs ?? 0);
-          const localSpeed = ((props.speed ?? 1) * globalSpeed);
+          const localSpeed = getLocalSpeed(conf);
           const period = 3000 / localSpeed;
           const phase = ((tShift % period) / period) * 2 * Math.PI;
           let v = (Math.sin(phase - Math.PI / 2) + 1) / 2;
@@ -722,7 +709,6 @@
           };
         },
       },
-
       {
         id: "police",
         name: "Police (2 colors)",
@@ -733,34 +719,28 @@
           ], default: "left" },
           { id: "mirror", label: "Mirror", type: "checkbox", default: false },
           { id: "phaseMs", label: "Phase (ms)", type: "number", min: -5000, max: 5000, step: 50, default: 0 },
-      
-          // ✅ NEW: per-side colors
           { id: "leftColor",  label: "Left color",  type: "color", default: "#ff0000" },
           { id: "rightColor", label: "Right color", type: "color", default: "#0000ff" },
-      
-          { id: "speed", label: "Speed", type: "number", min: 0.2, max: 3, step: 0.1, default: 1 }
+          { id: "speed", label: "Speed", type: "speed", min: 1, max: 10, step: 1, default: 1 }
         ],
         fn: (t, i, len, conf) => {
           const props = conf.props || {};
           const tShift = t + (props.phaseMs ?? 0);
-          const localSpeed = ((props.speed ?? 1) * globalSpeed);
-      
+          const localSpeed = getLocalSpeed(conf);
+
           const leftRgb = hexToRgb(props.leftColor || "#ff0000");
           const rightRgb = hexToRgb(props.rightColor || "#0000ff");
-      
+
           const half = Math.floor(len / 2);
-      
-          // (keep your rhythm)
+
           const period = 1000 / localSpeed;
           const phase = (tShift % period) / period;
           const leftOn = phase < 0.5;
-      
-          // Left half flashes first, right half flashes second
+
           if (i < half) return leftOn ? leftRgb : { r: 0, g: 0, b: 0 };
           return !leftOn ? rightRgb : { r: 0, g: 0, b: 0 };
         },
       },
-
       {
         id: "strobe",
         name: "Strobe white",
@@ -771,12 +751,12 @@
           ], default: "left" },
           { id: "mirror", label: "Mirror", type: "checkbox", default: false },
           { id: "phaseMs", label: "Phase (ms)", type: "number", min: -5000, max: 5000, step: 50, default: 0 },
-          { id: "speed", label: "Speed", type: "number", min: 0.2, max: 3, step: 0.1, default: 1 }
+          { id: "speed", label: "Speed", type: "speed", min: 1, max: 10, step: 1, default: 1 }
         ],
         fn: (t, i, len, conf) => {
           const props = conf.props || {};
           const tShift = t + (props.phaseMs ?? 0);
-          const localSpeed = ((props.speed ?? 1) * globalSpeed);
+          const localSpeed = getLocalSpeed(conf);
           const period = 260 / localSpeed;
           const phase = (tShift % period) / period;
           if (phase < 0.12) return { r: 255, g: 255, b: 255 };
@@ -794,16 +774,15 @@
           { id: "mirror", label: "Mirror", type: "checkbox", default: false },
           { id: "phaseMs", label: "Phase (ms)", type: "number", min: -5000, max: 5000, step: 50, default: 0 },
           { id: "color", label: "Color", type: "color", default: "#ff0000" },
-          { id: "speed", label: "Speed", type: "number", min: 0.2, max: 3, step: 0.1, default: 1 }
+          { id: "speed", label: "Speed", type: "speed", min: 1, max: 10, step: 1, default: 1 }
         ],
         fn: (t, i, len, conf) => {
           const props = conf.props || {};
           const base = hexToRgb(props.color || "#ff0000");
           const idx = getEffectiveIndex(i, len, conf);
           const tShift = t + (props.phaseMs ?? 0);
-          const localSpeed = ((props.speed ?? 1) * globalSpeed);
-          const phase = (idx / Math.max(1, len) * 2 * Math.PI) +
-            tShift * 0.012 * localSpeed;
+          const localSpeed = getLocalSpeed(conf);
+          const phase = (idx / Math.max(1, len) * 2 * Math.PI) + tShift * 0.012 * localSpeed;
           const v = (Math.sin(phase) + 1) / 2;
           return {
             r: Math.round(base.r * v),
@@ -822,13 +801,13 @@
           ], default: "left" },
           { id: "mirror", label: "Mirror", type: "checkbox", default: false },
           { id: "phaseMs", label: "Phase (ms)", type: "number", min: -5000, max: 5000, step: 50, default: 0 },
-          { id: "speed", label: "Speed", type: "number", min: 0.2, max: 3, step: 0.1, default: 1 }
+          { id: "speed", label: "Speed", type: "speed", min: 1, max: 10, step: 1, default: 1 }
         ],
         fn: (t, i, len, conf) => {
           const props = conf.props || {};
           const idx = getEffectiveIndex(i, len, conf);
           const tShift = t + (props.phaseMs ?? 0);
-          const localSpeed = ((props.speed ?? 1) * globalSpeed);
+          const localSpeed = getLocalSpeed(conf);
           const center = (len - 1) / 2;
           const dist = Math.abs(idx - center);
           const period = 2000 / localSpeed;
@@ -848,13 +827,13 @@
           ], default: "left" },
           { id: "mirror", label: "Mirror", type: "checkbox", default: false },
           { id: "phaseMs", label: "Phase (ms)", type: "number", min: -5000, max: 5000, step: 50, default: 0 },
-          { id: "speed", label: "Speed", type: "number", min: 0.2, max: 3, step: 0.1, default: 1 }
+          { id: "speed", label: "Speed", type: "speed", min: 1, max: 10, step: 1, default: 1 }
         ],
         fn: (t, i, len, conf) => {
           const props = conf.props || {};
           const idx = getEffectiveIndex(i, len, conf);
           const tShift = t + (props.phaseMs ?? 0);
-          const localSpeed = ((props.speed ?? 1) * globalSpeed);
+          const localSpeed = getLocalSpeed(conf);
           const x = idx / Math.max(1, len);
           const tf = tShift * 0.001 * localSpeed;
           const v = Math.sin(6 * x + tf) +
@@ -876,13 +855,13 @@
           { id: "mirror", label: "Mirror", type: "checkbox", default: false },
           { id: "phaseMs", label: "Phase (ms)", type: "number", min: -5000, max: 5000, step: 50, default: 0 },
           { id: "color", label: "Color", type: "color", default: "#ffffff" },
-          { id: "speed", label: "Speed", type: "number", min: 0.2, max: 3, step: 0.1, default: 1 }
+          { id: "speed", label: "Speed", type: "speed", min: 1, max: 10, step: 1, default: 1 }
         ],
         fn: (t, i, len, conf) => {
           const props = conf.props || {};
           const base = hexToRgb(props.color || "#ffffff");
           const tShift = t + (props.phaseMs ?? 0);
-          const localSpeed = ((props.speed ?? 1) * globalSpeed);
+          const localSpeed = getLocalSpeed(conf);
           const frame = Math.floor(tShift / (120 / localSpeed));
           const idx = getEffectiveIndex(i, len, conf);
           const r = rand01(idx * 9283 + frame * 173);
@@ -909,13 +888,13 @@
           { id: "mirror", label: "Mirror", type: "checkbox", default: false },
           { id: "phaseMs", label: "Phase (ms)", type: "number", min: -5000, max: 5000, step: 50, default: 0 },
           { id: "color", label: "Color", type: "color", default: "#ff0080" },
-          { id: "speed", label: "Speed", type: "number", min: 0.2, max: 3, step: 0.1, default: 1 }
+          { id: "speed", label: "Speed", type: "speed", min: 1, max: 10, step: 1, default: 1 }
         ],
         fn: (t, i, len, conf) => {
           const props = conf.props || {};
           const base = hexToRgb(props.color || "#ff0080");
           const tShift = t + (props.phaseMs ?? 0);
-          const localSpeed = ((props.speed ?? 1) * globalSpeed);
+          const localSpeed = getLocalSpeed(conf);
           const period = 900 / localSpeed;
           const beatPhase = (tShift % period) / period;
           let v;
@@ -951,6 +930,36 @@
       const label = document.createElement("label");
       label.textContent = propDef.label;
       wrapper.appendChild(label);
+
+      // ✅ speed slider (1..10)
+      if (propDef.type === "speed") {
+        const input = document.createElement("input");
+        input.type = "range";
+        input.className = "speed-range";
+        input.min = String(propDef.min ?? 1);
+        input.max = String(propDef.max ?? 10);
+        input.step = String(propDef.step ?? 1);
+
+        const initial = conf.props[propDef.id] ?? propDef.default ?? 1;
+        const v0 = clamp(Math.round(Number(initial) || 1), 1, 10);
+        conf.props[propDef.id] = v0;
+        input.value = String(v0);
+
+        const valueEl = document.createElement("span");
+        valueEl.className = "range-value";
+        valueEl.textContent = String(v0);
+
+        input.addEventListener("input", () => {
+          const v = clamp(Math.round(Number(input.value) || 1), 1, 10);
+          conf.props[propDef.id] = v;
+          valueEl.textContent = String(v);
+        });
+
+        wrapper.appendChild(input);
+        wrapper.appendChild(valueEl);
+        container.appendChild(wrapper);
+        return;
+      }
 
       if (propDef.type === "color") {
         const input = document.createElement("input");
@@ -1123,6 +1132,11 @@
         animId: defaults.animId ?? ANIMATIONS[configs.length % ANIMATIONS.length].id,
         props: defaults.props ? { ...defaults.props } : {}
       };
+
+      if (!conf.props) conf.props = {};
+      if (conf.props.speed === undefined) conf.props.speed = 1;
+      conf.props.speed = clamp(Math.round(Number(conf.props.speed) || 1), 1, 10);
+
       configs.push(conf);
       const row = createConfigRow(conf);
       configsListEl.appendChild(row);
@@ -1135,7 +1149,6 @@
       updateConfigCountLabel();
     }
 
-    // JSON export/import helpers
     function openConfigModal() {
       modalError.textContent = "";
       configModalOverlay.classList.remove("hidden");
@@ -1149,7 +1162,6 @@
       return {
         ledCount: NUM_LEDS,
         globalBrightness: brightness,
-        globalSpeed: globalSpeed,
         configs: configs.map(c => ({
           start: c.start,
           length: c.length,
@@ -1159,29 +1171,24 @@
       };
     }
 
-    // Expose a stable bridge for the React shell to read the current designer config
+    // Bridge
     window.iab_getDesignerConfig = function () {
       return getConfigJsonObject();
     };
 
-    // Allow the host shell to push a saved configuration directly into the designer
     window.iab_applyDesignerConfig = function (config) {
       if (!config || !Array.isArray(config.configs)) return false;
 
       try {
         const ledCount = clamp(parseInt(config.ledCount, 10) || 0, 1, 256);
         const newBrightness = clamp(parseFloat(config.globalBrightness) || 0.9, 0.1, 1);
-        const newSpeed = clamp(parseFloat(config.globalSpeed) || 1, 0.01, 10);
 
         NUM_LEDS = ledCount;
         brightness = newBrightness;
-        globalSpeed = newSpeed;
 
         ledCountInput.value = ledCount;
         brightnessRange.value = newBrightness;
         brightnessValue.textContent = `${Math.round(newBrightness * 100)}%`;
-        speedRange.value = newSpeed;
-        speedValue.textContent = `${newSpeed.toFixed(2)}x`;
 
         createStrip();
         clearConfigs();
@@ -1194,10 +1201,7 @@
           });
         });
 
-        if (toggleText) {
-          toggleText.textContent = running ? "Pause" : "Resume";
-        }
-
+        if (toggleText) toggleText.textContent = running ? "Pause" : "Resume";
         return true;
       } catch (error) {
         console.error("Failed to apply designer config", error);
@@ -1228,7 +1232,6 @@
 
       let ledCount = NUM_LEDS;
       let newBrightness = brightness;
-      let newSpeed = globalSpeed;
       let newConfigs = [];
 
       if (Array.isArray(data)) {
@@ -1236,7 +1239,6 @@
       } else if (data && typeof data === "object") {
         if (data.ledCount !== undefined) ledCount = data.ledCount;
         if (data.globalBrightness !== undefined) newBrightness = data.globalBrightness;
-        if (data.globalSpeed !== undefined) newSpeed = data.globalSpeed;
         if (Array.isArray(data.configs)) newConfigs = data.configs;
       } else {
         modalError.textContent = "JSON root should be an object or array.";
@@ -1251,13 +1253,10 @@
       ledCount = clamp(parseInt(ledCount, 10) || 16, 4, 64);
       NUM_LEDS = ledCount;
       brightness = clamp(parseFloat(newBrightness) || 0.9, 0.1, 1);
-      globalSpeed = clamp(parseFloat(newSpeed) || 1, 0.2, 2.5);
 
       ledCountInput.value = NUM_LEDS;
       brightnessRange.value = brightness;
-      speedRange.value = globalSpeed;
       brightnessValue.textContent = `${Math.round(brightness * 100)}%`;
-      speedValue.textContent = `${globalSpeed.toFixed(2)}×`;
 
       createStrip();
 
@@ -1268,21 +1267,17 @@
         const length = clamp(parseInt(c.length, 10) || 1, 1, NUM_LEDS - start);
         const animId = typeof c.animId === "string" ? c.animId : ANIMATIONS[0].id;
         const props = c.props && typeof c.props === "object" ? c.props : {};
+        if (props.speed !== undefined) props.speed = clamp(Math.round(Number(props.speed) || 1), 1, 10);
         addConfig({ start, length, animId, props });
       });
 
       modalError.textContent = "Config applied.";
     }
 
-    // Controls bindings
+    // Controls
     brightnessRange.addEventListener("input", () => {
       brightness = parseFloat(brightnessRange.value);
       brightnessValue.textContent = `${Math.round(brightness * 100)}%`;
-    });
-
-    speedRange.addEventListener("input", () => {
-      globalSpeed = parseFloat(speedRange.value);
-      speedValue.textContent = `${globalSpeed.toFixed(2)}×`;
     });
 
     ledCountInput.addEventListener("change", () => {
@@ -1363,24 +1358,16 @@
 
     createStrip();
     brightnessValue.textContent = `${Math.round(brightness * 100)}%`;
-    speedValue.textContent = `${globalSpeed.toFixed(2)}×`;
 
-    // Default configs so it does something
+    // Default config
     addConfig({
       start: 0,
       length: 16,
       animId: "police",
       props: { direction: "left", mirror: false, phaseMs: 0, speed: 1 }
     });
+
     requestAnimationFrame(loop);
   </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
